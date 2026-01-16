@@ -217,6 +217,25 @@ const CursoDetalle = () => {
                   </Badge>
                 </div>
 
+                {/* Mobile Image - Premium & Glare Effect */}
+                <div className="block lg:hidden mb-8 relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-accent via-purple-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000" />
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video">
+                    <img
+                      src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
+                      alt={course.title}
+                      className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
+
+                    {/* Floating Mobile Badge */}
+                    <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-md text-white text-[10px] font-medium px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+                      <Award className="w-3 h-3 text-accent" />
+                      <span>Certificado</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Title */}
                 <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                   {course.title}

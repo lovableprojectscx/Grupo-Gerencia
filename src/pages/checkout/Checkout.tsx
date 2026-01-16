@@ -177,33 +177,40 @@ export default function Checkout() {
         <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
             <Navbar />
 
-            <main className="flex-1 container-custom pt-32 pb-20">
-                {/* Steps Indicator */}
-                <div className="flex items-center justify-center mb-12">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-muted-foreground">
+            <main className="flex-1 container-custom pt-24 md:pt-32 pb-12 md:pb-20">
+                {/* Steps Indicator - Fully Responsive */}
+                <div className="flex items-center justify-center mb-8 md:mb-12">
+                    <div className="flex items-center gap-2 md:gap-4">
+                        {/* Step 1 */}
+                        <div className="flex items-center gap-2 text-muted-foreground opacity-60">
                             <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-sm font-medium">1</span>
-                            <span>Resumen</span>
+                            <span className="hidden md:block">Resumen</span>
                         </div>
-                        <div className="w-12 h-[1px] bg-border" />
-                        <div className="flex items-center gap-2 text-primary font-medium">
-                            <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm shadow-lg shadow-primary/25">2</span>
+
+                        <div className="w-8 md:w-12 h-[1px] bg-border" />
+
+                        {/* Step 2 (Active) */}
+                        <div className="flex items-center gap-2 text-primary font-medium scale-105 transform">
+                            <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm shadow-lg shadow-primary/25 ring-2 ring-primary/20 ring-offset-2">2</span>
                             <span>Pago</span>
                         </div>
-                        <div className="w-12 h-[1px] bg-border" />
-                        <div className="flex items-center gap-2 text-muted-foreground">
+
+                        <div className="w-8 md:w-12 h-[1px] bg-border" />
+
+                        {/* Step 3 */}
+                        <div className="flex items-center gap-2 text-muted-foreground opacity-60">
                             <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-sm font-medium">3</span>
-                            <span>Confirmación</span>
+                            <span className="hidden md:block">Confirmación</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 max-w-6xl mx-auto">
+                <div className="grid lg:grid-cols-3 gap-6 lg:gap-12 max-w-6xl mx-auto">
 
                     {/* Left Column: Payment Methods */}
                     <div className="lg:col-span-2 space-y-6 md:space-y-8">
-                        <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Finalizar Compra</h1>
+                        <div className="space-y-1 md:space-y-2 text-center md:text-left">
+                            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">Finalizar Compra</h1>
                             <p className="text-sm md:text-base text-muted-foreground">Selecciona tu método de pago y completa tu inscripción.</p>
                         </div>
 
@@ -247,7 +254,7 @@ export default function Checkout() {
                                     <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
                                         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start justify-center">
                                             {/* QR / Icon */}
-                                            <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-border w-32 md:w-48 shrink-0 relative group">
+                                            <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-border w-48 md:w-56 shrink-0 relative group transition-all hover:scale-105">
                                                 {selectedMethod.type === 'qr' && selectedMethod.qr_url ? (
                                                     <div className="aspect-square relative overflow-hidden rounded-lg">
                                                         <img

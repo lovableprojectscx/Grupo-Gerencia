@@ -25,6 +25,7 @@ const navLinks = [
       { label: "Escuela de Salud", href: "/catalogo?area=health" },
       { label: "Ingeniería", href: "/catalogo?area=engineering" },
       { label: "Agronomía", href: "/catalogo?area=agronomy" },
+      { label: "Veterinaria", href: "/catalogo?area=veterinary" },
       { label: "Gestión Pública y Empresarial", href: "/catalogo?area=management" },
     ],
   },
@@ -78,7 +79,7 @@ export const Navbar = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-12 h-12 flex items-center justify-center">
-                <img src="/assets/logo.png" alt="Logo" className="w-full h-full object-contain scale-125" />
+                <img src="/assets/new-logo.png" alt="Logo" className="w-full h-full object-contain scale-125" />
               </div>
               <div className={cn(
                 "hidden sm:block transition-colors",
