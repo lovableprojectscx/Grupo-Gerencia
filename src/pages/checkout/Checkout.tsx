@@ -177,58 +177,59 @@ export default function Checkout() {
         <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
             <Navbar />
 
-            <main className="flex-1 container-custom pt-32 pb-20">
-                {/* Steps Indicator */}
-                <div className="flex items-center justify-center mb-12">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-sm font-medium">1</span>
-                            <span>Resumen</span>
+            <main className="flex-1 container-custom pt-24 md:pt-32 pb-16 md:pb-20 px-4 md:px-6">
+                {/* Steps Indicator - Mobile optimized */}
+                <div className="flex items-center justify-center mb-8 md:mb-12 overflow-x-auto">
+                    <div className="flex items-center gap-2 md:gap-4 min-w-max px-2">
+                        <div className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                            <span className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-border flex items-center justify-center text-xs md:text-sm font-medium shrink-0">1</span>
+                            <span className="text-xs md:text-base whitespace-nowrap">Resumen</span>
                         </div>
-                        <div className="w-12 h-[1px] bg-border" />
-                        <div className="flex items-center gap-2 text-primary font-medium">
-                            <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm shadow-lg shadow-primary/25">2</span>
-                            <span>Pago</span>
+                        <div className="w-6 md:w-12 h-[1px] bg-border shrink-0" />
+                        <div className="flex items-center gap-1.5 md:gap-2 text-primary font-medium">
+                            <span className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs md:text-sm shadow-lg shadow-primary/25 shrink-0">2</span>
+                            <span className="text-xs md:text-base whitespace-nowrap">Pago</span>
                         </div>
-                        <div className="w-12 h-[1px] bg-border" />
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-sm font-medium">3</span>
-                            <span>Confirmación</span>
+                        <div className="w-6 md:w-12 h-[1px] bg-border shrink-0" />
+                        <div className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                            <span className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-border flex items-center justify-center text-xs md:text-sm font-medium shrink-0">3</span>
+                            <span className="text-xs md:text-base whitespace-nowrap hidden sm:inline">Confirmación</span>
+                            <span className="text-xs md:text-base whitespace-nowrap sm:hidden">Confirmar</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 max-w-6xl mx-auto">
+                <div className="grid lg:grid-cols-3 gap-6 lg:gap-12 max-w-6xl mx-auto">
 
                     {/* Left Column: Payment Methods */}
-                    <div className="lg:col-span-2 space-y-6 md:space-y-8">
-                        <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Finalizar Compra</h1>
-                            <p className="text-sm md:text-base text-muted-foreground">Selecciona tu método de pago y completa tu inscripción.</p>
+                    <div className="lg:col-span-2 space-y-5 md:space-y-8">
+                        <div className="space-y-1.5 md:space-y-2">
+                            <h1 className="text-xl md:text-3xl font-bold text-foreground">Finalizar Compra</h1>
+                            <p className="text-xs md:text-base text-muted-foreground">Selecciona tu método de pago y completa tu inscripción.</p>
                         </div>
 
-                        <motion.div layout className="space-y-6">
-                            {/* Payment Method Selection - Grid on mobile for better visibility */}
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                        <motion.div layout className="space-y-5 md:space-y-6">
+                            {/* Payment Method Selection - Horizontal scroll on mobile */}
+                            <div className="flex gap-2.5 md:gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
                                 {paymentMethods.map((method) => (
                                     <div
                                         key={method.id}
                                         onClick={() => setSelectedMethodId(method.id)}
                                         className={`
-                                            cursor-pointer rounded-xl border p-3 md:p-4 flex flex-col items-center justify-center gap-2 text-center transition-all bg-card hover:bg-accent/5
+                                            cursor-pointer rounded-xl border p-3 md:p-4 flex flex-col items-center justify-center gap-1.5 md:gap-2 text-center transition-all bg-card hover:bg-accent/5 snap-start shrink-0 w-[calc(50%-0.5rem)] min-w-[120px] md:w-auto md:min-w-0
                                             ${selectedMethodId === method.id ? "border-primary ring-1 ring-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/50"}
                                         `}
                                     >
                                         {method.type === 'qr' ? (
-                                            <div className="p-2 bg-purple-100 text-purple-600 rounded-full">
+                                            <div className="p-1.5 md:p-2 bg-purple-100 text-purple-600 rounded-full">
                                                 <ScanLine className="w-4 h-4 md:w-5 md:h-5" />
                                             </div>
                                         ) : (
-                                            <div className="p-2 bg-blue-100 text-blue-600 rounded-full">
+                                            <div className="p-1.5 md:p-2 bg-blue-100 text-blue-600 rounded-full">
                                                 <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
                                             </div>
                                         )}
-                                        <span className="font-semibold text-xs md:text-sm line-clamp-1">{method.name}</span>
+                                        <span className="font-semibold text-[11px] md:text-sm line-clamp-1">{method.name}</span>
                                     </div>
                                 ))}
                             </div>
