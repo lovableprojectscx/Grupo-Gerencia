@@ -197,122 +197,124 @@ export default function AdminEnrollments() {
                                 {isLoading ? (
                                     <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
                                 ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Fecha</TableHead>
-                                                <TableHead>Estudiante</TableHead>
-                                                <TableHead>Curso</TableHead>
-                                                <TableHead>Comprobante</TableHead>
-                                                <TableHead>Estado</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredEnrollments?.filter((e: any) => tab === 'all' || e.status === tab).map((enrollment: any) => (
-                                                <TableRow key={enrollment.id}>
-                                                    <TableCell className="font-medium whitespace-nowrap">
-                                                        {format(new Date(enrollment.purchased_at), "dd MMM yyyy", { locale: es })}
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {format(new Date(enrollment.purchased_at), "HH:mm", { locale: es })}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="font-medium">{enrollment.profiles?.full_name || "Sin nombre"}</div>
-                                                        <div className="text-xs text-muted-foreground">{enrollment.profiles?.dni}</div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="font-medium max-w-[200px] truncate" title={enrollment.courses?.title}>
-                                                            {enrollment.courses?.title}
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {enrollment.courses?.price ? `S/ ${enrollment.courses.price}` : "Gratis"}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {enrollment.voucher_url ? (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                                                onClick={() => setSelectedVoucher(enrollment.voucher_url)}
-                                                            >
-                                                                <FileImage className="w-4 h-4 mr-2" />
-                                                                Ver Voucher
-                                                            </Button>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground italic">No adjunto</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <StatusBadge status={enrollment.status} />
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            {enrollment.status === 'pending' && (
-                                                                <>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        className="text-green-600 border-green-200 hover:bg-green-50"
-                                                                        onClick={() => approveMutation.mutate(enrollment.id)}
-                                                                        disabled={approveMutation.isPending}
-                                                                        title="Aprobar Inscripción"
-                                                                    >
-                                                                        {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        className="text-red-600 border-red-200 hover:bg-red-50"
-                                                                        onClick={() => rejectMutation.mutate(enrollment.id)}
-                                                                        disabled={rejectMutation.isPending}
-                                                                        title="Rechazar Inscripción"
-                                                                    >
-                                                                        {rejectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                                                    </Button>
-                                                                </>
-                                                            )}
-                                                            {enrollment.status === 'active' && (
-                                                                <>
-                                                                    {enrollment.certificatesList && enrollment.certificatesList.length > 0 ? (
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                                                                            onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
-                                                                        >
-                                                                            <Award className="w-4 h-4 mr-2" />
-                                                                            Ver Certificado
-                                                                        </Button>
-                                                                    ) : (
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            disabled={isGenerating === enrollment.id}
-                                                                            onClick={() => handleGenerateCertificate(enrollment.id)}
-                                                                            className={isGenerating === enrollment.id ? "opacity-50" : ""}
-                                                                            title="Generar Certificado Manualmente"
-                                                                        >
-                                                                            {isGenerating === enrollment.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Award className="w-4 h-4 mr-2" />}
-                                                                            Generar
-                                                                        </Button>
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {!isLoading && (!filteredEnrollments || filteredEnrollments.length === 0) && (
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
                                                 <TableRow>
-                                                    <TableCell colSpan={6} className="h-24 text-center">
-                                                        No se encontraron inscripciones.
-                                                    </TableCell>
+                                                    <TableHead>Fecha</TableHead>
+                                                    <TableHead>Estudiante</TableHead>
+                                                    <TableHead>Curso</TableHead>
+                                                    <TableHead>Comprobante</TableHead>
+                                                    <TableHead>Estado</TableHead>
+                                                    <TableHead className="text-right">Acciones</TableHead>
                                                 </TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredEnrollments?.filter((e: any) => tab === 'all' || e.status === tab).map((enrollment: any) => (
+                                                    <TableRow key={enrollment.id}>
+                                                        <TableCell className="font-medium whitespace-nowrap">
+                                                            {format(new Date(enrollment.purchased_at), "dd MMM yyyy", { locale: es })}
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {format(new Date(enrollment.purchased_at), "HH:mm", { locale: es })}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-medium">{enrollment.profiles?.full_name || "Sin nombre"}</div>
+                                                            <div className="text-xs text-muted-foreground">{enrollment.profiles?.dni}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-medium max-w-[200px] truncate" title={enrollment.courses?.title}>
+                                                                {enrollment.courses?.title}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {enrollment.courses?.price ? `S/ ${enrollment.courses.price}` : "Gratis"}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {enrollment.voucher_url ? (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                                    onClick={() => setSelectedVoucher(enrollment.voucher_url)}
+                                                                >
+                                                                    <FileImage className="w-4 h-4 mr-2" />
+                                                                    Ver Voucher
+                                                                </Button>
+                                                            ) : (
+                                                                <span className="text-xs text-muted-foreground italic">No adjunto</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <StatusBadge status={enrollment.status} />
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                {enrollment.status === 'pending' && (
+                                                                    <>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="text-green-600 border-green-200 hover:bg-green-50"
+                                                                            onClick={() => approveMutation.mutate(enrollment.id)}
+                                                                            disabled={approveMutation.isPending}
+                                                                            title="Aprobar Inscripción"
+                                                                        >
+                                                                            {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="text-red-600 border-red-200 hover:bg-red-50"
+                                                                            onClick={() => rejectMutation.mutate(enrollment.id)}
+                                                                            disabled={rejectMutation.isPending}
+                                                                            title="Rechazar Inscripción"
+                                                                        >
+                                                                            {rejectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                                                        </Button>
+                                                                    </>
+                                                                )}
+                                                                {enrollment.status === 'active' && (
+                                                                    <>
+                                                                        {enrollment.certificatesList && enrollment.certificatesList.length > 0 ? (
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                                                onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
+                                                                            >
+                                                                                <Award className="w-4 h-4 mr-2" />
+                                                                                Ver Certificado
+                                                                            </Button>
+                                                                        ) : (
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                disabled={isGenerating === enrollment.id}
+                                                                                onClick={() => handleGenerateCertificate(enrollment.id)}
+                                                                                className={isGenerating === enrollment.id ? "opacity-50" : ""}
+                                                                                title="Generar Certificado Manualmente"
+                                                                            >
+                                                                                {isGenerating === enrollment.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Award className="w-4 h-4 mr-2" />}
+                                                                                Generar
+                                                                            </Button>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {!isLoading && (!filteredEnrollments || filteredEnrollments.length === 0) && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="h-24 text-center">
+                                                            No se encontraron inscripciones.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

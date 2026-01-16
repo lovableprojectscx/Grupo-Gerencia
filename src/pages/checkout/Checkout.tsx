@@ -208,28 +208,27 @@ export default function Checkout() {
                         </div>
 
                         <motion.div layout className="space-y-6">
-                            {/* Payment Method Selection - Horizontal scroll on mobile */}
-                            <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto pb-4 md:pb-0 snap-x scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                            {/* Payment Method Selection - Grid on mobile for better visibility */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                                 {paymentMethods.map((method) => (
                                     <div
                                         key={method.id}
                                         onClick={() => setSelectedMethodId(method.id)}
                                         className={`
-                                            min-w-[120px] md:min-w-0 snap-center
-                                            cursor-pointer rounded-xl border p-4 flex flex-col items-center justify-center gap-2 text-center transition-all bg-card hover:bg-accent/5
-                                            ${selectedMethodId === method.id ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border hover:border-primary/50"}
+                                            cursor-pointer rounded-xl border p-3 md:p-4 flex flex-col items-center justify-center gap-2 text-center transition-all bg-card hover:bg-accent/5
+                                            ${selectedMethodId === method.id ? "border-primary ring-1 ring-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/50"}
                                         `}
                                     >
                                         {method.type === 'qr' ? (
                                             <div className="p-2 bg-purple-100 text-purple-600 rounded-full">
-                                                <ScanLine className="w-5 h-5" />
+                                                <ScanLine className="w-4 h-4 md:w-5 md:h-5" />
                                             </div>
                                         ) : (
                                             <div className="p-2 bg-blue-100 text-blue-600 rounded-full">
-                                                <CreditCard className="w-5 h-5" />
+                                                <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
                                             </div>
                                         )}
-                                        <span className="font-semibold text-xs md:text-sm">{method.name}</span>
+                                        <span className="font-semibold text-xs md:text-sm line-clamp-1">{method.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -248,7 +247,7 @@ export default function Checkout() {
                                     <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
                                         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start justify-center">
                                             {/* QR / Icon */}
-                                            <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-border w-40 md:w-48 shrink-0 relative group">
+                                            <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-border w-32 md:w-48 shrink-0 relative group">
                                                 {selectedMethod.type === 'qr' && selectedMethod.qr_url ? (
                                                     <div className="aspect-square relative overflow-hidden rounded-lg">
                                                         <img
@@ -260,22 +259,22 @@ export default function Checkout() {
                                                 ) : (
                                                     <div className="aspect-square flex flex-col items-center justify-center bg-gray-50 rounded-lg text-muted-foreground">
                                                         {selectedMethod.type === 'qr' ? (
-                                                            <ScanLine className="w-10 md:w-12 h-10 md:h-12 opacity-20" />
+                                                            <ScanLine className="w-8 h-8 md:w-12 md:h-12 opacity-20" />
                                                         ) : (
-                                                            <University className="w-10 md:w-12 h-10 md:h-12 opacity-20" />
+                                                            <University className="w-8 h-8 md:w-12 md:h-12 opacity-20" />
                                                         )}
-                                                        <span className="text-xs mt-2 block opacity-50">{selectedMethod.name}</span>
+                                                        <span className="text-[10px] md:text-sm mt-2 block opacity-50">{selectedMethod.name}</span>
                                                     </div>
                                                 )}
                                                 {selectedMethod.type === 'qr' && <p className="text-center text-[10px] md:text-xs font-medium text-muted-foreground mt-2 md:mt-3">Escanea el QR</p>}
                                             </div>
 
                                             {/* Details */}
-                                            <div className="flex-1 space-y-4 md:space-y-6 w-full text-center md:text-left">
-                                                <div className="space-y-4">
+                                            <div className="flex-1 space-y-3 md:space-y-6 w-full text-center md:text-left">
+                                                <div className="space-y-3 md:space-y-4">
                                                     <div>
                                                         <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">Titular</Label>
-                                                        <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2 mt-1 text-foreground font-medium text-sm md:text-base justify-center md:justify-start">
+                                                        <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2 mt-0.5 md:mt-1 text-foreground font-medium text-sm md:text-base justify-center md:justify-start">
                                                             <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 text-emerald-500 hidden md:block" />
                                                             <span>{selectedMethod.account_name}</span>
                                                             <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 text-emerald-500 md:hidden inline" />
@@ -286,8 +285,8 @@ export default function Checkout() {
                                                         <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">
                                                             {selectedMethod.type === 'qr' ? "Número de Celular" : "Número de Cuenta"}
                                                         </Label>
-                                                        <div className="flex items-center gap-2 mt-1.5 container-input bg-secondary/30 p-2 pl-3 md:pl-4 rounded-lg border border-border">
-                                                            <span className="font-mono text-lg md:text-xl font-bold tracking-wide text-foreground flex-1 text-center md:text-left break-all select-all">
+                                                        <div className="flex items-center gap-2 mt-1 container-input bg-secondary/30 p-2 pl-3 md:pl-4 rounded-lg border border-border">
+                                                            <span className="font-mono text-base md:text-xl font-bold tracking-wide text-foreground flex-1 text-center md:text-left break-all select-all">
                                                                 {selectedMethod.account_number}
                                                             </span>
                                                             <Button
