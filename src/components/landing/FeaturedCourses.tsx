@@ -12,7 +12,7 @@ export const FeaturedCourses = () => {
     queryFn: courseService.getAll,
   });
 
-  const featuredCourses = courses?.filter((course: any) => course.published).slice(0, 4) || [];
+  const featuredCourses = courses?.filter((course: any) => course.published && !course.is_archived).slice(0, 4) || [];
 
   return (
     <section className="section-padding bg-background">

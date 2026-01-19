@@ -85,7 +85,7 @@ const Catalogo = () => {
 
     let result = courses.filter((course: any) => {
       // Basic validation
-      if (!course.published) return false;
+      if (!course.published || course.is_archived) return false;
 
       // Search filter
       // Search filter
