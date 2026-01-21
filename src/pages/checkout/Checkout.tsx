@@ -216,186 +216,188 @@ export default function Checkout() {
                         </div>
 
                         <motion.div layout className="space-y-5 md:space-y-6">
-                        {/* Payment Method Selection - Horizontal scroll on mobile */}
-                        <div className="flex gap-2.5 md:gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
-                            {paymentMethods.map((method) => (
-                                <div
-                                    key={method.id}
-                                    onClick={() => setSelectedMethodId(method.id)}
-                                    className={`
+                            {/* Payment Method Selection - Horizontal scroll on mobile */}
+                            <div className="flex gap-2.5 md:gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
+                                {paymentMethods.map((method) => (
+                                    <div
+                                        key={method.id}
+                                        onClick={() => setSelectedMethodId(method.id)}
+                                        className={`
                                             cursor-pointer rounded-xl border p-3 md:p-4 flex flex-col items-center justify-center gap-1.5 md:gap-2 text-center transition-all bg-card hover:bg-accent/5 snap-start shrink-0 w-[calc(50%-0.5rem)] min-w-[120px] md:w-auto md:min-w-0
                                             ${selectedMethodId === method.id ? "border-primary ring-1 ring-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/50"}
                                         `}
-                                >
-                                    {method.type === 'qr' ? (
-                                        <div className="p-1.5 md:p-2 bg-purple-100 text-purple-600 rounded-full">
-                                            <ScanLine className="w-4 h-4 md:w-5 md:h-5" />
-                                        </div>
-                                    ) : (
-                                        <div className="p-1.5 md:p-2 bg-blue-100 text-blue-600 rounded-full">
-                                            <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
-                                        </div>
-                                    )}
-                                    <span className="font-semibold text-[11px] md:text-sm line-clamp-1">{method.name}</span>
-                                </div>
-                            ))}
-                        </div>
+                                    >
+                                        {method.type === 'qr' ? (
+                                            <div className="p-1.5 md:p-2 bg-purple-100 text-purple-600 rounded-full">
+                                                <ScanLine className="w-4 h-4 md:w-5 md:h-5" />
+                                            </div>
+                                        ) : (
+                                            <div className="p-1.5 md:p-2 bg-blue-100 text-blue-600 rounded-full">
+                                                <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
+                                            </div>
+                                        )}
+                                        <span className="font-semibold text-[11px] md:text-sm line-clamp-1">{method.name}</span>
+                                    </div>
+                                ))}
+                            </div>
 
-                        {selectedMethod && (
-                            <Card className="border-border shadow-sm overflow-hidden animate-in fade-in zoom-in duration-300">
-                                <CardHeader className="bg-secondary/20 border-b border-border/50 pb-4 p-4 md:p-6 text-center md:text-left">
-                                    <CardTitle className="flex flex-col md:flex-row items-center gap-2 text-base md:text-lg">
-                                        {selectedMethod.type === 'qr' ? <Smartphone className="w-5 h-5 text-primary" /> : <University className="w-5 h-5 text-blue-600" />}
-                                        <span>Datos para {selectedMethod.name}</span>
-                                    </CardTitle>
-                                    <CardDescription className="text-xs md:text-sm">
-                                        {selectedMethod.type === 'qr' ? "Escanea el código o usa el número." : "Realiza la transferencia a la siguiente cuenta."}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
-                                    <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start justify-center">
-                                        {/* QR / Icon */}
-                                        <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-border w-48 md:w-56 shrink-0 relative group transition-all hover:scale-105">
-                                            {selectedMethod.type === 'qr' && selectedMethod.qr_url ? (
-                                                <div className="aspect-square relative overflow-hidden rounded-lg">
-                                                    <img
-                                                        src={selectedMethod.qr_url}
-                                                        alt={`QR ${selectedMethod.name}`}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="aspect-square flex flex-col items-center justify-center bg-gray-50 rounded-lg text-muted-foreground">
-                                                    {selectedMethod.type === 'qr' ? (
-                                                        <ScanLine className="w-8 h-8 md:w-12 md:h-12 opacity-20" />
-                                                    ) : (
-                                                        <University className="w-8 h-8 md:w-12 md:h-12 opacity-20" />
-                                                    )}
-                                                    <span className="text-[10px] md:text-sm mt-2 block opacity-50">{selectedMethod.name}</span>
-                                                </div>
-                                            )}
-                                            {selectedMethod.type === 'qr' && <p className="text-center text-[10px] md:text-xs font-medium text-muted-foreground mt-2 md:mt-3">Escanea el QR</p>}
-                                        </div>
-
-                                        {/* Details */}
-                                        <div className="flex-1 space-y-3 md:space-y-6 w-full text-center md:text-left">
-                                            <div className="space-y-3 md:space-y-4">
-                                                <div>
-                                                    <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">Titular</Label>
-                                                    <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2 mt-0.5 md:mt-1 text-foreground font-medium text-sm md:text-base justify-center md:justify-start">
-                                                        <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 text-emerald-500 hidden md:block" />
-                                                        <span>{selectedMethod.account_name}</span>
-                                                        <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 text-emerald-500 md:hidden inline" />
+                            {selectedMethod && (
+                                <Card className="border-border shadow-sm overflow-hidden animate-in fade-in zoom-in duration-300">
+                                    <CardHeader className="bg-secondary/20 border-b border-border/50 pb-4 p-4 md:p-6 text-center md:text-left">
+                                        <CardTitle className="flex flex-col md:flex-row items-center gap-2 text-base md:text-lg">
+                                            {selectedMethod.type === 'qr' ? <Smartphone className="w-5 h-5 text-primary" /> : <University className="w-5 h-5 text-blue-600" />}
+                                            <span>Datos para {selectedMethod.name}</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-xs md:text-sm">
+                                            {selectedMethod.type === 'qr' ? "Escanea el código o usa el número." : "Realiza la transferencia a la siguiente cuenta."}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
+                                        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start justify-center">
+                                            {/* QR / Icon */}
+                                            <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-border w-48 md:w-56 shrink-0 relative group transition-all hover:scale-105">
+                                                {selectedMethod.type === 'qr' && selectedMethod.qr_url ? (
+                                                    <div className="aspect-square relative overflow-hidden rounded-lg">
+                                                        <img
+                                                            src={selectedMethod.qr_url}
+                                                            alt={`QR ${selectedMethod.name}`}
+                                                            className="w-full h-full object-cover"
+                                                        />
                                                     </div>
-                                                </div>
-
-                                                <div className="relative group">
-                                                    <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">
-                                                        {selectedMethod.type === 'qr' ? "Número de Celular" : "Número de Cuenta"}
-                                                    </Label>
-                                                    <div className="flex items-center gap-2 mt-1 container-input bg-secondary/30 p-2 pl-3 md:pl-4 rounded-lg border border-border">
-                                                        <span className="font-mono text-base md:text-xl font-bold tracking-wide text-foreground flex-1 text-center md:text-left break-all select-all">
-                                                            {selectedMethod.account_number}
-                                                        </span>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="h-8 w-8 p-0"
-                                                            onClick={() => {
-                                                                navigator.clipboard.writeText(selectedMethod.account_number);
-                                                                toast.success("Copiado al portapapeles");
-                                                            }}
-                                                        >
-                                                            <Copy className="w-4 h-4" />
-                                                        </Button>
+                                                ) : (
+                                                    <div className="aspect-square flex flex-col items-center justify-center bg-gray-50 rounded-lg text-muted-foreground">
+                                                        {selectedMethod.type === 'qr' ? (
+                                                            <ScanLine className="w-8 h-8 md:w-12 md:h-12 opacity-20" />
+                                                        ) : (
+                                                            <University className="w-8 h-8 md:w-12 md:h-12 opacity-20" />
+                                                        )}
+                                                        <span className="text-[10px] md:text-sm mt-2 block opacity-50">{selectedMethod.name}</span>
                                                     </div>
-                                                </div>
+                                                )}
+                                                {selectedMethod.type === 'qr' && <p className="text-center text-[10px] md:text-xs font-medium text-muted-foreground mt-2 md:mt-3">Escanea el QR</p>}
+                                            </div>
 
-                                                {selectedMethod.cci && (
+                                            {/* Details */}
+                                            <div className="flex-1 space-y-3 md:space-y-6 w-full text-center md:text-left">
+                                                <div className="space-y-3 md:space-y-4">
                                                     <div>
-                                                        <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">CCI</Label>
-                                                        <div className="flex items-center gap-2 mt-1.5 bg-secondary/10 p-2 pl-3 md:pl-4 rounded-lg border border-border/50">
-                                                            <span className="font-mono text-xs md:text-sm tracking-wide text-foreground flex-1 text-center md:text-left break-all select-all">
-                                                                {selectedMethod.cci}
+                                                        <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">Titular</Label>
+                                                        <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2 mt-0.5 md:mt-1 text-foreground font-medium text-sm md:text-base justify-center md:justify-start">
+                                                            <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 text-emerald-500 hidden md:block" />
+                                                            <span>{selectedMethod.account_name}</span>
+                                                            <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 text-emerald-500 md:hidden inline" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="relative group">
+                                                        <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">
+                                                            {selectedMethod.type === 'qr' ? "Número de Celular" : "Número de Cuenta"}
+                                                        </Label>
+                                                        <div className="flex items-center gap-2 mt-1 container-input bg-secondary/30 p-2 pl-3 md:pl-4 rounded-lg border border-border">
+                                                            <span className="font-mono text-base md:text-xl font-bold tracking-wide text-foreground flex-1 text-center md:text-left break-all select-all">
+                                                                {selectedMethod.account_number}
                                                             </span>
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
-                                                                className="h-7 w-7 p-0"
+                                                                className="h-8 w-8 p-0"
                                                                 onClick={() => {
-                                                                    navigator.clipboard.writeText(selectedMethod.cci!);
-                                                                    toast.success("CCI copiado");
+                                                                    navigator.clipboard.writeText(selectedMethod.account_number);
+                                                                    toast.success("Copiado al portapapeles");
                                                                 }}
                                                             >
-                                                                <Copy className="w-3 h-3" />
+                                                                <Copy className="w-4 h-4" />
                                                             </Button>
                                                         </div>
                                                     </div>
-                                                )}
 
-                                                {selectedMethod.instructions && (
-                                                    <div className="bg-amber-50 border border-amber-100 text-amber-700 p-3 rounded-lg text-xs md:text-sm flex gap-3 text-left">
-                                                        <AlertCircle className="w-4 h-4 md:w-5 md:h-5 shrink-0 mt-0.5" />
-                                                        <p>{selectedMethod.instructions}</p>
-                                                    </div>
-                                                )}
+                                                    {selectedMethod.cci && (
+                                                        <div>
+                                                            <Label className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider font-semibold">CCI</Label>
+                                                            <div className="flex items-center gap-2 mt-1.5 bg-secondary/10 p-2 pl-3 md:pl-4 rounded-lg border border-border/50">
+                                                                <span className="font-mono text-xs md:text-sm tracking-wide text-foreground flex-1 text-center md:text-left break-all select-all">
+                                                                    {selectedMethod.cci}
+                                                                </span>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-7 w-7 p-0"
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(selectedMethod.cci!);
+                                                                        toast.success("CCI copiado");
+                                                                    }}
+                                                                >
+                                                                    <Copy className="w-3 h-3" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {selectedMethod.instructions && (
+                                                        <div className="bg-amber-50 border border-amber-100 text-amber-700 p-3 rounded-lg text-xs md:text-sm flex gap-3 text-left">
+                                                            <AlertCircle className="w-4 h-4 md:w-5 md:h-5 shrink-0 mt-0.5" />
+                                                            <p>{selectedMethod.instructions}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </motion.div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </motion.div>
 
-                    <Separator />
+                        <Separator />
 
-                    {/* Upload Section - Improved */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="voucher" className="text-sm md:text-base font-semibold">Adjuntar Comprobante</Label>
-                            <span className="text-[10px] md:text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">Requerido</span>
-                        </div>
+                        {/* Upload Section - Improved */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="voucher" className="text-sm md:text-base font-semibold">Adjuntar Comprobante</Label>
+                                <span className="text-[10px] md:text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">Requerido</span>
+                            </div>
 
-                        <div
-                            className={`
+                            <div
+                                className={`
                                     border-2 border-dashed rounded-xl p-6 md:p-8 text-center transition-all cursor-pointer relative
                                     ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-secondary/30"}
                                     ${file ? "bg-green-50 border-green-200" : ""}
                                 `}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                        >
-                            <Input
-                                id="voucher"
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={handleFileChange}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            />
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                            >
+                                <Input
+                                    id="voucher"
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    onChange={handleFileChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
 
-                            {file ? (
-                                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
-                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
-                                        <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+                                {file ? (
+                                    <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                                            <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+                                        </div>
+                                        <p className="font-semibold text-green-700 text-base md:text-lg max-w-[200px] truncate">{file.name}</p>
+                                        <p className="text-green-600/80 text-xs md:text-sm mt-1">Archivo listo para subir</p>
+                                        <Button size="sm" variant="outline" className="mt-4 border-green-200 text-green-700 hover:bg-green-100 z-20 relative">
+                                            Cambiar archivo
+                                        </Button>
                                     </div>
-                                    <p className="font-semibold text-green-700 text-base md:text-lg max-w-[200px] truncate">{file.name}</p>
-                                    <p className="text-green-600/80 text-xs md:text-sm mt-1">Archivo listo para subir</p>
-                                    <Button size="sm" variant="outline" className="mt-4 border-green-200 text-green-700 hover:bg-green-100 z-20 relative">
-                                        Cambiar archivo
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center text-muted-foreground pointer-events-none">
-                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
-                                        <UploadCloud className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                                ) : (
+                                    <div className="flex flex-col items-center text-muted-foreground pointer-events-none">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
+                                            <UploadCloud className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        </div>
+                                        <p className="font-medium text-foreground text-sm md:text-base">Toca para subir comprobante</p>
+                                        <p className="hidden md:block text-sm mt-1">o arrastra el archivo aquí</p>
+                                        <p className="text-xs mt-4 text-muted-foreground/70">JPG, PNG o PDF (Max 5MB)</p>
                                     </div>
-                                    <p className="font-medium text-foreground text-sm md:text-base">Toca para subir comprobante</p>
-                                    <p className="hidden md:block text-sm mt-1">o arrastra el archivo aquí</p>
-                                    <p className="text-xs mt-4 text-muted-foreground/70">JPG, PNG o PDF (Max 5MB)</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
+
                     </div>
 
                     {/* Right Column: Sticky Summary */}
