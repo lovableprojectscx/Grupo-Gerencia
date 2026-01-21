@@ -82,12 +82,12 @@ export const Navbar = () => {
                 <img src="/assets/new-logo.png" alt="Logo" className="w-full h-full object-contain scale-125" />
               </div>
               <div className={cn(
-                "hidden sm:block transition-colors",
+                "transition-colors",
                 isScrolled || !isTransparentPage ? "text-foreground" : "text-white"
               )}>
-                <div className="font-bold text-sm leading-tight">{settings?.site_name || "Gerencia y Desarrollo Global"}</div>
+                <div className="font-bold text-xs sm:text-sm leading-tight text-left">{settings?.site_name || "Gerencia y Desarrollo Global"}</div>
                 <div className={cn(
-                  "text-xs",
+                  "text-[10px] sm:text-xs text-left",
                   isScrolled || !isTransparentPage ? "text-muted-foreground" : "text-white/70"
                 )}>{settings?.site_description?.slice(0, 30) || "Educación de Calidad"}</div>
               </div>
