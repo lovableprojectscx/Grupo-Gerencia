@@ -214,9 +214,8 @@ export default function Checkout() {
                             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">Finalizar Compra</h1>
                             <p className="text-sm md:text-base text-muted-foreground">Selecciona tu método de pago y completa tu inscripción.</p>
                         </div>
-                    </div>
 
-                    <motion.div layout className="space-y-5 md:space-y-6">
+                        <motion.div layout className="space-y-5 md:space-y-6">
                         {/* Payment Method Selection - Horizontal scroll on mobile */}
                         <div className="flex gap-2.5 md:gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
                             {paymentMethods.map((method) => (
@@ -484,9 +483,9 @@ export default function Checkout() {
                     </div>
                 </div>
 
+                </div>
+            </main>
+            <Footer />
         </div>
-            </main >
-        <Footer />
-        </div >
     );
 }
