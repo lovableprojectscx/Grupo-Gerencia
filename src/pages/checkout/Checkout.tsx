@@ -397,91 +397,90 @@ export default function Checkout() {
                             )}
                         </div>
                     </div>
-                </div>
 
-                {/* Right Column: Sticky Summary */}
-                <div className="lg:col-span-1">
-                    <div className="lg:sticky lg:top-24 space-y-6">
-                        <Card className="border-border shadow-lg overflow-hidden">
-                            <CardHeader className="bg-slate-900 text-white p-4 md:p-6">
-                                <CardTitle className="text-base md:text-lg flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-accent" />
-                                    Resumen de Orden
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 md:p-6 space-y-6">
-                                {/* Course Item */}
-                                <div className="flex gap-4">
-                                    <img
-                                        src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=100&h=100&fit=crop"}
-                                        alt={course.title}
-                                        className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md border border-border shadow-sm shrink-0"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight mb-1">{course.title}</h4>
-                                        <span className="text-[10px] md:text-xs text-muted-foreground block mb-2">{course.instructor?.name || "Gerencia Global"}</span>
-                                        {course.original_price && course.original_price > course.price && (
-                                            <Badge variant="outline" className="text-[10px] text-green-600 border-green-200 bg-green-50 px-1.5 py-0 h-5">
-                                                Ahorras S/{course.original_price - course.price}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <Separator />
-
-                                {/* Totals */}
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-xs md:text-sm text-muted-foreground">
-                                        <span>Precio Regular</span>
-                                        <span className="line-through">S/ {course.original_price || course.price}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs md:text-sm text-green-600 font-medium">
-                                        <span>Descuento</span>
-                                        <span>- S/ {course.original_price ? (course.original_price - course.price) : 0}</span>
-                                    </div>
-                                    <Separator className="my-2" />
-                                    <div className="flex justify-between items-end">
-                                        <span className="font-semibold text-sm md:text-base">Total a pagar</span>
-                                        <div className="text-right">
-                                            <div className="text-2xl md:text-3xl font-bold text-primary leading-none">S/ {course.price}</div>
-                                            <div className="text-[10px] md:text-xs text-muted-foreground mt-1">Incluido IGV</div>
+                    {/* Right Column: Sticky Summary */}
+                    <div className="lg:col-span-1">
+                        <div className="lg:sticky lg:top-24 space-y-6">
+                            <Card className="border-border shadow-lg overflow-hidden">
+                                <CardHeader className="bg-slate-900 text-white p-4 md:p-6">
+                                    <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-accent" />
+                                        Resumen de Orden
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 md:p-6 space-y-6">
+                                    {/* Course Item */}
+                                    <div className="flex gap-4">
+                                        <img
+                                            src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=100&h=100&fit=crop"}
+                                            alt={course.title}
+                                            className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md border border-border shadow-sm shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight mb-1">{course.title}</h4>
+                                            <span className="text-[10px] md:text-xs text-muted-foreground block mb-2">{course.instructor?.name || "Gerencia Global"}</span>
+                                            {course.original_price && course.original_price > course.price && (
+                                                <Badge variant="outline" className="text-[10px] text-green-600 border-green-200 bg-green-50 px-1.5 py-0 h-5">
+                                                    Ahorras S/{course.original_price - course.price}
+                                                </Badge>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
 
-                                <Button
-                                    className="w-full h-12 md:h-14 text-base md:text-lg font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
-                                    onClick={handleSubmit}
-                                    disabled={loading || !file}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Procesando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Completar Inscripción <ArrowRight className="w-5 h-5 ml-2" />
-                                        </>
+                                    <Separator />
+
+                                    {/* Totals */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-xs md:text-sm text-muted-foreground">
+                                            <span>Precio Regular</span>
+                                            <span className="line-through">S/ {course.original_price || course.price}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs md:text-sm text-green-600 font-medium">
+                                            <span>Descuento</span>
+                                            <span>- S/ {course.original_price ? (course.original_price - course.price) : 0}</span>
+                                        </div>
+                                        <Separator className="my-2" />
+                                        <div className="flex justify-between items-end">
+                                            <span className="font-semibold text-sm md:text-base">Total a pagar</span>
+                                            <div className="text-right">
+                                                <div className="text-2xl md:text-3xl font-bold text-primary leading-none">S/ {course.price}</div>
+                                                <div className="text-[10px] md:text-xs text-muted-foreground mt-1">Incluido IGV</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        className="w-full h-12 md:h-14 text-base md:text-lg font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                                        onClick={handleSubmit}
+                                        disabled={loading || !file}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Procesando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Completar Inscripción <ArrowRight className="w-5 h-5 ml-2" />
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    {!file && (
+                                        <p className="text-xs text-center text-red-500 font-medium animate-pulse">
+                                            * Debes adjuntar el comprobante para continuar
+                                        </p>
                                     )}
-                                </Button>
 
-                                {!file && (
-                                    <p className="text-xs text-center text-red-500 font-medium animate-pulse">
-                                        * Debes adjuntar el comprobante para continuar
-                                    </p>
-                                )}
-
-                            </CardContent>
-                            <CardFooter className="bg-secondary/30 p-4 border-t border-border">
-                                <div className="flex items-center justify-center w-full gap-2 text-xs text-muted-foreground">
-                                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                                    <span>Garantía de devolución de dinero si no estás satisfecho</span>
-                                </div>
-                            </CardFooter>
-                        </Card>
+                                </CardContent>
+                                <CardFooter className="bg-secondary/30 p-4 border-t border-border">
+                                    <div className="flex items-center justify-center w-full gap-2 text-xs text-muted-foreground">
+                                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                                        <span>Garantía de devolución de dinero si no estás satisfecho</span>
+                                    </div>
+                                </CardFooter>
+                            </Card>
+                        </div>
                     </div>
-                </div>
 
                 </div>
             </main>
