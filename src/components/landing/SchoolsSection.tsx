@@ -81,12 +81,12 @@ const itemVariants = {
 export const SchoolsSection = () => {
   const { data: courses } = useQuery({
     queryKey: ["courses"],
-    queryFn: courseService.getAll,
+    queryFn: courseService.getPublished,
   });
 
   const getCourseCount = (categoryKey: string) => {
     if (!courses) return 0;
-    return courses.filter((c: any) => c.category === categoryKey && c.published).length;
+    return courses.filter((c: any) => c.category === categoryKey).length;
   };
 
   return (

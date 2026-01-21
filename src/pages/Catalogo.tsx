@@ -76,7 +76,7 @@ const Catalogo = () => {
 
   const { data: courses, isLoading } = useQuery({
     queryKey: ["courses"],
-    queryFn: courseService.getAll,
+    queryFn: courseService.getPublished,
   });
 
   // Filter and sort courses
@@ -84,8 +84,8 @@ const Catalogo = () => {
     if (!courses) return [];
 
     let result = courses.filter((course: any) => {
-      // Basic validation
-      if (!course.published || course.is_archived) return false;
+      // Basic validation - is_archived is already filtered by service, but double check doesn't hurt
+      if (!course.published) return false;
 
       // Search filter
       // Search filter

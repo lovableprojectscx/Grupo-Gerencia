@@ -15,6 +15,7 @@ export function useAdminCourses() {
         mutationFn: courseService.create,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+            queryClient.invalidateQueries({ queryKey: ["courses"] });
             toast.success("Curso creado exitosamente");
         },
         onError: (error: any) => {
@@ -27,6 +28,7 @@ export function useAdminCourses() {
             courseService.update(id, updates),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+            queryClient.invalidateQueries({ queryKey: ["courses"] });
             toast.success("Curso actualizado");
         },
         onError: (error: any) => {
@@ -38,6 +40,7 @@ export function useAdminCourses() {
         mutationFn: courseService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+            queryClient.invalidateQueries({ queryKey: ["courses"] }); // Refresh public catalog
             toast.success("Curso eliminado");
         },
         onError: (error: any) => {

@@ -9,10 +9,10 @@ import { courseService } from "@/services/courseService";
 export const FeaturedCourses = () => {
   const { data: courses, isLoading } = useQuery({
     queryKey: ["courses"],
-    queryFn: courseService.getAll,
+    queryFn: courseService.getPublished,
   });
 
-  const featuredCourses = courses?.filter((course: any) => course.published && !course.is_archived).slice(0, 4) || [];
+  const featuredCourses = courses?.slice(0, 4) || [];
 
   return (
     <section className="section-padding bg-background">

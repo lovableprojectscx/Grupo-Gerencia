@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 
+
 export interface Course {
     id: string;
     title: string;
@@ -13,6 +14,7 @@ export interface Course {
     category: string;
     specialty?: string;
     published: boolean;
+    is_archived?: boolean; // Added for clarity
     slug: string;
     instructor_id?: string;
     modality?: 'live' | 'async' | 'hybrid';
@@ -64,14 +66,29 @@ export const courseService = {
         return (data as unknown as Course[]).map(mapCourseWithStudentCount);
     },
 
-    async getRelatedCourses(currentCourseId: string, category: string, limit = 3) {
+    async getPublished() {
         const { data, error } = await supabase
+            .from('courses')
+            .select('*, instructor:instructors(name)')
+            .eq('published', true)
+            .eq('is_archived', false) // Explicitly exclude archived
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data as unknown as Course[]).map(mapCourseWithStudentCount);
+    },
+
+    async getRelatedCourses(currentCourseId: string, category: string, limit = 3) {
+        let query = supabase
             .from('courses')
             .select('*, instructor:instructors(name), enrollments(user_id)')
             .eq('category', category)
             .eq('published', true)
+            .eq('is_archived', false) // Exclude archived
             .neq('id', currentCourseId)
             .limit(limit);
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return (data as unknown as Course[]).map(mapCourseWithStudentCount);
