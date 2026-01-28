@@ -67,7 +67,7 @@ export default function CourseBuilder() {
         description: "",
         price: 0,
         category: "health",
-        level: "intermediate",
+        level: "none",
         published: false,
         specialty: "",
         modality: "async",
@@ -535,11 +535,12 @@ export default function CourseBuilder() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Nivel</Label>
-                                    <Select value={course.level} onValueChange={(val) => setCourse({ ...course, level: val })}>
+                                    <Select value={course.level || "none"} onValueChange={(val) => setCourse({ ...course, level: val })}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Seleccione" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="none">Ninguno (No mostrar)</SelectItem>
                                             <SelectItem value="beginner">Básico</SelectItem>
                                             <SelectItem value="intermediate">Intermedio</SelectItem>
                                             <SelectItem value="advanced">Avanzado</SelectItem>

@@ -10,7 +10,7 @@ export interface Course {
     price: number;
     original_price?: number;
     image_url?: string;
-    level: string;
+    level?: string;
     category: string;
     specialty?: string;
     published: boolean;

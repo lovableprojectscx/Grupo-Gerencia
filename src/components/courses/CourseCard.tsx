@@ -73,11 +73,15 @@ export const CourseCard = ({
             />
 
             {/* Level Badge */}
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-primary text-primary-foreground font-semibold uppercase">
-                {level || "Curso"}
-              </Badge>
-            </div>
+            {level && level !== "none" && (
+              <div className="absolute top-3 left-3">
+                <Badge className="bg-primary text-primary-foreground font-semibold uppercase">
+                  {level === "beginner" ? "Básico" :
+                    level === "intermediate" ? "Intermedio" :
+                      level === "advanced" ? "Avanzado" : level}
+                </Badge>
+              </div>
+            )}
 
             {/* Discount Badge */}
             {discount > 0 && (
