@@ -7,12 +7,10 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Move, Type, Calendar, Image as ImageIcon, Save, Download, Eye, Plus, XCircle, Loader2 } from "lucide-react";
+import { Move, Type, Calendar, Image as ImageIcon, Save, Plus, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
+import { Document, Page } from "react-pdf";
 
 interface FieldPosition {
     id: string;
@@ -93,7 +91,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     // Metadata injection
     // Metadata injection - Only if we don't have a template or explicitly resetting
     // Removed automatic injection on every metadata change to prevent "zombie" fields that user deleted
-    const [hoursType, setHoursType] = useState<"academic" | "lecture" | "both">("academic");
+    // Initialize hoursType from template or default to academic
+    const [hoursType, setHoursType] = useState<"academic" | "lecture" | "both">(template?.hoursType || "academic");
 
     // Initial load of fields logic is already handled by initialFields const
     // We just need to handle dynamic updates from metadata or hoursType
@@ -103,56 +102,46 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         if (fetchedMetadata.length === 0) return;
 
         setFields(prevFields => {
-            // 1. Identify current metadata fields in the canvas to avoid duplicates
-            const existingFieldLabels = new Set(prevFields.map(f => f.label));
+            let newFieldsList = [...prevFields];
 
-            // 2. Filter metadata based on Hours Type selection
+            // 1. Strict Removal Logic based on rules
+            if (hoursType === "academic") {
+                // Remove Lectivas if present
+                newFieldsList = newFieldsList.filter(f => f.label !== "Horas Lectivas" && f.id !== "meta-Horas-Lectivas");
+            } else if (hoursType === "lecture") {
+                // Remove Academicas if present
+                newFieldsList = newFieldsList.filter(f => f.label !== "Horas Académicas" && f.id !== "meta-Horas-Académicas");
+            }
+            // If "both", we keep both (don't filter either out)
+
+            // 2. Add Logic
+            // We iterate through relevant metadata and add if missing
             const relevantMetadata = fetchedMetadata.filter(meta => {
                 if (hoursType === "academic" && meta.key === "Horas Lectivas") return false;
                 if (hoursType === "lecture" && meta.key === "Horas Académicas") return false;
                 return true;
             });
 
-            // 3. Create new fields for relevant metadata that ISN'T already there
-            // BUT: We must be careful not to re-add deleted fields if this is an "update" (Zombie bug).
-            // Solution: Only auto-add if this seems to be an initial population (e.g. template empty)
-            // OR if the user explicitly switched the type, we should force the switch.
-
-            // Let's handle the "Switch" logic specifically for Hours:
-            // If we are in "academic", remove "Horas Lectivas" if present.
-            // If we are in "lecture", remove "Horas Académicas" if present.
-
-            let newFieldsList = [...prevFields];
-
-            // Remove excluded types
-            if (hoursType === "academic") {
-                newFieldsList = newFieldsList.filter(f => f.label !== "Horas Lectivas");
-            } else if (hoursType === "lecture") {
-                newFieldsList = newFieldsList.filter(f => f.label !== "Horas Académicas");
-            }
-
-            // Add missing types (Only if they are meant to be there)
-            // We only auto-add if the template was empty originally OR if we are forcing a switch?
-            // To be safe and user-friendly: Check if the *concept* is missing.
-
             relevantMetadata.forEach((meta, i) => {
-                // If it's already there (by label), skip
-                if (newFieldsList.some(f => f.label === meta.key)) return;
+                const stableId = `meta-${meta.key.replace(/\s+/g, '-')}`;
 
-                // If it's one of the "Hours" fields, we SHOULD add it if it's missing (user switched mode)
-                // If it's a random other metadata, don't auto-add if user maybe deleted it? 
-                // Let's prioritize the Hours fields specifically since that's the feature request.
-                const isHoursField = meta.key === "Horas Académicas" || meta.key === "Horas Lectivas";
+                // Check if this field effectively exists (by ID or by Label)
+                const alreadyExists = newFieldsList.some(f => f.id === stableId || f.label === meta.key);
 
-                // Only add if it's an Hours field (to support the toggle) OR if we are in a "fresh" state
-                const isFreshState = (!template?.fields || template.fields.length === 0);
+                if (!alreadyExists) {
+                    // Start position logic: Try to place hours intelligently if possible, otherwise default stack
+                    let defaultY = 85 + (i * 5);
+                    let defaultX = 20;
 
-                if (isHoursField || isFreshState) {
+                    // Little helper for better default placement of hours if they are new
+                    if (meta.key === "Horas Académicas") { defaultX = 30; defaultY = 75; }
+                    if (meta.key === "Horas Lectivas") { defaultX = 70; defaultY = 75; }
+
                     newFieldsList.push({
-                        id: `meta-${meta.key.replace(/\s+/g, '-')}`, // Stable ID based on key
+                        id: stableId,
                         label: meta.key,
-                        x: 20,
-                        y: 85 + (i * 5),
+                        x: defaultX,
+                        y: defaultY,
                         fontSize: 14,
                         color: "#333333",
                         fontFamily: "Helvetica",
@@ -165,14 +154,14 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
             return newFieldsList;
         });
-    }, [fetchedMetadata, hoursType, template]);
+    }, [fetchedMetadata, hoursType]); // Removed template from dep array to prevent loop resets
 
     const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const handleSave = async () => {
         if (!courseId) return;
-        const templateData = { bgImageFront, bgImageBack, bgImage: bgImageFront, fields };
+        const templateData = { bgImageFront, bgImageBack, bgImage: bgImageFront, fields, hoursType }; // Save hoursType
 
         const { error } = await supabase
             .from("courses")
@@ -186,15 +175,27 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         }
     };
 
+    const [numPages, setNumPages] = useState<number>(0);
+    const [aspectRatio, setAspectRatio] = useState(1.414); // Default to A4 Landscape
+
+    const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+        setNumPages(numPages);
+    };
+
+    const onPageLoadSuccess = (page: any) => {
+        const ratio = page.originalWidth / page.originalHeight;
+        setAspectRatio(ratio);
+    };
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setUploading(true);
-        const toastId = toast.loading("Subiendo imagen...");
+        const toastId = toast.loading("Subiendo archivo...");
 
         try {
-            const fileExt = file.name.split('.').pop();
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
             const fileName = `cert-${activePage}-${Math.random()}.${fileExt}`;
             const filePath = `certificates/${fileName}`;
 
@@ -202,13 +203,20 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             if (uploadError) throw uploadError;
 
             const { data } = supabase.storage.from('course-content').getPublicUrl(filePath);
+            const publicUrl = data.publicUrl;
 
             if (activePage === "front") {
-                setBgImageFront(data.publicUrl);
-                notifyParent(fields, data.publicUrl, bgImageBack);
+                setBgImageFront(publicUrl);
+                // Smart Feature: If PDF, assume it might be 2 pages and set back same as front by default
+                if (file.type === 'application/pdf') {
+                    setBgImageBack(publicUrl);
+                    notifyParent(fields, publicUrl, publicUrl);
+                } else {
+                    notifyParent(fields, publicUrl, bgImageBack);
+                }
             } else {
-                setBgImageBack(data.publicUrl);
-                notifyParent(fields, bgImageFront, data.publicUrl);
+                setBgImageBack(publicUrl);
+                notifyParent(fields, bgImageFront, publicUrl);
             }
             toast.success("Fondo actualizado", { id: toastId });
         } catch (error: any) {
@@ -216,7 +224,6 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             toast.error("Error: " + error.message, { id: toastId });
         } finally {
             setUploading(false);
-            // Reset input so validation triggers again if needed or same file can be selected
             e.target.value = "";
         }
     };
@@ -256,6 +263,9 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
     // Drag Logic
     const [isDragging, setIsDragging] = useState(false);
+    const [showVerticalGuide, setShowVerticalGuide] = useState(false);
+    const [showHorizontalGuide, setShowHorizontalGuide] = useState(false);
+
     const dragRef = useRef<{ id: string; startX: number; startY: number; initialLeft: number; initialTop: number } | null>(null);
 
     const handleMouseDown = (e: React.MouseEvent, id: string) => {
@@ -274,18 +284,42 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         if (!dragRef.current || !containerRef.current) return;
         const { startX, startY, initialLeft, initialTop, id } = dragRef.current;
         const rect = containerRef.current.getBoundingClientRect();
+
+        // Calculate raw delta as percentage
         const deltaX = ((e.clientX - startX) / rect.width) * 100;
         const deltaY = ((e.clientY - startY) / rect.height) * 100;
 
-        const newX = Math.max(0, Math.min(100, initialLeft + deltaX));
-        const newY = Math.max(0, Math.min(100, initialTop + deltaY));
+        let newX = Math.max(0, Math.min(100, initialLeft + deltaX));
+        let newY = Math.max(0, Math.min(100, initialTop + deltaY));
+
+        // SNAP LOGIC
+        const SNAP_THRESHOLD = 1.5; // Snap if within 1.5% of center
+
+        // Center X (50%)
+        if (Math.abs(newX - 50) < SNAP_THRESHOLD) {
+            newX = 50;
+            setShowVerticalGuide(true);
+        } else {
+            setShowVerticalGuide(false);
+        }
+
+        // Center Y (50%)
+        if (Math.abs(newY - 50) < SNAP_THRESHOLD) {
+            newY = 50;
+            setShowHorizontalGuide(true);
+        } else {
+            setShowHorizontalGuide(false);
+        }
 
         setFields(prev => prev.map(f => f.id === id ? { ...f, x: Number(newX.toFixed(1)), y: Number(newY.toFixed(1)) } : f));
     };
 
     const handleGlobalMouseUp = () => {
         if (dragRef.current) notifyParent(fieldsRef.current, bgImageFront, bgImageBack);
-        setIsDragging(false); dragRef.current = null;
+        setIsDragging(false);
+        setShowVerticalGuide(false);
+        setShowHorizontalGuide(false);
+        dragRef.current = null;
         window.removeEventListener('mousemove', handleGlobalMouseMove);
         window.removeEventListener('mouseup', handleGlobalMouseUp);
     };
@@ -318,17 +352,59 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                 <div className="bg-muted/30 rounded-xl border border-border p-4 flex items-center justify-center overflow-hidden relative shadow-sm flex-1">
                     <div
                         ref={containerRef}
-                        className="relative max-w-full max-h-full aspect-[1.414/1] w-auto h-auto bg-white shadow-2xl rounded-sm overflow-hidden select-none"
-                        style={{ width: 'auto', height: 'auto' }}
+                        className="relative w-full max-w-[800px] bg-white shadow-2xl rounded-sm overflow-hidden select-none"
+                        style={{ aspectRatio: aspectRatio }}
                     >
                         {/* Background */}
-                        {(activePage === "front" ? bgImageFront : bgImageBack) ? (
-                            <img src={activePage === "front" ? bgImageFront : bgImageBack} alt="Certificate Template" className="w-full h-full object-cover pointer-events-none" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gray-100">
-                                Sube una plantilla para la {activePage === "front" ? "Hoja 1" : "Hoja 2"}
-                            </div>
-                        )}
+                        {(() => {
+                            const currentBg = activePage === "front" ? bgImageFront : bgImageBack;
+                            if (!currentBg) {
+                                return (
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gray-100">
+                                        Sube una plantilla para la {activePage === "front" ? "Hoja 1" : "Hoja 2"}
+                                    </div>
+                                );
+                            }
+
+                            const isPdf = currentBg.toLowerCase().endsWith('.pdf');
+
+                            if (isPdf) {
+                                return (
+                                    <div className="w-full h-full absolute inset-0 pdf-container bg-white">
+                                        <Document
+                                            file={currentBg}
+                                            onLoadSuccess={onDocumentLoadSuccess}
+                                            onLoadError={(error) => {
+                                                console.error("Error loading PDF:", error);
+                                                toast.error("Error al cargar PDF: " + error.message);
+                                            }}
+                                            loading={<div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>}
+                                            error={<div className="flex items-center justify-center h-full text-red-500 font-bold p-4 text-center">Error al cargar PDF. Verifique la consola.</div>}
+                                        >
+                                            <Page
+                                                pageNumber={activePage === 'back' && bgImageBack === bgImageFront ? (numPages > 1 ? 2 : 1) : 1}
+                                                width={containerRef.current?.clientWidth || 800}
+                                                renderTextLayer={false}
+                                                renderAnnotationLayer={false}
+                                                onLoadSuccess={onPageLoadSuccess}
+                                            />
+                                        </Document>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <img
+                                    src={currentBg}
+                                    alt="Certificate Template"
+                                    className="w-full h-full object-cover pointer-events-none"
+                                    onLoad={(e) => {
+                                        const img = e.currentTarget;
+                                        setAspectRatio(img.naturalWidth / img.naturalHeight);
+                                    }}
+                                />
+                            );
+                        })()}
 
                         {/* Fields */}
                         {activeFields.map((field) => (
@@ -355,6 +431,14 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                 {field.value}
                             </div>
                         ))}
+
+                        {/* Smart Guides (Canva-like) */}
+                        {showVerticalGuide && (
+                            <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-red-500 z-50 pointer-events-none transform -translate-x-1/2 opacity-70 border-r border-dashed border-red-500" />
+                        )}
+                        {showHorizontalGuide && (
+                            <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-red-500 z-50 pointer-events-none transform -translate-y-1/2 opacity-70 border-b border-dashed border-red-500" />
+                        )}
                     </div>
                 </div>
             </div>
@@ -369,14 +453,14 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     type="file"
                                     id="cert-bg-upload"
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/*,.pdf"
                                     onChange={handleImageUpload}
                                     disabled={uploading}
                                 />
                                 <Button variant="outline" className="w-full" asChild disabled={uploading}>
                                     <Label htmlFor="cert-bg-upload" className="cursor-pointer flex items-center justify-center">
                                         {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
-                                        {uploading ? "Subiendo..." : "Subir Imagen"}
+                                        {uploading ? "Subiendo..." : "Subir Plantilla (PDF/Img)"}
                                     </Label>
                                 </Button>
                             </div>
@@ -471,6 +555,11 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                                 <SelectItem value="Times New Roman">Times New Roman</SelectItem>
                                                 <SelectItem value="Courier New">Courier New</SelectItem>
                                                 <SelectItem value="Arial">Arial</SelectItem>
+                                                {/* Premium Fonts */}
+                                                <SelectItem value="Great Vibes">Great Vibes (Firma)</SelectItem>
+                                                <SelectItem value="Cinzel">Cinzel (Clásico)</SelectItem>
+                                                <SelectItem value="Playfair Display">Playfair Display (Elegante)</SelectItem>
+                                                <SelectItem value="Montserrat">Montserrat (Moderno)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>

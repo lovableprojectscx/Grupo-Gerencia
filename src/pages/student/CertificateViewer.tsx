@@ -1,8 +1,8 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, ArrowLeft, Share2, Printer, Loader2, AlertCircle } from "lucide-react";
+import { Download, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -10,15 +10,41 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { Document, Page, pdfjs } from 'react-pdf';
+
+// Setup PDF worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+import fontkit from '@pdf-lib/fontkit';
+
+// ... (imports)
+
+// Font URL Mapping (using Google Fonts GitHub Raw -> Static TTF for maximum compatibility)
+// pdf-lib/fontkit has trouble with Variable Fonts (Var) and WOFF2 sometimes. Static TTFs are safest.
+const FONT_URLS: Record<string, string> = {
+    'Great Vibes': 'https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf',
+    'Cinzel': 'https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/Cinzel%5Bwght%5D.ttf',
+    'Playfair Display': 'https://raw.githubusercontent.com/google/fonts/main/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf',
+    'Montserrat': 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf'
+};
+
+// ... inside handleDownloadPDF ...
 
 
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 
 export default function CertificateViewer() {
     const { id } = useParams();
     const certificateRef = useRef<HTMLDivElement>(null);
-    const backPageRef = useRef<HTMLDivElement>(null); // Added backPageRef
+    const backPageRef = useRef<HTMLDivElement>(null);
+
+    const [aspectRatio, setAspectRatio] = useState(1.414);
+    const [containerWidth, setContainerWidth] = useState<number>(800);
+
+    const onPageLoadSuccess = (page: any) => {
+        const ratio = page.originalWidth / page.originalHeight;
+        setAspectRatio(ratio);
+    };
 
     const { data: certificate, isLoading, error } = useQuery({
         queryKey: ["certificate", id],
@@ -36,54 +62,314 @@ export default function CertificateViewer() {
                 .maybeSingle();
 
             if (error) throw error;
-            return data; // Returns null if not found, handled by component
+            return data;
         },
         enabled: !!id
     });
 
-    const handleDownloadPDF = async () => {
-        if (!certificateRef.current || !backPageRef.current) return; // Updated check
+    // Derived values for Hooks
+    const template = certificate?.enrollment?.course?.certificate_template || {};
+    const adminHoursType = template?.hoursType || 'academic';
 
-        const toastId = toast.loading("Generando PDF..."); // Added toast
+    // State for hours mode
+    const [hoursMode, setHoursMode] = useState<'academic' | 'lecture'>(() => {
+        if (adminHoursType === 'lecture') return 'lecture';
+        return 'academic';
+    });
+
+    // State for "Has Chosen" (Blocking UI)
+    const [hasChosen, setHasChosen] = useState<boolean>(() => {
+        return adminHoursType !== 'both';
+    });
+
+    // Sync state with template if it loads late
+    useEffect(() => {
+        if (template?.hoursType === 'lecture') setHoursMode('lecture');
+        else if (template?.hoursType === 'academic') setHoursMode('academic');
+
+        // Also update hasChosen if needed (e.g. initial load was undefined, then became 'both')
+        if (template?.hoursType === 'both') {
+            // If it was already true (default), we might need to reset? 
+            // Actually, better to trust the derived initial state or user interaction.
+            // But if it switches from undefined -> 'both', we might want to force choice?
+            // For now, let's keep it simple. The initial state function handles the 'undefined' case (!='both' => true).
+            // If it later becomes 'both', we might arguably show choice screen.
+            // But usually template data comes in one go.
+            if (hasChosen && adminHoursType === 'both') {
+                // edge case: if we assumed chosen because data was missing, but now we see it's 'both'
+                // setHasChosen(false); // Dangerous loop if not careful.
+            }
+        }
+    }, [template?.hoursType, adminHoursType]);
+
+    // Check if we need to show choice screen
+    const showChoiceScreen = !hasChosen && adminHoursType === 'both';
+
+    // Responsive Logic
+    useEffect(() => {
+        if (!certificateRef.current) return;
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.contentRect.width > 0) {
+                    setContainerWidth(entry.contentRect.width);
+                }
+            }
+        });
+        resizeObserver.observe(certificateRef.current);
+        return () => resizeObserver.disconnect();
+    }, [showChoiceScreen, isLoading]); // Re-run when view appears
+
+    const handleChoice = (mode: 'academic' | 'lecture') => {
+        setHoursMode(mode);
+        setHasChosen(true);
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!certificate) return;
+        const toastId = toast.loading("Generando PDF Vectorial de alta calidad...");
 
         try {
-            // Capture Front
-            const canvasFront = await html2canvas(certificateRef.current, {
-                useCORS: true,
-                scale: 2,
-                backgroundColor: null,
-            });
+            const bgFront = template.bgImageFront || template.bgImage;
+            const bgBack = template.bgImageBack;
 
-            // Capture Back
-            const canvasBack = await html2canvas(backPageRef.current, {
-                useCORS: true,
-                scale: 2,
-                backgroundColor: "#ffffff", // White background for back
-            });
+            // Initialize PDF
+            let pdfDoc: PDFDocument;
 
-            const imgDataFront = canvasFront.toDataURL("image/png");
-            const imgDataBack = canvasBack.toDataURL("image/png");
+            // Load base PDF or create new
+            if (bgFront && bgFront.toLowerCase().endsWith('.pdf')) {
+                const existingPdfBytes = await fetch(bgFront).then(res => res.arrayBuffer());
+                pdfDoc = await PDFDocument.load(existingPdfBytes);
+            } else {
+                pdfDoc = await PDFDocument.create();
+            }
 
-            const pdf = new jsPDF({
-                orientation: canvasFront.width > canvasFront.height ? "landscape" : "portrait",
-                unit: "px",
-                format: [canvasFront.width, canvasFront.height],
-            });
+            // REGISTER FONTKIT (Critical for custom fonts)
+            pdfDoc.registerFontkit(fontkit);
 
-            // Add Front Page
-            pdf.addImage(imgDataFront, "PNG", 0, 0, canvasFront.width, canvasFront.height);
+            // Embed Standard Fonts (Bold variants for visual match with HTML)
+            const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+            const courierFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
 
-            // Add Back Page
-            pdf.addPage([canvasBack.width, canvasBack.height], canvasBack.width > canvasBack.height ? "landscape" : "portrait");
-            pdf.addImage(imgDataBack, "PNG", 0, 0, canvasBack.width, canvasBack.height);
+            // Cache for custom fonts to avoid re-fetching
+            const customFonts: Record<string, any> = {};
 
-            pdf.save(`certificado-${id}.pdf`);
-            toast.dismiss(toastId); // Added toast
-            toast.success("PDF descargado correctamente"); // Added toast
-        } catch (error) {
+            const getFont = async (fontFamily: string) => {
+                // Return standard if matched
+                switch (fontFamily) {
+                    case 'Times New Roman': return timesFont;
+                    case 'Courier New': return courierFont;
+                    case 'Arial':
+                    case 'Helvetica': return helveticaFont;
+                }
+
+                // Handle Custom Fonts
+                if (FONT_URLS[fontFamily]) {
+                    if (customFonts[fontFamily]) return customFonts[fontFamily];
+
+                    try {
+                        console.log(`Fetching font: ${fontFamily} from ${FONT_URLS[fontFamily]}`);
+
+                        const response = await fetch(FONT_URLS[fontFamily], { mode: 'cors' });
+                        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+
+                        const fontBytes = await response.arrayBuffer();
+                        console.log(`Font ${fontFamily} downloaded: ${fontBytes.byteLength} bytes`);
+
+                        if (fontBytes.byteLength < 1000) throw new Error("Archivo de fuente corrupto o vacío");
+
+                        const embeddedFont = await pdfDoc.embedFont(fontBytes);
+                        customFonts[fontFamily] = embeddedFont;
+                        return embeddedFont;
+                    } catch (e: any) {
+                        console.error(`FAILED to load font ${fontFamily}:`, e);
+                        toast.error(`Error fuente ${fontFamily}: ${e.message}`, { duration: 4000 });
+                        return helveticaFont;
+                    }
+                }
+
+                return helveticaFont;
+            };
+
+            // Process Pages
+            const pages = pdfDoc.getPages();
+            let frontPage = pages[0];
+
+            // If starting from scratch (image background), add page
+            if (!frontPage) {
+                if (bgFront) {
+                    try {
+                        const imgBytes = await fetch(bgFront).then(res => res.arrayBuffer());
+                        const imgExt = bgFront.split('.').pop()?.toLowerCase();
+                        let embeddedImage;
+
+                        // Support mainly PNG and JPG
+                        if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
+                        else embeddedImage = await pdfDoc.embedJpg(imgBytes);
+
+                        // CREATE PAGE WITH EXACT IMAGE DIMENSIONS (No stretching)
+                        // This matches the "object-cover" behavior on a responsive container if container matches aspect ratio
+                        // But for PDF, we want WYSIWYG relative to the design canvas (800px width reference)
+                        const { width, height } = embeddedImage;
+                        frontPage = pdfDoc.addPage([width, height]);
+
+                        frontPage.drawImage(embeddedImage, {
+                            x: 0,
+                            y: 0,
+                            width: width,
+                            height: height,
+                        });
+                    } catch (err) {
+                        console.error("Error embedding background image:", err);
+                        // Fallback to A4 Landscape
+                        frontPage = pdfDoc.addPage([842, 595]);
+                    }
+                } else {
+                    frontPage = pdfDoc.addPage([842, 595]); // Empty canvas
+                }
+            }
+
+            // Draw Fields on Front
+            const drawFields = async (page: any, fields: any[], pageName: string) => {
+                // Calculate Scale Factor relative to the design reference width (800px)
+                // In Preview: fontSize is relative to containerWidth (which scales).
+                // In PDF: We must scale relative to PageWidth.
+                const pdfScale = page.getWidth() / 800;
+
+                for (const field of fields) { // Use for..of for async await
+                    if (!field.visible || (field.page && field.page !== pageName)) continue;
+
+                    // Logic to swap Academic/Lecture if needed (reusing logic from render)
+                    const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
+                    const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
+
+                    // Skip if hidden by mode
+                    if (hoursMode === 'academic' && isLectureField) {
+                        const templateHasAcademic = fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+                        if (templateHasAcademic) continue;
+                    }
+                    if (hoursMode === 'lecture' && isAcademicField) {
+                        const templateHasLecture = fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+                        if (templateHasLecture) continue;
+                    }
+
+                    let text = getFieldValue(field);
+                    // Value swapping logic
+                    if (isAcademicField && hoursMode === 'lecture') {
+                        const templateHasLecture = fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+                        if (!templateHasLecture) {
+                            text = certificate.metadata?.["Horas Lectivas"] || certificate.enrollment?.course?.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || "";
+                        }
+                    } else if (isLectureField && hoursMode === 'academic') {
+                        const templateHasAcademic = fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+                        if (!templateHasAcademic) {
+                            text = certificate.metadata?.["Horas Académicas"] || certificate.enrollment?.course?.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || "";
+                        }
+                    }
+
+                    if (!text) continue;
+
+                    // Dynamic Font Sizing
+                    const fontSize = field.fontSize * pdfScale;
+                    const font = await getFont(field.fontFamily); // AWAIT HERE
+
+                    const textWidth = font.widthOfTextAtSize(text, fontSize);
+
+                    // Coordinates
+                    const x = (field.x / 100) * page.getWidth();
+                    const y = page.getHeight() - ((field.y / 100) * page.getHeight());
+
+                    const adjustedX = x - (textWidth / 2);
+                    // Removing vertical offset completely to lift text to the max visual center.
+                    // User feedback indicates "raising" is the key. 
+                    // Baseline at 'y' places visual center of Caps comfortably above the line.
+                    const adjustedY = y;
+
+                    const colorHex = field.color || "#000000";
+                    const r = parseInt(colorHex.slice(1, 3), 16) / 255;
+                    const g = parseInt(colorHex.slice(3, 5), 16) / 255;
+                    const b = parseInt(colorHex.slice(5, 7), 16) / 255;
+                    const color = rgb(r, g, b);
+
+                    // --- SIMULATED BOLD LOGIC ---
+                    // Base Pass (Center)
+                    page.drawText(text, { x: adjustedX, y: adjustedY, size: fontSize, font: font, color: color });
+
+                    // Only apply simulated bold to Custom Fonts (Standard fonts serve slightly offset automatically? No, standard fonts are already Bold instance)
+                    // But custom fonts (Cinzel, GreatVibes, etc.) are NOT.
+                    const isCustomFont = FONT_URLS[field.fontFamily];
+
+                    if (isCustomFont) {
+                        const offset = fontSize / 80; // Subtle stroke (1/80th of font size)
+                        page.drawText(text, { x: adjustedX + offset, y: adjustedY, size: fontSize, font: font, color: color });
+                        page.drawText(text, { x: adjustedX, y: adjustedY + offset, size: fontSize, font: font, color: color });
+                        // Add diagonal for extra thickness if needed, but 2-pass is usually enough for "Bold" feel without blur
+                        // page.drawText(text, { x: adjustedX + offset, y: adjustedY + offset, size: fontSize, font: font, color: color });
+                    }
+                }
+            };
+
+            if (template.fields) await drawFields(frontPage, template.fields, 'front');
+
+            // Handle Back Page Logic ...
+            const hasBackFields = template.fields?.some((f: any) => f.page === 'back');
+
+            if (bgBack || hasBackFields) {
+                // ... Page creation logic same as before ...
+                let backPage;
+                if (pages.length > 1) {
+                    backPage = pages[1];
+                } else {
+                    if (bgBack && bgBack.toLowerCase().endsWith('.pdf')) {
+                        const backPdfBytes = await fetch(bgBack).then(res => res.arrayBuffer());
+                        const backPdf = await PDFDocument.load(backPdfBytes);
+                        const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
+                        backPage = pdfDoc.addPage(copiedPage);
+                    } else {
+                        // Image or blank
+                        if (bgBack) {
+                            try {
+                                const imgBytes = await fetch(bgBack).then(res => res.arrayBuffer());
+                                const imgExt = bgBack.split('.').pop()?.toLowerCase();
+                                let embeddedImage;
+                                if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
+                                else embeddedImage = await pdfDoc.embedJpg(imgBytes);
+
+                                // Use exact image dimensions for the page
+                                const { width, height } = embeddedImage;
+                                backPage = pdfDoc.addPage([width, height]);
+
+                                backPage.drawImage(embeddedImage, {
+                                    x: 0,
+                                    y: 0,
+                                    width: width,
+                                    height: height,
+                                });
+                            } catch (e) {
+                                console.error("Error back page image:", e);
+                                backPage = pdfDoc.addPage([842, 595]); // Fallback
+                            }
+                        } else {
+                            backPage = pdfDoc.addPage([842, 595]);
+                        }
+                    }
+                }
+
+                if (template.fields) await drawFields(backPage, template.fields, 'back');
+            }
+
+            const pdfBytes = await pdfDoc.save();
+            // Trigger download
+            const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `certificado-${id}.pdf`;
+            link.click();
+
+            toast.success("PDF descargado correctamente", { id: toastId });
+        } catch (error: any) {
             console.error("Error generating PDF:", error);
-            toast.dismiss(toastId); // Added toast
-            toast.error("Error al generar PDF"); // Added toast
+            toast.error("Error al generar PDF: " + error.message, { id: toastId });
         }
     };
 
@@ -100,12 +386,10 @@ export default function CertificateViewer() {
 
     const { enrollment, issued_at } = certificate;
     const { student, course } = enrollment || {};
-    const template = course?.certificate_template || {};
 
-    // Default values if no template
+    // Default values if no template - Use the already defined 'template'
     const bgImageFront = template.bgImageFront || template.bgImage || "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=1200&auto=format&fit=crop&q=80";
     const bgImageBack = template.bgImageBack || null;
-
     const getFieldValue = (field: any) => {
         switch (field.id) {
             case "studentName":
@@ -136,6 +420,10 @@ export default function CertificateViewer() {
         }
     };
 
+    // calculate font scale factor based on original reference width (e.g. 800px)
+    // If user designed on 800px wide canvas, and now it's 400px, font should be 0.5x
+    const scaleFactor = containerWidth / 800;
+
     return (
         <div className="min-h-screen bg-background">
             <Navbar />
@@ -151,141 +439,217 @@ export default function CertificateViewer() {
                                 Volver al Panel
                             </Link>
                         </Button>
-                        <div className="flex gap-2">
-                            {/* Share button removed per context implicitly favoring simplicity */}
-                            <Button onClick={handleDownloadPDF} className="shadow-lg hover:shadow-xl transition-all">
-                                <Download className="w-4 h-4 mr-2" />
-                                Descargar PDF
-                            </Button>
-                        </div>
+                        {/* Only show download if chosen */}
+                        {!showChoiceScreen && (
+                            <div className="flex gap-2">
+                                <Button onClick={handleDownloadPDF} className="shadow-lg hover:shadow-xl transition-all">
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Descargar PDF
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Certificate Preview Card (Front) */}
-                    <div className="bg-card rounded-xl border shadow-sm overflow-hidden p-8 flex flex-col items-center gap-8">
-                        <div>
-                            <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Frontal (Hoja 1)</h2>
-                            <div
-                                ref={certificateRef}
-                                className="relative bg-white shadow-2xl mx-auto overflow-hidden select-none"
-                                style={{
-                                    width: '800px',
-                                    height: '566px', // ~A4 landscape aspect ratio approx
-                                }}
-                            >
-                                {/* Background Image */}
-                                <img
-                                    src={bgImageFront}
-                                    alt="Certificate Background Front"
-                                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                                />
+                    {/* CHOICE SCREEN (Blocking) */}
+                    {showChoiceScreen ? (
+                        <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
+                            <div className="bg-card border shadow-2xl rounded-2xl p-10 max-w-lg w-full text-center space-y-8">
+                                <div className="space-y-2">
+                                    <h2 className="text-3xl font-bold tracking-tight">Personaliza tu Certificado</h2>
+                                    <p className="text-muted-foreground">Este curso incluye horas académicas y lectivas. ¿Cuál deseas mostrar?</p>
+                                </div>
 
-                                {/* Fields Front */}
-                                {template.fields?.map((field: any) => (
-                                    (field.visible && (!field.page || field.page === 'front')) && (
-                                        <div
-                                            key={field.id}
-                                            style={{
-                                                position: "absolute",
-                                                left: `${field.x}%`,
-                                                top: `${field.y}%`,
-                                                transform: "translate(-50%, -50%)",
-                                                fontSize: `${field.fontSize}px`,
-                                                color: field.color,
-                                                fontFamily: field.fontFamily,
-                                                textAlign: "center",
-                                                whiteSpace: "nowrap",
-                                                maxWidth: "90%", // Limit width to prevent varying overflows
-                                                fontWeight: "bold",
-                                                lineHeight: 1.2
-                                            }}
-                                            className="print:leading-none"
-                                        >
-                                            {getFieldValue(field)}
-                                        </div>
-                                    )
-                                ))}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                                    <Button
+                                        size="lg"
+                                        className="h-24 text-lg border-2 border-transparent hover:border-primary/20 flex flex-col gap-2"
+                                        variant="outline"
+                                        onClick={() => handleChoice('academic')}
+                                    >
+                                        <span className="font-bold">Académicas</span>
+                                        <span className="text-xs font-normal text-muted-foreground">Mostrar horas teóricas</span>
+                                    </Button>
+                                    <Button
+                                        size="lg"
+                                        className="h-24 text-lg border-2 border-transparent hover:border-primary/20 flex flex-col gap-2"
+                                        variant="outline"
+                                        onClick={() => handleChoice('lecture')}
+                                    >
+                                        <span className="font-bold">Lectivas</span>
+                                        <span className="text-xs font-normal text-muted-foreground">Mostrar horas prácticas</span>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
+                    ) : (
+                        /* CERTIFICATE PREVIEW */
+                        <>
+                            {/* Toggle (allows changing mind) */}
+                            {adminHoursType === 'both' && (
+                                <div className="flex justify-center -mb-4 z-10 relative">
+                                    <div className="bg-background/80 backdrop-blur-sm border rounded-full p-1 shadow-sm flex gap-1">
+                                        <Button
+                                            variant={hoursMode === 'academic' ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="rounded-full px-4"
+                                            onClick={() => setHoursMode('academic')}
+                                        >
+                                            Académicas
+                                        </Button>
+                                        <Button
+                                            variant={hoursMode === 'lecture' ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="rounded-full px-4"
+                                            onClick={() => setHoursMode('lecture')}
+                                        >
+                                            Lectivas
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
 
-                        {/* Certificate Back Page (Hoja 2) */}
-                        <div>
-                            <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Posterior (Hoja 2)</h2>
-                            <div
-                                ref={backPageRef}
-                                className="relative bg-white shadow-2xl mx-auto overflow-hidden select-none flex flex-col items-center justify-center border"
-                                style={{
-                                    width: '800px',
-                                    height: '566px',
-                                }}
-                            >
-                                {/* Background Image Back (Optional) */}
-                                {bgImageBack && (
-                                    <img
-                                        src={bgImageBack}
-                                        alt="Certificate Background Back"
-                                        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                                    />
-                                )}
+                            {/* Front Page */}
+                            <div className="bg-card rounded-xl border shadow-sm overflow-hidden p-4 md:p-8 flex flex-col items-center gap-8">
+                                <div className="w-full max-w-[800px] mx-auto">
+                                    <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Frontal</h2>
 
-                                {/* Default Back Content if no fields for page='back' defined */}
-                                {!template.fields?.some((f: any) => f.page === 'back') && !bgImageBack ? (
-                                    <div className="text-center space-y-8 p-12 w-full h-full flex flex-col justify-center border-4 border-double border-gray-200 m-4 rounded-xl">
-                                        <div className="space-y-2">
-                                            <p className="text-sm uppercase tracking-widest text-muted-foreground">Número de Registro</p>
-                                            <h2 className="text-3xl font-mono font-bold text-foreground">
-                                                {certificate.code || certificate.id}
-                                            </h2>
-                                        </div>
+                                    {/* CONTAINER REF for ResizeObserver */}
+                                    <div ref={certificateRef} className="w-full relative shadow-2xl">
 
-                                        <div className="w-24 h-1 bg-gray-200 mx-auto rounded-full" />
+                                        <div
+                                            id="certificate-front-container"
+                                            className="relative bg-white overflow-hidden select-none"
+                                            style={{
+                                                width: '100%',
+                                                aspectRatio: aspectRatio,
+                                            }}
+                                        >
+                                            {/* Background */}
+                                            {bgImageFront?.toLowerCase().endsWith('.pdf') ? (
+                                                <div className="absolute inset-0 w-full h-full">
+                                                    <Document file={bgImageFront} loading={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" /></div>}>
+                                                        {/* Responsive Page Width */}
+                                                        <Page
+                                                            pageNumber={1}
+                                                            width={containerWidth}
+                                                            renderTextLayer={false}
+                                                            renderAnnotationLayer={false}
+                                                            onLoadSuccess={onPageLoadSuccess}
+                                                        />
+                                                    </Document>
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={bgImageFront}
+                                                    alt="Certificate Background Front"
+                                                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                                                    onLoad={(e) => setAspectRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
+                                                />
+                                            )}
 
-                                        <div className="space-y-2">
-                                            <p className="text-sm uppercase tracking-widest text-muted-foreground">Otorgado a</p>
-                                            <h3 className="text-2xl font-serif font-bold text-foreground">
-                                                {certificate.metadata?.student_name || student?.full_name}
-                                            </h3>
-                                        </div>
+                                            {/* Fields */}
+                                            {template.fields?.map((field: any) => {
+                                                if (!field.visible || (field.page && field.page !== 'front')) return null;
 
-                                        <div className="absolute bottom-8 left-0 right-0 text-center">
-                                            <p className="text-xs text-gray-400">Gerencia y Desarrollo Global</p>
+                                                // --- Logic for visibility same as before ---
+                                                const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
+                                                const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
+
+                                                if (hoursMode === 'academic' && isLectureField) {
+                                                    const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+                                                    if (templateHasAcademic) return null;
+                                                }
+                                                if (hoursMode === 'lecture' && isAcademicField) {
+                                                    const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+                                                    if (templateHasLecture) return null;
+                                                }
+
+                                                let displayValue = getFieldValue(field);
+
+                                                // Swap Value Logic
+                                                if (isAcademicField && hoursMode === 'lecture') {
+                                                    const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+                                                    if (!templateHasLecture) {
+                                                        displayValue = certificate.metadata?.["Horas Lectivas"] || course.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || "";
+                                                    }
+                                                }
+                                                if (isLectureField && hoursMode === 'academic') {
+                                                    const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+                                                    if (!templateHasAcademic) {
+                                                        displayValue = certificate.metadata?.["Horas Académicas"] || course.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || "";
+                                                    }
+                                                }
+
+                                                // Sizing: Scale font based on container width ratio
+                                                const finalFontSize = field.fontSize * scaleFactor;
+
+                                                return (
+                                                    <div
+                                                        key={field.id}
+                                                        style={{
+                                                            position: "absolute",
+                                                            left: `${field.x}%`,
+                                                            top: `${field.y}%`,
+                                                            transform: "translate(-50%, -50%)",
+                                                            fontSize: `${finalFontSize}px`,
+                                                            color: field.color,
+                                                            fontFamily: field.fontFamily,
+                                                            textAlign: "center",
+                                                            whiteSpace: "nowrap",
+                                                            maxWidth: "90%",
+                                                            fontWeight: "bold",
+                                                            lineHeight: 1.2
+                                                        }}
+                                                        className="print:leading-none"
+                                                    >
+                                                        {displayValue}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                ) : (
-                                    /* Fields Back */
-                                    template.fields?.map((field: any) => (
-                                        (field.visible && field.page === 'back') && (
-                                            <div
-                                                key={field.id}
-                                                style={{
-                                                    position: "absolute",
-                                                    left: `${field.x}%`,
-                                                    top: `${field.y}%`,
-                                                    transform: "translate(-50%, -50%)",
-                                                    fontSize: `${field.fontSize}px`,
-                                                    color: field.color,
-                                                    fontFamily: field.fontFamily,
-                                                    textAlign: "center",
-                                                    whiteSpace: "nowrap",
-                                                    maxWidth: "90%",
-                                                    fontWeight: "bold",
-                                                    lineHeight: 1.2
-                                                }}
-                                                className="print:leading-none"
-                                            >
-                                                {getFieldValue(field)}
-                                            </div>
-                                        )
-                                    ))
+                                </div>
+
+                                {/* Back Page (Hidden if not needed, similar logic) */}
+                                {(bgImageBack || template.fields?.some((f: any) => f.page === 'back')) && (
+                                    <div className="w-full max-w-[800px] mx-auto opacity-75 hover:opacity-100 transition-opacity">
+                                        <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Posterior</h2>
+                                        <div className="relative bg-white shadow-xl mx-auto overflow-hidden select-none border" style={{ width: '100%', aspectRatio: aspectRatio }}>
+                                            {/* Background Back */}
+                                            {bgImageBack && (
+                                                bgImageBack.toLowerCase().endsWith('.pdf') ? (
+                                                    <div className="absolute inset-0 w-full h-full">
+                                                        <Document file={bgImageBack} loading={<Loader2 className="animate-spin" />}>
+                                                            <Page pageNumber={bgImageBack === bgImageFront ? 2 : 1} width={containerWidth} renderTextLayer={false} renderAnnotationLayer={false} />
+                                                        </Document>
+                                                    </div>
+                                                ) : <img src={bgImageBack} className="absolute inset-0 w-full h-full object-cover" />
+                                            )}
+
+                                            {/* Fields Back */}
+                                            {template.fields?.map((field: any) => {
+                                                if (!field.visible || field.page !== 'back') return null;
+                                                const finalFontSize = field.fontSize * scaleFactor;
+                                                return (
+                                                    <div key={field.id} style={{
+                                                        position: "absolute", left: `${field.x}%`, top: `${field.y}%`, transform: "translate(-50%, -50%)",
+                                                        fontSize: `${finalFontSize}px`, color: field.color, fontFamily: field.fontFamily,
+                                                        textAlign: "center", whiteSpace: "nowrap", fontWeight: "bold"
+                                                    }}>
+                                                        {getFieldValue(field)}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                        </div>
+                        </>
+                    )}
 
-                    </div>
                 </div>
             </div>
-            <div className="print:hidden">
-                <Footer />
-            </div>
+            <div className="print:hidden"><Footer /></div>
         </div>
     );
 }
