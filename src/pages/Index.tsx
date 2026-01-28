@@ -7,8 +7,16 @@ import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/layout/Footer";
 import { WhatsAppBubble } from "@/components/ui/WhatsAppBubble";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const Index = () => {
+  const { settings } = useSiteSettings();
+
+  // Format phone number for WhatsApp
+  const whatsappNumber = settings?.payment_number
+    ? (settings.payment_number.startsWith("51") ? settings.payment_number : `51${settings.payment_number}`)
+    : undefined;
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -21,10 +29,11 @@ const Index = () => {
         <CTASection />
       </main>
       <Footer />
-      <WhatsAppBubble />
+      <WhatsAppBubble phoneNumber={whatsappNumber} />
     </div>
   );
 };
+
 
 
 export default Index;
