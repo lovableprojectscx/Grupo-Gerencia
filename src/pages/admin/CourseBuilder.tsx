@@ -638,8 +638,10 @@ export default function CourseBuilder() {
                                         {course.metadata?.filter((m: any) => !["Horas Lectivas", "Horas Académicas", "Créditos", "program_type", "live_url", "live_date", "certificates_enabled"].includes(m.key)).map((item: any, index: number) => {
                                             // We need the REAL index in the main array to update correctly
                                             const realIndex = course.metadata.findIndex((m: any) => m === item);
+                                            // Using a more stable key combining item key and index
+                                            const itemKey = `meta-${item.key || 'empty'}-${index}`;
                                             return (
-                                                <div key={index} className="flex gap-2 items-center">
+                                                <div key={itemKey} className="flex gap-2 items-center">
                                                     <Input
                                                         placeholder="Nombre del dato"
                                                         value={item.key}
@@ -690,7 +692,7 @@ export default function CourseBuilder() {
                                 </div>
 
                                 {course.modality === 'live' && (
-                                    <div className="space-y-4 pt-4 border-t border-border">
+                                    <div key="live-control-section" className="space-y-4 pt-4 border-t border-border" translate="no">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-1">
                                                 <Label className="text-base flex items-center gap-2">
