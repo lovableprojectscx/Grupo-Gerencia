@@ -393,21 +393,27 @@ export default function CertificateViewer() {
 
                     // Fit Loop: Try to wrap text. If it overflows height, shrink font.
                     while (iterations < 50) {
-                        const words = text.split(' ');
                         lines = [];
-                        let currentLine = words[0];
 
-                        for (let i = 1; i < words.length; i++) {
-                            const word = words[i];
-                            const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
-                            if (width < maxBoxWidth) {
-                                currentLine += " " + word;
-                            } else {
-                                lines.push(currentLine);
-                                currentLine = word;
+                        // Respect manual newlines first
+                        const paragraphs = text.split('\n');
+
+                        for (const paragraph of paragraphs) {
+                            const words = paragraph.split(' ');
+                            let currentLine = words[0];
+
+                            for (let i = 1; i < words.length; i++) {
+                                const word = words[i];
+                                const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
+                                if (width < maxBoxWidth) {
+                                    currentLine += " " + word;
+                                } else {
+                                    lines.push(currentLine);
+                                    currentLine = word;
+                                }
                             }
+                            lines.push(currentLine);
                         }
-                        lines.push(currentLine);
 
                         // Check Total Height vs Box Height and Max Line Width overflow (for single long words)
                         const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);

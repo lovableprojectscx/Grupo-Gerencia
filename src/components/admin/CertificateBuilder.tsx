@@ -57,20 +57,35 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
         const el = textRef.current;
         if (!el || !el.parentElement) return;
 
-        // In the builder, the parent IS the box (div with boxWidth/boxHeight).
-        // We compare scrollWidth/Height vs clientWidth/Height
+        const parent = el.parentElement;
+
         const checkFit = () => {
             // If content overflows the box, SHRINK.
-            if ((el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) && currentFontSize > 6) {
+            // We check scroll dimensions vs client dimensions.
+            if ((el.scrollWidth > parent.clientWidth || el.scrollHeight > parent.clientHeight) && currentFontSize > 6) {
                 setCurrentFontSize(prev => prev * 0.90);
+            } else if ((el.scrollWidth <= parent.clientWidth * 0.8 && el.scrollHeight <= parent.clientHeight * 0.8) && currentFontSize < fontSize) {
+                // Optional: Grow back if lots of space? 
+                // We rely on the reset effect for that mostly, but we can try to inch up.
+                // Actually, let's stick to the reset effect for growing to avoid oscillation loops.
             }
         };
 
         // Run check immediately
         checkFit();
 
-        // And a backup for layout shifts (optional but safe)
-        // setTimeout(checkFit, 10);
+        // Observe parent size changes (Dragging the box)
+        const resizeObserver = new ResizeObserver(() => {
+            // When box resizes, we might need to reset to max to re-evaluate or just check fit.
+            // A simple approach: If box grows, we should probably reset to max and let it shrink down again to find best fit.
+            // BUT, resetting here triggers infinite loops if not careful.
+            // Best strategy: Just check fit. The 'boxWidth' prop change effect handles the massive reset.
+            checkFit();
+        });
+
+        resizeObserver.observe(parent);
+
+        return () => resizeObserver.disconnect();
 
     }, [text, currentFontSize, maxWidthPercent, fontSize, boxWidth, boxHeight]);
 
