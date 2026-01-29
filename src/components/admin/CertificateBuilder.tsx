@@ -23,7 +23,9 @@ interface FieldPosition {
     visible: boolean;
     value?: string;
     page?: "front" | "back";
-    maxWidth?: number; // Added maxWidth property
+    maxWidth?: number; // Legacy: kept for migration but UI will prefer boxWidth
+    boxWidth?: number; // Percentage of container width
+    boxHeight?: number; // Percentage of container height
 }
 
 const defaultFields: FieldPosition[] = [
@@ -53,11 +55,20 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85 }: 
         const el = textRef.current;
         if (!el || !el.parentElement) return;
 
-        // In the builder, the parent ID constrained by the field.maxWidth.
-        // We compare scrollWidth (content) vs clientWidth (constraint).
-        if (el.scrollWidth > el.clientWidth && currentFontSize > 6) {
-            setCurrentFontSize(prev => prev * 0.90);
-        }
+        // In the builder, the parent ID constrained by field.boxWidth/boxHeight
+        // We compare scrollWidth/Height vs clientWidth/Height
+        const checkFit = () => {
+            if ((el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) && currentFontSize > 6) {
+                setCurrentFontSize(prev => prev * 0.90);
+            }
+        };
+
+        // Run check
+        checkFit();
+
+        // Double check for rapid changes?
+        // setTimeout(checkFit, 50);
+
     }, [text, currentFontSize, maxWidthPercent, fontSize]);
 
     return (
@@ -105,7 +116,15 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             // Legacy support
             if (template.bgImage && !template.bgImageFront) setBgImageFront(template.bgImage);
 
-            if (template.fields) setFields(template.fields);
+            if (template.fields) {
+                // Ensure new fields have box props if missing
+                const migratedFields = template.fields.map((f: any) => ({
+                    ...f,
+                    boxWidth: f.boxWidth || f.maxWidth || 30,
+                    boxHeight: f.boxHeight || 10
+                }));
+                setFields(migratedFields);
+            }
             if (template.hoursType) setHoursType(template.hoursType);
         }
     }, [template]);
@@ -118,8 +137,10 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
     const selectedField = fields.find(f => f.id === selectedFieldId);
 
-    // Default metadata extraction
-    const fetchedMetadata = defaultMetadata || [];
+    // Default metadata extraction & FILTERING
+    const fetchedMetadata = (defaultMetadata || []).filter(m =>
+        !['certificates_enabled', 'live_date', 'live_url', 'created_at', 'updated_at', 'id', 'user_id', 'program_type'].includes(m.key)
+    );
 
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,7 +250,9 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             visible: true,
             value: value || "Texto de Ejemplo",
             page: activePage,
-            maxWidth: 85 // Default Smart Fitting
+            maxWidth: 85, // Deprecated/Fallback
+            boxWidth: 30, // Default 30% width
+            boxHeight: 10 // Default 10% height
         };
         setFields(prev => [...prev, newField]);
         setSelectedFieldId(newField.id);
@@ -368,21 +391,29 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     zIndex: selectedFieldId === field.id ? 20 : 10,
 
                                     // Constraint Logic
-                                    maxWidth: field.maxWidth ? `${field.maxWidth}%` : '85%',
-                                    width: '100%', // Allow it to take up to maxWidth. Wait, 'auto' is better so it doesn't stretch small text?
-                                    // Actually, if we use SmartText, we want the container to Define the limit.
+                                    // Constraint Logic
+                                    // boxWidth/Height uses percentages of the container
+                                    width: field.boxWidth ? `${field.boxWidth}%` : '30%',
+                                    height: field.boxHeight ? `${field.boxHeight}%` : '10%',
+
                                     display: "flex",
                                     justifyContent: "center",
-                                    alignItems: "center"
+                                    alignItems: "center",
+                                    overflow: "hidden" // Clip content that doesn't fit
                                 }}
-                                className="hover:border-primary/50 transition-colors font-bold"
+                                className="hover:border-primary/50 transition-colors font-bold group"
                             >
+                                {/* Visual Box Border (Dashed) - Always visible when selected or hovering, else hidden */}
+                                <div className={`absolute inset-0 border border-dashed pointer-events-none ${selectedFieldId === field.id ? 'border-blue-500 opacity-100' : 'border-gray-400 opacity-0 group-hover:opacity-50'}`} />
+
                                 <SmartText
                                     text={field.value}
                                     fontSize={field.fontSize}
                                     color={field.color}
                                     fontFamily={field.fontFamily}
-                                    maxWidthPercent={field.maxWidth || 85}
+                                    // Pass box dimensions to SmartText for calculation? 
+                                    // Actually SmartText uses parent size which is set above.
+                                    maxWidthPercent={100} // Parent is already the box
                                 />
                             </div>
                         ))}
@@ -505,19 +536,30 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-xs">Ancho Máximo (Smart Fitting) (%)</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Slider
-                                                value={[selectedField.maxWidth || 85]}
-                                                min={10}
-                                                max={100}
-                                                step={1}
-                                                onValueChange={(val) => updateField(selectedField.id, { maxWidth: val[0] })}
-                                                className="flex-1"
-                                            />
-                                            <span className="text-xs w-8">{selectedField.maxWidth || 85}%</span>
+                                        <Label className="text-xs">Dimensiones de Caja (Ancho x Alto %)</Label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] w-4">W:</span>
+                                                <Slider
+                                                    value={[selectedField.boxWidth || 30]}
+                                                    min={5} max={100} step={1}
+                                                    onValueChange={(val) => updateField(selectedField.id, { boxWidth: val[0] })}
+                                                    className="flex-1"
+                                                />
+                                                <span className="text-[10px] w-6">{selectedField.boxWidth || 30}%</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] w-4">H:</span>
+                                                <Slider
+                                                    value={[selectedField.boxHeight || 10]}
+                                                    min={2} max={100} step={1}
+                                                    onValueChange={(val) => updateField(selectedField.id, { boxHeight: val[0] })}
+                                                    className="flex-1"
+                                                />
+                                                <span className="text-[10px] w-6">{selectedField.boxHeight || 10}%</span>
+                                            </div>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground">Si el texto supera este ancho, se reducirá automáticamente.</p>
+                                        <p className="text-[10px] text-muted-foreground">Define el área reservada. El texto se reducirá para caber.</p>
                                     </div>
                                     <div className="space-y-1">
                                         <Label className="text-xs">Fuente</Label>

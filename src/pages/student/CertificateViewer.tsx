@@ -33,8 +33,6 @@ const FONT_URLS: Record<string, string> = {
 
 
 
-// Helper Component for "Fit Text" logic in SVG/HTML
-// It will shrink the font size until it fits within the maxWidth (percentage of parent)
 const SmartText = ({
     text,
     x,
@@ -42,7 +40,8 @@ const SmartText = ({
     fontSize,
     color,
     fontFamily,
-    maxWidthPercent = 80
+    boxWidthPercent,
+    boxHeightPercent
 }: any) => {
     const textRef = useRef<HTMLDivElement>(null);
     const [currentFontSize, setCurrentFontSize] = useState(fontSize);
@@ -56,24 +55,26 @@ const SmartText = ({
         const el = textRef.current;
         if (!el || !el.parentElement) return;
 
-        // Parent width (the A4 container)
-        const parentWidth = el.parentElement.clientWidth;
-        const maxPx = (maxWidthPercent / 100) * parentWidth;
+        // Parent width usually is the container width. 
+        // But here we are absolutely positioned. 
+        // We need to know the pixel size of the box.
+        // The parent of this component is the "certificate-front-container" (relative).
+        const container = el.parentElement;
+        if (!container) return;
 
-        // Heuristic: If we are wider than max, shrink
+        // Dimensions of the "Box" in pixels
+        const boxW_px = (boxWidthPercent / 100) * container.clientWidth;
+        const boxH_px = (boxHeightPercent / 100) * container.clientHeight;
+
+        // Check overflow
         const checkFit = () => {
-            // Loop protection: limit logical min size
-            if (el.scrollWidth > maxPx && currentFontSize > 6) {
+            if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 6) {
                 setCurrentFontSize(prev => prev * 0.90);
             }
         };
 
-        // Simple check
-        if (el.scrollWidth > maxPx && currentFontSize > 6) {
-            setCurrentFontSize(prev => prev * 0.90);
-        }
-
-    }, [text, currentFontSize, maxWidthPercent, fontSize]);
+        checkFit();
+    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize]);
 
     return (
         <div
@@ -83,12 +84,19 @@ const SmartText = ({
                 left: `${x}%`,
                 top: `${y}%`,
                 transform: "translate(-50%, -50%)",
+
+                // Box Model Props
+                width: `${boxWidthPercent}%`,
+                height: `${boxHeightPercent}%`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden', // Clip to box
+
                 fontSize: `${currentFontSize}px`,
                 color: color,
                 fontFamily: fontFamily,
                 textAlign: "center",
-                whiteSpace: "nowrap",
-                maxWidth: `${maxWidthPercent}%`,
                 fontWeight: "bold",
                 lineHeight: 1.2,
                 transition: "font-size 0.1s ease-out"
@@ -342,39 +350,69 @@ export default function CertificateViewer() {
 
 
 
-                    // --- SMART TEXT SCALING LOGIC ---
+                    // --- SMART TEXT SCALING LOGIC (BOX MODEL) ---
 
-                    // 1. Determine Max Width (in PDF points)
-                    // Default to 85% of page width if not specified (Standard safe area)
-                    // 1. Determine Max Width (in PDF points)
-                    // Use field.maxWidth if defined, otherwise default to 85%
-                    const mwPercent = field.maxWidth || 85;
-                    const maxWidth = page.getWidth() * (mwPercent / 100);
+                    // 1. Determine Box Dimensions (in PDF points)
+                    // If no box metrics, default to legacy behavior (30% W, 10% H approx or just fallback)
+                    const boxW_percent = field.boxWidth || field.maxWidth || 30;
+                    const boxH_percent = field.boxHeight || 10;
 
-                    // 2. Measure Text at initial font size
+                    const maxBoxWidth = page.getWidth() * (boxW_percent / 100);
+                    const maxBoxHeight = page.getHeight() * (boxH_percent / 100);
+
+                    // 2. Measure Text Loop
                     let currentFontSize = fontSize;
-                    let textWidth = font.widthOfTextAtSize(text, currentFontSize);
 
-                    // 3. Iteratively shrink if too wide
-                    // Limit minimum font size to avoid unreadable microscopic text (e.g., 6pt)
+                    // Helper to measure height (Approximate based on font size + line gap?)
+                    // pdf-lib font.heightAtSize(size) gives height.
+
+                    // Iteratively shrink if too wide OR too tall
                     const minFontSize = 6;
 
-                    if (textWidth > maxWidth) {
-                        // Calculate exact required scale ratio
-                        const ratio = maxWidth / textWidth;
-                        // Apply ratio (minus a tiny buffer) or iterative? Direct ratio is faster and precise.
-                        currentFontSize = Math.max(currentFontSize * ratio, minFontSize);
+                    // Simple infinite loop protection
+                    let iterations = 0;
+                    while (iterations < 50) { // Max 50 shrinkage steps
+                        const textWidth = font.widthOfTextAtSize(text, currentFontSize);
+                        const textHeight = font.heightAtSize(currentFontSize); // Basic height
 
-                        // Recalculate width for centering
-                        textWidth = font.widthOfTextAtSize(text, currentFontSize);
+                        if (textWidth <= maxBoxWidth && textHeight <= maxBoxHeight) {
+                            break; // Fits!
+                        }
+
+                        // Shrink
+                        currentFontSize *= 0.90;
+
+                        if (currentFontSize < minFontSize) {
+                            currentFontSize = minFontSize;
+                            break;
+                        }
+                        iterations++;
                     }
 
-                    // Coordinates (Re-calculate centered X with new width)
+                    const finalWidth = font.widthOfTextAtSize(text, currentFontSize);
+
+                    // Recalculate width for centering
+                    // Note: x/y are center coordinates of the Box.
+
+                    // If x/y are center of the field, we want to draw text centered on that x/y?
+                    // Yes, logic:
+
                     const x = (field.x / 100) * page.getWidth();
                     const y = page.getHeight() - ((field.y / 100) * page.getHeight());
 
-                    const adjustedX = x - (textWidth / 2);
-                    const adjustedY = y;
+                    const adjustedX = x - (finalWidth / 2);
+                    // y is baseline... we usually need to adjust for height to center vertically
+                    // font.heightAtSize includes ascender/descender. 
+                    // Approximation: Shift down by ~ 1/3 height for visual middle centering relative to the Box Center?
+                    // Actually, if Y is center, and we draw at Y, text is usually above baseline?
+                    // pdf-lib drawText y is baseline.
+                    // To center vertically: y = centerY - (height/2) + descent?
+                    // Let's stick to existing Y logic which was 'adjustedY = y'. 
+                    // If the user visually centers in the tool (Flexbox), the 'y' saved IS the center.
+                    // But pdf-lib draws from baseline.
+                    // Let's try to center strictly:
+                    const textHeight = font.heightAtSize(currentFontSize);
+                    const adjustedY = y - (textHeight / 3); // Rough visual center adjustment
 
                     const colorHex = field.color || "#000000";
                     const r = parseInt(colorHex.slice(1, 3), 16) / 255;
@@ -685,7 +723,9 @@ export default function CertificateViewer() {
                                                         fontSize={finalFontSize}
                                                         color={field.color}
                                                         fontFamily={field.fontFamily}
-                                                        maxWidthPercent={field.maxWidth || 85} // Dynamic max width or default 85
+                                                        boxWidthPercent={field.boxWidth || field.maxWidth || 30}
+                                                        boxHeightPercent={field.boxHeight || 10}
+                                                    // maxWidthPercent removed
                                                     />
                                                 );
                                             })}
@@ -722,7 +762,8 @@ export default function CertificateViewer() {
                                                         fontSize={finalFontSize}
                                                         color={field.color}
                                                         fontFamily={field.fontFamily}
-                                                        maxWidthPercent={field.maxWidth || 85}
+                                                        boxWidthPercent={field.boxWidth || field.maxWidth || 30}
+                                                        boxHeightPercent={field.boxHeight || 10}
                                                     />
                                                 )
                                             })}
