@@ -397,9 +397,17 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
     function onPageLoadSuccess(page: any) {
         // PDF.js page object
-        // console.log('Page loaded', page);
-        // We can get original aspect ratio if needed, but we usually set container width fixed
+        if (page.originalWidth && page.originalHeight) {
+            setAspectRatio(page.originalWidth / page.originalHeight);
+        }
     }
+
+    const currentBg = activePage === "front" ? bgImageFront : bgImageBack;
+    const isPdf = currentBg?.toLowerCase().endsWith('.pdf');
+    // We only force aspect ratio if it's a PDF (canvas needs it? no pdf renders its own size, but we need container size)
+    // OR if there is no background (placeholder)
+    // If it's an IMAGE, we let the image define the height via h-auto to avoid whitespace gaps.
+    const useAspectRatioStyle = !currentBg || isPdf;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-100px)]">
@@ -417,58 +425,50 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                     <div
                         ref={containerRef}
                         className="relative w-full max-w-[800px] bg-white shadow-2xl rounded-sm overflow-hidden select-none"
-                        style={{ aspectRatio: aspectRatio }}
+                        style={useAspectRatioStyle ? { aspectRatio: aspectRatio } : {}}
                     >
-                        {/* Background Rendering (Keep existing logic) */}
-                        {(() => {
-                            const currentBg = activePage === "front" ? bgImageFront : bgImageBack;
-                            if (!currentBg) {
-                                return (
-                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gray-100">
-                                        Sube una plantilla para la {activePage === "front" ? "Hoja 1" : "Hoja 2"}
-                                    </div>
-                                );
-                            }
+                        {/* Background Rendering */}
+                        {!currentBg && (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gray-100" style={{ aspectRatio: 1.414 }}>
+                                Sube una plantilla para la {activePage === "front" ? "Hoja 1" : "Hoja 2"}
+                            </div>
+                        )}
 
-                            const isPdf = currentBg.toLowerCase().endsWith('.pdf');
-
-                            if (isPdf) {
-                                return (
-                                    <div className="w-full h-full absolute inset-0 pdf-container bg-white">
-                                        <Document
-                                            file={currentBg}
-                                            onLoadSuccess={onDocumentLoadSuccess}
-                                            onLoadError={(error) => {
-                                                console.error("Error loading PDF:", error);
-                                                toast.error("Error al cargar PDF: " + error.message);
-                                            }}
-                                            loading={<div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>}
-                                            error={<div className="flex items-center justify-center h-full text-red-500 font-bold p-4 text-center">Error al cargar PDF. Verifique la consola.</div>}
-                                        >
-                                            <Page
-                                                pageNumber={activePage === 'back' && bgImageBack === bgImageFront ? (numPages > 1 ? 2 : 1) : 1}
-                                                width={containerRef.current?.clientWidth || 800}
-                                                renderTextLayer={false}
-                                                renderAnnotationLayer={false}
-                                                onLoadSuccess={onPageLoadSuccess}
-                                            />
-                                        </Document>
-                                    </div>
-                                );
-                            }
-
-                            return (
-                                <img
-                                    src={currentBg}
-                                    alt="Certificate Template"
-                                    className="w-full h-full object-cover pointer-events-none block"
-                                    onLoad={(e) => {
-                                        const img = e.currentTarget;
-                                        setAspectRatio(img.naturalWidth / img.naturalHeight);
+                        {currentBg && isPdf && (
+                            <div className="w-full h-full absolute inset-0 pdf-container bg-white">
+                                <Document
+                                    file={currentBg}
+                                    onLoadSuccess={onDocumentLoadSuccess}
+                                    onLoadError={(error) => {
+                                        console.error("Error loading PDF:", error);
+                                        toast.error("Error al cargar PDF: " + error.message);
                                     }}
-                                />
-                            );
-                        })()}
+                                    loading={<div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>}
+                                    error={<div className="flex items-center justify-center h-full text-red-500 font-bold p-4 text-center">Error al cargar PDF. Verifique la consola.</div>}
+                                >
+                                    <Page
+                                        pageNumber={activePage === 'back' && bgImageBack === bgImageFront ? (numPages > 1 ? 2 : 1) : 1}
+                                        width={containerRef.current?.clientWidth || 800}
+                                        renderTextLayer={false}
+                                        renderAnnotationLayer={false}
+                                        onLoadSuccess={onPageLoadSuccess}
+                                    />
+                                </Document>
+                            </div>
+                        )}
+
+                        {currentBg && !isPdf && (
+                            <img
+                                src={currentBg}
+                                alt="Certificate Template"
+                                className="w-full h-auto object-cover pointer-events-none block"
+                                onLoad={(e) => {
+                                    // We still update aspect ratio state just in case we switch modes or export
+                                    const img = e.currentTarget;
+                                    setAspectRatio(img.naturalWidth / img.naturalHeight);
+                                }}
+                            />
+                        )}
 
 
 
