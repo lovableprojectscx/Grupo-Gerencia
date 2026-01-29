@@ -474,82 +474,80 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
                         {/* Fields Layer */}
                         {activeFields.map((field) => (
-                            <div key="wrapper" className="contents">
-                                <div
-                                    key={field.id}
-                                    onMouseDown={(e) => handleMouseDown(e, field.id)}
-                                    onClick={(e) => { e.stopPropagation(); setSelectedFieldId(field.id); }}
-                                    style={{
-                                        position: "absolute",
-                                        left: `${field.x}%`,
-                                        top: `${field.y}%`,
-                                        transform: "translate(-50%, -50%)",
-                                        // fontSize is handled by SmartText
-                                        cursor: isDragging ? "grabbing" : "grab",
-                                        border: selectedFieldId === field.id ? "2px dashed blue" : "1px dashed transparent",
-                                        padding: "4px 8px", // Padding might affect width calculation, keep minimal
-                                        zIndex: selectedFieldId === field.id ? 20 : 10,
+                            <div
+                                key={field.id}
+                                onMouseDown={(e) => handleMouseDown(e, field.id)}
+                                onClick={(e) => { e.stopPropagation(); setSelectedFieldId(field.id); }}
+                                style={{
+                                    position: "absolute",
+                                    left: `${field.x}%`,
+                                    top: `${field.y}%`,
+                                    transform: "translate(-50%, -50%)",
+                                    // fontSize is handled by SmartText
+                                    cursor: isDragging ? "grabbing" : "grab",
+                                    border: selectedFieldId === field.id ? "2px dashed blue" : "1px dashed transparent",
+                                    padding: "4px 8px", // Padding might affect width calculation, keep minimal
+                                    zIndex: selectedFieldId === field.id ? 20 : 10,
 
-                                        // Constraint Logic
-                                        // Constraint Logic
-                                        // boxWidth/Height uses percentages of the container
-                                        width: field.boxWidth ? `${field.boxWidth}%` : '30%',
-                                        height: field.boxHeight ? `${field.boxHeight}%` : '10%',
+                                    // Constraint Logic
+                                    // Constraint Logic
+                                    // boxWidth/Height uses percentages of the container
+                                    width: field.boxWidth ? `${field.boxWidth}%` : '30%',
+                                    height: field.boxHeight ? `${field.boxHeight}%` : '10%',
 
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                        overflow: "hidden" // Clip content that doesn't fit
-                                    }}
-                                    className="hover:border-primary/50 transition-colors font-bold group"
-                                >
-                                    {/* Visual Box Border (Dashed) - Always visible when selected or hovering, else hidden */}
-                                    <div className={`absolute inset-0 border border-dashed pointer-events-none ${selectedFieldId === field.id ? 'border-blue-500 opacity-100' : 'border-gray-400 opacity-0 group-hover:opacity-50'}`} />
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    overflow: "hidden" // Clip content that doesn't fit
+                                }}
+                                className="hover:border-primary/50 transition-colors font-bold group"
+                            >
+                                {/* Visual Box Border (Dashed) - Always visible when selected or hovering, else hidden */}
+                                <div className={`absolute inset-0 border border-dashed pointer-events-none ${selectedFieldId === field.id ? 'border-blue-500 opacity-100' : 'border-gray-400 opacity-0 group-hover:opacity-50'}`} />
 
-                                    {/* Resize Handles (Only when selected) */}
-                                    {selectedFieldId === field.id && (
-                                        <>
-                                            {/* Corners */}
-                                            {['nw', 'ne', 'sw', 'se'].map((dir) => (
-                                                <div
-                                                    key={dir}
-                                                    onMouseDown={(e) => handleResizeStart(e, field.id, dir)}
-                                                    className={`absolute w-3 h-3 bg-white border border-blue-600 rounded-full z-30 cursor-${dir}-resize hover:scale-125 transition-transform`}
-                                                    style={{
-                                                        top: dir.includes('n') ? '-6px' : 'auto',
-                                                        bottom: dir.includes('s') ? '-6px' : 'auto',
-                                                        left: dir.includes('w') ? '-6px' : 'auto',
-                                                        right: dir.includes('e') ? '-6px' : 'auto',
-                                                    }}
-                                                />
-                                            ))}
-                                            {/* Sides (Optional, lets stick to corners for now to keep it clean, or add E/W/N/S) */}
-                                            {['n', 's', 'e', 'w'].map((dir) => (
-                                                <div
-                                                    key={dir}
-                                                    onMouseDown={(e) => handleResizeStart(e, field.id, dir)}
-                                                    className={`absolute bg-transparent z-25 cursor-${dir === 'n' || dir === 's' ? 'ns' : 'ew'}-resize`}
-                                                    style={{
-                                                        top: dir === 'n' ? '-5px' : dir === 's' ? 'auto' : '10%',
-                                                        bottom: dir === 's' ? '-5px' : dir === 'n' ? 'auto' : '10%',
-                                                        left: dir === 'w' ? '-5px' : dir === 'e' ? 'auto' : '10%',
-                                                        right: dir === 'e' ? '-5px' : dir === 'w' ? 'auto' : '10%',
-                                                        width: dir === 'n' || dir === 's' ? '100%' : '10px',
-                                                        height: dir === 'e' || dir === 'w' ? '100%' : '10px',
-                                                    }}
-                                                />
-                                            ))}
-                                        </>
-                                    )}
+                                {/* Resize Handles (Only when selected) */}
+                                {selectedFieldId === field.id && (
+                                    <>
+                                        {/* Corners */}
+                                        {['nw', 'ne', 'sw', 'se'].map((dir) => (
+                                            <div
+                                                key={dir}
+                                                onMouseDown={(e) => handleResizeStart(e, field.id, dir)}
+                                                className={`absolute w-3 h-3 bg-white border border-blue-600 rounded-full z-30 cursor-${dir}-resize hover:scale-125 transition-transform`}
+                                                style={{
+                                                    top: dir.includes('n') ? '-6px' : 'auto',
+                                                    bottom: dir.includes('s') ? '-6px' : 'auto',
+                                                    left: dir.includes('w') ? '-6px' : 'auto',
+                                                    right: dir.includes('e') ? '-6px' : 'auto',
+                                                }}
+                                            />
+                                        ))}
+                                        {/* Sides (Optional, lets stick to corners for now to keep it clean, or add E/W/N/S) */}
+                                        {['n', 's', 'e', 'w'].map((dir) => (
+                                            <div
+                                                key={dir}
+                                                onMouseDown={(e) => handleResizeStart(e, field.id, dir)}
+                                                className={`absolute bg-transparent z-25 cursor-${dir === 'n' || dir === 's' ? 'ns' : 'ew'}-resize`}
+                                                style={{
+                                                    top: dir === 'n' ? '-5px' : dir === 's' ? 'auto' : '10%',
+                                                    bottom: dir === 's' ? '-5px' : dir === 'n' ? 'auto' : '10%',
+                                                    left: dir === 'w' ? '-5px' : dir === 'e' ? 'auto' : '10%',
+                                                    right: dir === 'e' ? '-5px' : dir === 'w' ? 'auto' : '10%',
+                                                    width: dir === 'n' || dir === 's' ? '100%' : '10px',
+                                                    height: dir === 'e' || dir === 'w' ? '100%' : '10px',
+                                                }}
+                                            />
+                                        ))}
+                                    </>
+                                )}
 
-                                    <SmartText
-                                        text={field.value}
-                                        fontSize={field.fontSize}
-                                        color={field.color}
-                                        fontFamily={field.fontFamily}
-                                        maxWidthPercent={100}
-                                    />
-                                </div>
+                                <SmartText
+                                    text={field.value}
+                                    fontSize={field.fontSize}
+                                    color={field.color}
+                                    fontFamily={field.fontFamily}
+                                    maxWidthPercent={100}
+                                />
                             </div>
                         ))}
 
