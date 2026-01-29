@@ -158,81 +158,82 @@ export default function Classroom() {
                             <span>{(certificate || enrollment?.status === 'completed') ? 100 : progressPercentage}% completado</span>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex items-center gap-2">
-                        {(() => {
-                            // Logic to determine if certificate button should be shown
-                            // We strictly respect local completion first
+                <div className="flex items-center gap-2">
+                    {(() => {
+                        // Logic to determine if certificate button should be shown
+                        // We strictly respect local completion first
 
-                            if (certificate) {
-                                return (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="hidden md:flex text-green-600 border-green-200 bg-green-50 hover:bg-green-100"
-                                        onClick={() => navigate(`/verify/${certificate.id}`)}
-                                    >
-                                        <Award className="w-4 h-4 mr-2" />
-                                        Ver Certificado
-                                    </Button>
-                                );
-                            }
-
-                            // For async courses, only show if completed
+                        if (certificate) {
                             return (
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={async () => {
-                                            if (!userId || !courseId || !course?.modules) return;
-                                            if (confirm("¿Estás seguro de que quieres marcar todo el curso como completado?")) {
-                                                const allLessonIds = course.modules.flatMap((m: any) => m.lessons?.map((l: any) => l.id)) || [];
-                                                await courseService.markAllLessonsCompleted(userId, courseId, allLessonIds);
-                                                toast.success("Curso completado exitosamente");
-                                                queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
-                                                queryClient.invalidateQueries({ queryKey: ["course-classroom"] }); // Refresh progress
-
-                                                // Optional: Open cert dialog immediately
-                                                setTimeout(() => setIsCertDialogOpen(true), 500);
-                                            }
-                                        }}
-                                        className="hidden md:flex text-muted-foreground hover:text-primary"
-                                        title="Marcar todo como completado"
-                                    >
-                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                        Completar Todo
-                                    </Button>
-
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="hidden md:flex"
-                                        disabled={progressPercentage < 100}
-                                        onClick={() => {
-                                            if (progressPercentage >= 100) {
-                                                setIsCertDialogOpen(true);
-                                            }
-                                        }}
-                                    >
-                                        <GraduationCap className={cn("w-4 h-4 mr-2", progressPercentage < 100 ? "text-muted-foreground" : "text-primary")} />
-                                        {progressPercentage >= 100 ? "Obtener Certificado" : "Certificado"}
-                                    </Button>
-                                </div>
-                            );
-                        })()}
-
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="md:hidden">
-                                    <Menu className="w-5 h-5" />
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="hidden md:flex text-green-600 border-green-200 bg-green-50 hover:bg-green-100"
+                                    onClick={() => navigate(`/verify/${certificate.id}`)}
+                                >
+                                    <Award className="w-4 h-4 mr-2" />
+                                    Ver Certificado
                                 </Button>
-                            </SheetTrigger>
-                            <SheetContent side="right" className="p-0 w-80">
-                                <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} completedLessons={completedLessons} />
-                            </SheetContent>
-                        </Sheet>
-                    </div>
+                            );
+                        }
+
+                        // For async courses, only show if completed
+                        return (
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                        if (!userId || !courseId || !course?.modules) return;
+                                        if (confirm("¿Estás seguro de que quieres marcar todo el curso como completado?")) {
+                                            const allLessonIds = course.modules.flatMap((m: any) => m.lessons?.map((l: any) => l.id)) || [];
+                                            await courseService.markAllLessonsCompleted(userId, courseId, allLessonIds);
+                                            toast.success("Curso completado exitosamente");
+                                            queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
+                                            queryClient.invalidateQueries({ queryKey: ["course-classroom"] }); // Refresh progress
+
+                                            // Optional: Open cert dialog immediately
+                                            setTimeout(() => setIsCertDialogOpen(true), 500);
+                                        }
+                                    }}
+                                    className="hidden md:flex text-muted-foreground hover:text-primary"
+                                    title="Marcar todo como completado"
+                                >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Completar Todo
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="hidden md:flex"
+                                    disabled={progressPercentage < 100}
+                                    onClick={() => {
+                                        if (progressPercentage >= 100) {
+                                            setIsCertDialogOpen(true);
+                                        }
+                                    }}
+                                >
+                                    <GraduationCap className={cn("w-4 h-4 mr-2", progressPercentage < 100 ? "text-muted-foreground" : "text-primary")} />
+                                    {progressPercentage >= 100 ? "Obtener Certificado" : "Certificado"}
+                                </Button>
+                            </div>
+                        );
+                    })()}
+
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="md:hidden">
+                                <Menu className="w-5 h-5" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="p-0 w-80">
+                            <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} completedLessons={completedLessons} />
+                        </SheetContent>
+                    </Sheet>
+                </div>
             </header>
 
             {/* Main Content Area */}
