@@ -364,8 +364,15 @@ export default function CourseBuilder() {
             // Remove 'modules', 'instructor' and any other non-db fields from the payload
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             // Remove 'modules', 'instructor' and any other non-db fields from the payload
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { modules, instructor, enrollments, students, ...courseData } = course;
+
+            // --- CRITICAL FIX: Clean Metadata based on Modality ---
+            // If switching away from 'live', remove live-specific metadata to prevent ghost data or logic errors.
+            if (courseData.modality !== 'live' && courseData.metadata) {
+                courseData.metadata = courseData.metadata.filter((m: any) =>
+                    !['live_url', 'live_date', 'certificates_enabled'].includes(m.key)
+                );
+            }
 
             if (isEditing) {
                 await updateCourse({ id: id!, updates: courseData });
@@ -691,80 +698,7 @@ export default function CourseBuilder() {
                                     </p>
                                 </div>
 
-                                {course.modality === 'live' && (
-                                    <div key="live-control-section" className="space-y-4 pt-4 border-t border-border" translate="no">
-                                        <div className="flex items-center justify-between">
-                                            <div className="space-y-1">
-                                                <Label className="text-base flex items-center gap-2">
-                                                    <span className="relative flex h-3 w-3">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                                    </span>
-                                                    Sala de Control (En Vivo)
-                                                </Label>
-                                                <p className="text-sm text-muted-foreground">Configura el enlace de la clase y el acceso a certificados.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid gap-4 p-4 border rounded-xl bg-secondary/20">
-                                            <div className="space-y-2">
-                                                <Label>Enlace de la Clase (Meet / Zoom / YouTube)</Label>
-                                                <Input
-                                                    placeholder="https://meet.google.com/..."
-                                                    value={course.metadata?.find((m: any) => m.key === "live_url")?.value || ""}
-                                                    onChange={(e) => {
-                                                        const current = [...(course.metadata || [])];
-                                                        const index = current.findIndex((m: any) => m.key === "live_url");
-                                                        if (index >= 0) {
-                                                            current[index].value = e.target.value;
-                                                        } else {
-                                                            current.push({ key: "live_url", value: e.target.value });
-                                                        }
-                                                        setCourse({ ...course, metadata: current });
-                                                    }}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label>Fecha y Hora de Inicio</Label>
-                                                <Input
-                                                    type="datetime-local"
-                                                    value={course.metadata?.find((m: any) => m.key === "live_date")?.value || ""}
-                                                    onChange={(e) => {
-                                                        const current = [...(course.metadata || [])];
-                                                        const index = current.findIndex((m: any) => m.key === "live_date");
-                                                        if (index >= 0) {
-                                                            current[index].value = e.target.value;
-                                                        } else {
-                                                            current.push({ key: "live_date", value: e.target.value });
-                                                        }
-                                                        setCourse({ ...course, metadata: current });
-                                                    }}
-                                                />
-                                            </div>
-
-                                            <div className="flex items-center justify-between p-3 bg-background rounded-lg border">
-                                                <div className="space-y-0.5">
-                                                    <Label className="text-base">Habilitar Certificados</Label>
-                                                    <p className="text-xs text-muted-foreground">Activa esto AL FINAL de la clase para permitir descargas.</p>
-                                                </div>
-                                                <Switch
-                                                    checked={course.metadata?.find((m: any) => m.key === "certificates_enabled")?.value === "true"}
-                                                    onCheckedChange={(checked) => {
-                                                        const current = [...(course.metadata || [])];
-                                                        const index = current.findIndex((m: any) => m.key === "certificates_enabled");
-                                                        if (index >= 0) {
-                                                            current[index].value = String(checked);
-                                                        } else {
-                                                            current.push({ key: "certificates_enabled", value: String(checked) });
-                                                        }
-                                                        setCourse({ ...course, metadata: current });
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                {/* Live control section removed completely as per user request */}
                             </CardContent>
                         </Card>
 

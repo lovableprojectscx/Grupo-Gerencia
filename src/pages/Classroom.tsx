@@ -149,7 +149,8 @@ export default function Classroom() {
                     {(() => {
                         const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
                         const certEnabled = course.metadata?.find((m: any) => m.key === "certificates_enabled")?.value === "true";
-                        const isLiveCourse = !!liveUrl; // Simple heuristic: if it has a live URL configured, treat as live flow
+                        // FIX: Check modality first, fallback to liveUrl existence only if legacy
+                        const isLiveCourse = course.modality === 'live' || (!course.modality && !!liveUrl);
 
                         if (certificate) {
                             return (
@@ -165,24 +166,8 @@ export default function Classroom() {
                             );
                         }
 
-                        if (isLiveCourse) {
-                            return (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={cn("hidden md:flex", certEnabled ? "animate-pulse border-yellow-500 text-yellow-600" : "opacity-50 cursor-not-allowed")}
-                                    disabled={!certEnabled}
-                                    onClick={() => {
-                                        if (certEnabled) {
-                                            setIsCertDialogOpen(true);
-                                        }
-                                    }}
-                                >
-                                    <GraduationCap className={cn("w-4 h-4 mr-2", !certEnabled ? "text-muted-foreground" : "text-yellow-600")} />
-                                    {certEnabled ? "Obtener Certificado" : "Certificado (Espera al final)"}
-                                </Button>
-                            );
-                        }
+                        // Removed Live Course specific logic as per user request
+                        // Standard Async Logic handles everything now
 
                         // Standard Async Logic
                         return (
@@ -227,38 +212,7 @@ export default function Classroom() {
                             {(() => {
                                 const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
                                 const liveDate = course.metadata?.find((m: any) => m.key === "live_date")?.value;
-                                if (liveUrl) {
-                                    return (
-                                        <div className="mb-8 w-full max-w-2xl bg-gradient-to-r from-red-600 to-red-800 rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                                            <div className="relative z-10">
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <span className="relative flex h-3 w-3">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-                                                    </span>
-                                                    <span className="font-bold tracking-wider uppercase text-sm">Transmisión En Vivo</span>
-                                                </div>
-                                                <h2 className="text-3xl font-bold mb-2">Tu clase está lista</h2>
-                                                {liveDate && (
-                                                    <p className="text-red-100 mb-6 flex items-center gap-2">
-                                                        <Clock className="w-4 h-4" />
-                                                        Programada para: {new Date(liveDate).toLocaleString('es-PE', { dateStyle: 'full', timeStyle: 'short' })}
-                                                    </p>
-                                                )}
-                                                <Button
-                                                    size="lg"
-                                                    variant="secondary"
-                                                    className="w-full sm:w-auto font-bold text-red-700 hover:text-red-800"
-                                                    onClick={() => window.open(liveUrl, '_blank')}
-                                                >
-                                                    <Video className="w-5 h-5 mr-2" />
-                                                    Unirse a la Clase Ahora
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )
-                                }
+                                // Removed Live Banner logic
                                 return (
                                     <>
                                         <div className="bg-card p-6 rounded-full mb-4 shadow-sm">
@@ -274,28 +228,8 @@ export default function Classroom() {
                         <div className="w-full max-w-5xl mx-auto p-4 md:p-6 space-y-6">
                             {/* Live Banner Top (Active Lesson View) */}
                             {(() => {
-                                const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
-                                if (liveUrl) {
-                                    return (
-                                        <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-red-600 rounded-full text-white animate-pulse">
-                                                    <Video className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-red-900">Sesión En Vivo Programada</h4>
-                                                    <p className="text-sm text-red-700">Accede a tu clase en tiempo real</p>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg shadow-red-600/20"
-                                                onClick={() => window.open(liveUrl, '_blank')}
-                                            >
-                                                Unirse Ahora
-                                            </Button>
-                                        </div>
-                                    )
-                                }
+                                // Removed Live Banner Logic
+                                return null;
                             })()}
 
                             {/* Video Player */}
@@ -411,8 +345,8 @@ export default function Classroom() {
                     <DialogHeader>
                         <DialogTitle>
                             {(() => {
-                                const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
-                                return liveUrl ? "Confirmar Asistencia y Certificado" : "Generar Certificado";
+                                const isLive = course.modality === 'live';
+                                return isLive ? "Confirmar Asistencia y Certificado" : "Generar Certificado";
                             })()}
                         </DialogTitle>
                         <DialogDescription>
@@ -434,19 +368,19 @@ export default function Classroom() {
                             try {
                                 const { data: enrol } = await supabase.from('enrollments').select('id').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
                                 if (enrol) {
-                                    const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
+                                    // FIX: Use modality
+                                    const isLive = course.modality === 'live';
 
                                     // Live Course Logic: Force Complete
-                                    if (liveUrl) {
+                                    if (isLive) {
                                         // 1. Mark as 100% complete
                                         await supabase.from('enrollments').update({
                                             progress: 100,
-                                            status: 'completed' // Explicitly mark status if column exists (verified it does)
+                                            status: 'completed' // Explicitly mark status if column exists
                                         }).eq('id', enrol.id);
 
                                         // 2. Generate Certificate
                                         const cert = await courseService.generateCertificate(enrol.id, {});
-
 
                                         toast.success("¡Asistencia confirmada! Curso completado.");
                                         queryClient.invalidateQueries({ queryKey: ["my-certificate"] });
@@ -472,8 +406,8 @@ export default function Classroom() {
                         }} disabled={isGenerating}>
                             {isGenerating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             {(() => {
-                                const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
-                                return liveUrl ? "Confirmar y Generar" : "Generar Certificado";
+                                const isLive = course.modality === 'live';
+                                return isLive ? "Confirmar y Generar" : "Generar Certificado";
                             })()}
                         </Button>
                     </DialogFooter>
