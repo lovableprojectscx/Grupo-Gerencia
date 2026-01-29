@@ -62,7 +62,8 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
         const checkFit = () => {
             // If content overflows the box, SHRINK.
             // We check scroll dimensions vs client dimensions.
-            if ((el.scrollWidth > parent.clientWidth || el.scrollHeight > parent.clientHeight) && currentFontSize > 6) {
+            // User requested MINIMUM 30px (approx). logic: stop shrinking if we hit ~28px.
+            if ((el.scrollWidth > parent.clientWidth || el.scrollHeight > parent.clientHeight) && currentFontSize > 28) {
                 setCurrentFontSize(prev => prev * 0.90);
             } else if ((el.scrollWidth <= parent.clientWidth * 0.8 && el.scrollHeight <= parent.clientHeight * 0.8) && currentFontSize < fontSize) {
                 // Optional: Grow back if lots of space? 
