@@ -328,6 +328,30 @@ export const courseService = {
             .eq('course_id', courseId);
     },
 
+    async markAllLessonsCompleted(userId: string, courseId: string, lessonIds: string[]) {
+        if (lessonIds.length === 0) return;
+
+        // 1. Prepare bulk insert data
+        const completions = lessonIds.map(lessonId => ({
+            user_id: userId,
+            lesson_id: lessonId
+        }));
+
+        // 2. Upsert completions (ignore duplicates)
+        const { error } = await supabase
+            .from('lesson_completions')
+            .upsert(completions, { onConflict: 'user_id,lesson_id', ignoreDuplicates: true });
+
+        if (error) throw error;
+
+        // 3. Force update enrollment to 100%
+        await supabase
+            .from('enrollments')
+            .update({ progress: 100, status: 'completed' }) // Ensure status is completed
+            .eq('user_id', userId)
+            .eq('course_id', courseId);
+    },
+
     async getLessonCompletions(userId: string, courseId: string) {
         // 1. Get all lesson IDs for this course first to ensure we don't fetch failures or other courses
         const { data: course, error: courseError } = await supabase

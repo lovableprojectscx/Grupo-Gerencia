@@ -145,12 +145,9 @@ export default function Classroom() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Live Course Logic */}
                     {(() => {
-                        const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
-                        const certEnabled = course.metadata?.find((m: any) => m.key === "certificates_enabled")?.value === "true";
-                        // FIX: Check modality first, fallback to liveUrl existence only if legacy
-                        const isLiveCourse = course.modality === 'live' || (!course.modality && !!liveUrl);
+                        // Logic to determine if certificate button should be shown
+                        // We strictly respect local completion first
 
                         if (certificate) {
                             return (
@@ -166,25 +163,47 @@ export default function Classroom() {
                             );
                         }
 
-                        // Removed Live Course specific logic as per user request
-                        // Standard Async Logic handles everything now
-
-                        // Standard Async Logic
+                        // For async courses, only show if completed
                         return (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="hidden md:flex"
-                                disabled={progressPercentage < 100}
-                                onClick={() => {
-                                    if (progressPercentage >= 100) {
-                                        setIsCertDialogOpen(true);
-                                    }
-                                }}
-                            >
-                                <GraduationCap className={cn("w-4 h-4 mr-2", progressPercentage < 100 ? "text-muted-foreground" : "text-primary")} />
-                                {progressPercentage >= 100 ? "Obtener Certificado" : "Certificado"}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                        if (!userId || !courseId || !course?.modules) return;
+                                        if (confirm("¿Estás seguro de que quieres marcar todo el curso como completado?")) {
+                                            const allLessonIds = course.modules.flatMap((m: any) => m.lessons?.map((l: any) => l.id)) || [];
+                                            await courseService.markAllLessonsCompleted(userId, courseId, allLessonIds);
+                                            toast.success("Curso completado exitosamente");
+                                            queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
+                                            queryClient.invalidateQueries({ queryKey: ["course-classroom"] }); // Refresh progress
+
+                                            // Optional: Open cert dialog immediately
+                                            setTimeout(() => setIsCertDialogOpen(true), 500);
+                                        }
+                                    }}
+                                    className="hidden md:flex text-muted-foreground hover:text-primary"
+                                    title="Marcar todo como completado"
+                                >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Completar Todo
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="hidden md:flex"
+                                    disabled={progressPercentage < 100}
+                                    onClick={() => {
+                                        if (progressPercentage >= 100) {
+                                            setIsCertDialogOpen(true);
+                                        }
+                                    }}
+                                >
+                                    <GraduationCap className={cn("w-4 h-4 mr-2", progressPercentage < 100 ? "text-muted-foreground" : "text-primary")} />
+                                    {progressPercentage >= 100 ? "Obtener Certificado" : "Certificado"}
+                                </Button>
+                            </div>
                         );
                     })()}
 
@@ -208,29 +227,14 @@ export default function Classroom() {
                 <main className="flex-1 flex flex-col min-w-0 bg-secondary/10 overflow-y-auto">
                     {!activeLesson ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center">
-                            {/* Live Banner Empty State */}
-                            {(() => {
-                                const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
-                                const liveDate = course.metadata?.find((m: any) => m.key === "live_date")?.value;
-                                // Removed Live Banner logic
-                                return (
-                                    <>
-                                        <div className="bg-card p-6 rounded-full mb-4 shadow-sm">
-                                            <Play className="w-12 h-12 text-muted-foreground/50" />
-                                        </div>
-                                        <h3 className="text-xl font-semibold mb-2">¡Bienvenido al curso!</h3>
-                                        <p>{hasContent ? "Selecciona una lección para comenzar." : "El contenido estará disponible pronto."}</p>
-                                    </>
-                                )
-                            })()}
+                            <div className="bg-card p-6 rounded-full mb-4 shadow-sm">
+                                <Play className="w-12 h-12 text-muted-foreground/50" />
+                            </div>
+                            <h3 className="text-xl font-semibold mb-2">¡Bienvenido al curso!</h3>
+                            <p>{hasContent ? "Selecciona una lección para comenzar." : "El contenido estará disponible pronto."}</p>
                         </div>
                     ) : (
                         <div className="w-full max-w-5xl mx-auto p-4 md:p-6 space-y-6">
-                            {/* Live Banner Top (Active Lesson View) */}
-                            {(() => {
-                                // Removed Live Banner Logic
-                                return null;
-                            })()}
 
                             {/* Video Player */}
                             <div className="aspect-video bg-black rounded-xl shadow-xl overflow-hidden relative group">
@@ -343,23 +347,11 @@ export default function Classroom() {
             <Dialog open={isCertDialogOpen} onOpenChange={setIsCertDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>
-                            {(() => {
-                                const isLive = course.modality === 'live';
-                                return isLive ? "Confirmar Asistencia y Certificado" : "Generar Certificado";
-                            })()}
-                        </DialogTitle>
+                        <DialogTitle>Generar Certificado</DialogTitle>
                         <DialogDescription>
-                            {(() => {
-                                const liveUrl = course.metadata?.find((m: any) => m.key === "live_url")?.value;
-                                return liveUrl
-                                    ? "Has completado la clase en vivo. Confirma tu asistencia para generar tu certificado inmediatamente."
-                                    : "Has completado el curso. Haz clic en generar para obtener tu certificado.";
-                            })()}
+                            Has completado el curso. Haz clic en generar para obtener tu certificado.
                         </DialogDescription>
                     </DialogHeader>
-
-
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCertDialogOpen(false)}>Cancelar</Button>
@@ -368,47 +360,30 @@ export default function Classroom() {
                             try {
                                 const { data: enrol } = await supabase.from('enrollments').select('id').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
                                 if (enrol) {
-                                    // FIX: Use modality
-                                    const isLive = course.modality === 'live';
+                                    // Ensure status is completed before checking logic
+                                    const { error: updateError } = await supabase.from('enrollments').update({
+                                        progress: 100,
+                                        status: 'completed'
+                                    }).eq('id', enrol.id);
 
-                                    // Live Course Logic: Force Complete
-                                    if (isLive) {
-                                        // 1. Mark as 100% complete
-                                        await supabase.from('enrollments').update({
-                                            progress: 100,
-                                            status: 'completed' // Explicitly mark status if column exists
-                                        }).eq('id', enrol.id);
+                                    if (updateError) throw updateError;
 
-                                        // 2. Generate Certificate
-                                        const cert = await courseService.generateCertificate(enrol.id, {});
+                                    const cert = await courseService.generateCertificate(enrol.id, {});
 
-                                        toast.success("¡Asistencia confirmada! Curso completado.");
-                                        queryClient.invalidateQueries({ queryKey: ["my-certificate"] });
-                                        queryClient.invalidateQueries({ queryKey: ["course-classroom"] }); // Refresh progress UI
-                                        setIsCertDialogOpen(false);
-                                        navigate(`/verify/${cert.id}`);
-                                    } else {
-                                        // Standard Logic
-                                        const cert = await courseService.generateCertificate(enrol.id, {});
-
-                                        toast.success("¡Felicidades! Certificado generado.");
-                                        queryClient.invalidateQueries({ queryKey: ["my-certificate"] });
-                                        setIsCertDialogOpen(false);
-                                        navigate(`/verify/${cert.id}`);
-                                    }
+                                    toast.success("¡Felicidades! Certificado generado.");
+                                    queryClient.invalidateQueries({ queryKey: ["my-certificate"] });
+                                    setIsCertDialogOpen(false);
+                                    navigate(`/verify/${cert.id}`);
                                 }
-                            } catch (error) {
+                            } catch (error: any) {
                                 console.error(error);
-                                toast.error("Error al generar certificado");
+                                toast.error("Error al generar certificado: " + (error.message || "Error desconocido"));
                             } finally {
                                 setIsGenerating(false);
                             }
                         }} disabled={isGenerating}>
                             {isGenerating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {(() => {
-                                const isLive = course.modality === 'live';
-                                return isLive ? "Confirmar y Generar" : "Generar Certificado";
-                            })()}
+                            Generar Certificado
                         </Button>
                     </DialogFooter>
                 </DialogContent>
