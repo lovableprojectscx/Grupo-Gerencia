@@ -461,7 +461,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                 <img
                                     src={currentBg}
                                     alt="Certificate Template"
-                                    className="w-full h-full object-cover pointer-events-none"
+                                    className="w-full h-full object-cover pointer-events-none block"
                                     onLoad={(e) => {
                                         const img = e.currentTarget;
                                         setAspectRatio(img.naturalWidth / img.naturalHeight);
