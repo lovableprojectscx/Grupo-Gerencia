@@ -117,12 +117,16 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             if (template.bgImage && !template.bgImageFront) setBgImageFront(template.bgImage);
 
             if (template.fields) {
-                // Ensure new fields have box props if missing
-                const migratedFields = template.fields.map((f: any) => ({
-                    ...f,
-                    boxWidth: f.boxWidth || f.maxWidth || 30,
-                    boxHeight: f.boxHeight || 10
-                }));
+                // Ensure new fields have box props if missing, AND filter out unwanted technical fields that might have been saved
+                const unwantedKeys = ['certificates_enabled', 'live_date', 'live_url', 'created_at', 'updated_at', 'id', 'user_id', 'program_type'];
+
+                const migratedFields = template.fields
+                    .filter((f: any) => !unwantedKeys.includes(f.value) && !unwantedKeys.includes(f.id)) // Check if the field value or ID matches unwanted keys
+                    .map((f: any) => ({
+                        ...f,
+                        boxWidth: f.boxWidth || f.maxWidth || 30,
+                        boxHeight: f.boxHeight || 10
+                    }));
                 setFields(migratedFields);
             }
             if (template.hoursType) setHoursType(template.hoursType);
