@@ -29,11 +29,11 @@ interface FieldPosition {
 }
 
 const defaultFields: FieldPosition[] = [
-    { id: "studentName", label: "Nombre del Estudiante", x: 50, y: 40, fontSize: 32, color: "#000000", fontFamily: "Helvetica", visible: true, value: "Maria Elena Torres" },
-    { id: "studentDni", label: "DNI del Estudiante", x: 50, y: 48, fontSize: 14, color: "#333333", fontFamily: "Helvetica", visible: true, value: "DNI: 12345678" },
-    { id: "courseName", label: "Nombre del Curso", x: 50, y: 55, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, value: "Diplomado en Cuidados Intensivos" },
-    { id: "date", label: "Fecha de Emisión", x: 50, y: 70, fontSize: 16, color: "#666666", fontFamily: "Helvetica", visible: true, value: "15 de Enero, 2026" },
-    { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "REG-2026-001" },
+    { id: "studentName", label: "Nombre del Estudiante", x: 50, y: 40, fontSize: 32, color: "#000000", fontFamily: "Helvetica", visible: true, value: "Maria Elena Torres", boxWidth: 60, boxHeight: 15 },
+    { id: "studentDni", label: "DNI del Estudiante", x: 50, y: 48, fontSize: 14, color: "#333333", fontFamily: "Helvetica", visible: true, value: "DNI: 12345678", boxWidth: 40, boxHeight: 10 },
+    { id: "courseName", label: "Nombre del Curso", x: 50, y: 55, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, value: "Diplomado en Cuidados Intensivos", boxWidth: 70, boxHeight: 15 },
+    { id: "date", label: "Fecha de Emisión", x: 50, y: 70, fontSize: 16, color: "#666666", fontFamily: "Helvetica", visible: true, value: "15 de Enero, 2026", boxWidth: 40, boxHeight: 10 },
+    { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "REG-2026-001", boxWidth: 30, boxHeight: 10 },
 ];
 
 interface CertificateBuilderProps {
@@ -547,6 +547,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     color={field.color}
                                     fontFamily={field.fontFamily}
                                     maxWidthPercent={100}
+                                    boxWidth={field.boxWidth}
+                                    boxHeight={field.boxHeight}
                                 />
                             </div>
                         ))}
