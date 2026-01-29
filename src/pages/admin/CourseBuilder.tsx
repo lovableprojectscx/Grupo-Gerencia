@@ -697,8 +697,6 @@ export default function CourseBuilder() {
                                         Ingresa los valores específicos para este curso. El alumno elegirá entre Horas Lectivas y Académicas.
                                     </p>
                                 </div>
-
-                                {/* Live control section removed completely as per user request */}
                             </CardContent>
                         </Card>
 

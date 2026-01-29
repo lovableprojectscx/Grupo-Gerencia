@@ -138,86 +138,87 @@ export default function Classroom() {
                     <div className="flex flex-col">
                         <h1 className="font-bold text-sm md:text-base line-clamp-1">{course.title}</h1>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Progress value={progressPercentage} className="h-2 w-24" />
-                            <span>{progressPercentage}% completado</span>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Progress value={course.enrollment_status === 'completed' ? 100 : progressPercentage} className="h-2 w-24" />
+                                <span>{course.enrollment_status === 'completed' ? 100 : progressPercentage}% completado</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                    {(() => {
-                        // Logic to determine if certificate button should be shown
-                        // We strictly respect local completion first
+                    <div className="flex items-center gap-2">
+                        {(() => {
+                            // Logic to determine if certificate button should be shown
+                            // We strictly respect local completion first
 
-                        if (certificate) {
+                            if (certificate) {
+                                return (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="hidden md:flex text-green-600 border-green-200 bg-green-50 hover:bg-green-100"
+                                        onClick={() => navigate(`/verify/${certificate.id}`)}
+                                    >
+                                        <Award className="w-4 h-4 mr-2" />
+                                        Ver Certificado
+                                    </Button>
+                                );
+                            }
+
+                            // For async courses, only show if completed
                             return (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="hidden md:flex text-green-600 border-green-200 bg-green-50 hover:bg-green-100"
-                                    onClick={() => navigate(`/verify/${certificate.id}`)}
-                                >
-                                    <Award className="w-4 h-4 mr-2" />
-                                    Ver Certificado
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async () => {
+                                            if (!userId || !courseId || !course?.modules) return;
+                                            if (confirm("¿Estás seguro de que quieres marcar todo el curso como completado?")) {
+                                                const allLessonIds = course.modules.flatMap((m: any) => m.lessons?.map((l: any) => l.id)) || [];
+                                                await courseService.markAllLessonsCompleted(userId, courseId, allLessonIds);
+                                                toast.success("Curso completado exitosamente");
+                                                queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
+                                                queryClient.invalidateQueries({ queryKey: ["course-classroom"] }); // Refresh progress
+
+                                                // Optional: Open cert dialog immediately
+                                                setTimeout(() => setIsCertDialogOpen(true), 500);
+                                            }
+                                        }}
+                                        className="hidden md:flex text-muted-foreground hover:text-primary"
+                                        title="Marcar todo como completado"
+                                    >
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                        Completar Todo
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="hidden md:flex"
+                                        disabled={progressPercentage < 100}
+                                        onClick={() => {
+                                            if (progressPercentage >= 100) {
+                                                setIsCertDialogOpen(true);
+                                            }
+                                        }}
+                                    >
+                                        <GraduationCap className={cn("w-4 h-4 mr-2", progressPercentage < 100 ? "text-muted-foreground" : "text-primary")} />
+                                        {progressPercentage >= 100 ? "Obtener Certificado" : "Certificado"}
+                                    </Button>
+                                </div>
                             );
-                        }
+                        })()}
 
-                        // For async courses, only show if completed
-                        return (
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={async () => {
-                                        if (!userId || !courseId || !course?.modules) return;
-                                        if (confirm("¿Estás seguro de que quieres marcar todo el curso como completado?")) {
-                                            const allLessonIds = course.modules.flatMap((m: any) => m.lessons?.map((l: any) => l.id)) || [];
-                                            await courseService.markAllLessonsCompleted(userId, courseId, allLessonIds);
-                                            toast.success("Curso completado exitosamente");
-                                            queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
-                                            queryClient.invalidateQueries({ queryKey: ["course-classroom"] }); // Refresh progress
-
-                                            // Optional: Open cert dialog immediately
-                                            setTimeout(() => setIsCertDialogOpen(true), 500);
-                                        }
-                                    }}
-                                    className="hidden md:flex text-muted-foreground hover:text-primary"
-                                    title="Marcar todo como completado"
-                                >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Completar Todo
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="ghost" size="icon" className="md:hidden">
+                                    <Menu className="w-5 h-5" />
                                 </Button>
-
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="hidden md:flex"
-                                    disabled={progressPercentage < 100}
-                                    onClick={() => {
-                                        if (progressPercentage >= 100) {
-                                            setIsCertDialogOpen(true);
-                                        }
-                                    }}
-                                >
-                                    <GraduationCap className={cn("w-4 h-4 mr-2", progressPercentage < 100 ? "text-muted-foreground" : "text-primary")} />
-                                    {progressPercentage >= 100 ? "Obtener Certificado" : "Certificado"}
-                                </Button>
-                            </div>
-                        );
-                    })()}
-
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="md:hidden">
-                                <Menu className="w-5 h-5" />
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="p-0 w-80">
-                            <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} completedLessons={completedLessons} />
-                        </SheetContent>
-                    </Sheet>
-                </div>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="p-0 w-80">
+                                <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} completedLessons={completedLessons} />
+                            </SheetContent>
+                        </Sheet>
+                    </div>
             </header>
 
             {/* Main Content Area */}
@@ -226,12 +227,72 @@ export default function Classroom() {
                 {/* Course Player Area */}
                 <main className="flex-1 flex flex-col min-w-0 bg-secondary/10 overflow-y-auto">
                     {!activeLesson ? (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center">
-                            <div className="bg-card p-6 rounded-full mb-4 shadow-sm">
-                                <Play className="w-12 h-12 text-muted-foreground/50" />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-2">¡Bienvenido al curso!</h3>
-                            <p>{hasContent ? "Selecciona una lección para comenzar." : "El contenido estará disponible pronto."}</p>
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center animate-in fade-in zoom-in duration-500">
+                            {course.modality === 'live' || course.modality === 'hybrid' ? (
+                                <div className="max-w-2xl w-full space-y-8">
+                                    <div className="bg-card p-8 rounded-2xl shadow-xl border border-border">
+                                        <div className="bg-blue-100 text-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <Video className="w-10 h-10" />
+                                        </div>
+                                        <h3 className="text-3xl font-bold mb-2 text-foreground">¡Bienvenido a tu Clase en Vivo!</h3>
+                                        <p className="text-muted-foreground mb-8 text-lg">
+                                            Este curso se dicta de manera sincrónica. Conéctate en el horario programado para participar.
+                                        </p>
+
+                                        {course.metadata?.find((m: any) => m.key === 'live_date')?.value && (
+                                            <div className="bg-secondary/50 p-4 rounded-lg mb-6 flex items-center justify-center gap-3">
+                                                <Clock className="w-5 h-5 text-primary" />
+                                                <span className="font-medium text-foreground">
+                                                    {course.metadata.find((m: any) => m.key === 'live_date').value}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-4">
+                                            {course.metadata?.find((m: any) => m.key === 'live_url')?.value ? (
+                                                <Button
+                                                    size="lg"
+                                                    className="w-full text-lg h-14 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20 transition-all hover:scale-[1.02]"
+                                                    onClick={() => window.open(course.metadata.find((m: any) => m.key === 'live_url').value, '_blank')}
+                                                >
+                                                    <Video className="w-6 h-6 mr-2" />
+                                                    Ingresar a la Clase
+                                                </Button>
+                                            ) : (
+                                                <div className="p-4 bg-yellow-50 text-yellow-800 rounded border border-yellow-200">
+                                                    El enlace de la clase aún no está disponible.
+                                                </div>
+                                            )}
+
+                                            {/* Manual Completion for Live Courses */}
+                                            {(!course.modules || course.modules.length === 0) && (
+                                                <div className="pt-8 border-t border-border mt-8">
+                                                    <h4 className="font-semibold mb-2">¿Ya finalizaste el curso?</h4>
+                                                    <p className="text-sm text-muted-foreground mb-4">
+                                                        Si ya asististe a todas las sesiones, puedes confirmar tu asistencia para liberar tu certificado.
+                                                    </p>
+                                                    <Button variant="outline" className="w-full" onClick={() => {
+                                                        if (confirm("¿Confirmas que has completado el curso en vivo? Esto generará tu certificado.")) {
+                                                            setIsCertDialogOpen(true);
+                                                        }
+                                                    }}>
+                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                        Confirmar Asistencia y Finalizar
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-card p-6 rounded-full mb-4 shadow-sm">
+                                        <Play className="w-12 h-12 text-muted-foreground/50" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold mb-2">¡Bienvenido al curso!</h3>
+                                    <p>{hasContent ? "Selecciona una lección para comenzar." : "El contenido estará disponible pronto."}</p>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="w-full max-w-5xl mx-auto p-4 md:p-6 space-y-6">
