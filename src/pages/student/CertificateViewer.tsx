@@ -461,6 +461,10 @@ export default function CertificateViewer() {
                     // Center of first line = y + (totalBlockHeight/2) - (singleLineHeight/2).
                     // Baseline of first line = Center of first line - (fontHeight/3) (Visual adjustment).
 
+                    // Recalculate center coordinates
+                    const x = (field.x / 100) * page.getWidth();
+                    const y = page.getHeight() - ((field.y / 100) * page.getHeight());
+
                     let lineY = y + (totalBlockHeight / 2) - singleLineHeight + (singleLineHeight * 0.25); // Heuristic adjustment to start near top
 
                     const colorHex = field.color || "#000000";
@@ -492,16 +496,7 @@ export default function CertificateViewer() {
                         lineY -= singleLineHeight;
                     }
 
-                    // Only apply simulated bold to Custom Fonts (Standard fonts serve slightly offset automatically? No, standard fonts are already Bold instance)
-                    // But custom fonts (Cinzel, GreatVibes, etc.) are NOT.
-                    const isCustomFont = FONT_URLS[field.fontFamily];
 
-                    if (isCustomFont) {
-                        // Adjust stroke offset based on new font size
-                        const offset = currentFontSize / 80;
-                        page.drawText(text, { x: adjustedX + offset, y: adjustedY, size: currentFontSize, font: font, color: color });
-                        page.drawText(text, { x: adjustedX, y: adjustedY + offset, size: currentFontSize, font: font, color: color });
-                    }
                 }
             };
 
