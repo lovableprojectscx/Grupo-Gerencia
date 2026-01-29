@@ -20,7 +20,7 @@ import { courseService } from "@/services/courseService";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const Dashboard = () => {
-  const { profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("courses");
   const { settings } = useSiteSettings();
@@ -41,12 +41,12 @@ const Dashboard = () => {
                 course:courses(id, title, image_url),
                 certificate:certificates(id)
             `)
-        .eq('user_id', profile?.id) // Profile ID matches Auth ID
+        .eq('user_id', user?.id) // Use Auth ID directly for reliability
         .order('purchased_at', { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.id,
+    enabled: !!user?.id,
     staleTime: 1000 * 60 * 5 // 5 minutes
   });
 
