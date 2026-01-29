@@ -55,26 +55,29 @@ const SmartText = ({
         const el = textRef.current;
         if (!el || !el.parentElement) return;
 
-        // Parent width usually is the container width. 
-        // But here we are absolutely positioned. 
-        // We need to know the pixel size of the box.
-        // The parent of this component is the "certificate-front-container" (relative).
         const container = el.parentElement;
-        if (!container) return;
+        if (!container) return; // Should not happen if mounted
 
         // Dimensions of the "Box" in pixels
         const boxW_px = (boxWidthPercent / 100) * container.clientWidth;
         const boxH_px = (boxHeightPercent / 100) * container.clientHeight;
 
-        // Check overflow
         const checkFit = () => {
+            // We use a small tolerance or exact check
+            // IMPORTANT: We must ensure currentFontSize shrinks if overflow occurs
             if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 6) {
-                setCurrentFontSize(prev => prev * 0.90);
+                setCurrentFontSize(prev => Math.max(6, prev * 0.90));
             }
         };
 
+        // Run immediately
         checkFit();
-    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize]);
+
+        // And retry briefly to catch layout shifts/font loading
+        const timer = setTimeout(checkFit, 50);
+        return () => clearTimeout(timer);
+
+    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize]); // Dependencies trigger re-run until fit
 
     return (
         <div
@@ -99,6 +102,18 @@ const SmartText = ({
                 textAlign: "center",
                 fontWeight: "bold",
                 lineHeight: 1.2,
+                whiteSpace: "nowrap", // FORCE SINGLE LINE for names/titles usually? Or allow wrap? User complaint implies single line overflowing.
+                // If we want wrap, remove this. But usually certificates are single line name.
+                // Let's assume wrap is allowed for long titles but name is usually single. 
+                // Creating a hybrid approach: "white-space: normal" but "overflow: hidden"
+                // Actually, if user resizes box, they might want wrapping?
+                // The screenshot showed "MAMANI..." very long.
+                // If I add whiteSpace: 'nowrap', it forces width check to trigger shrinking.
+                // If I allow wrapping, height check triggers shrinking.
+                // Best default for certificates is usually nowrap for Names.
+                // I will Add whiteSpace: nowrap to force font reduction instead of wrapping
+                whiteSpace: "nowrap",
+
                 transition: "font-size 0.1s ease-out"
             }}
             className="print:leading-none"
@@ -137,6 +152,15 @@ export default function CertificateViewer() {
                 .maybeSingle();
 
             if (error) throw error;
+            if (error) throw error;
+            // Ensure fields have boxWidth defaults if missing (migration on read)
+            if (data.enrollment?.course?.certificate_template?.fields) {
+                data.enrollment.course.certificate_template.fields = data.enrollment.course.certificate_template.fields.map((f: any) => ({
+                    ...f,
+                    boxWidth: f.boxWidth || f.maxWidth || 30,
+                    boxHeight: f.boxHeight || 10
+                }));
+            }
             return data;
         },
         enabled: !!id
@@ -648,12 +672,13 @@ export default function CertificateViewer() {
                                     <div ref={certificateRef} className="w-full relative shadow-2xl">
 
                                         <div
+                                            // Updated Layout Engine (Matches Builder)
                                             id="certificate-front-container"
                                             className="relative bg-white overflow-hidden select-none"
-                                            style={{
+                                            style={(!bgImageFront || bgImageFront.toLowerCase().endsWith('.pdf')) ? {
                                                 width: '100%',
                                                 aspectRatio: aspectRatio,
-                                            }}
+                                            } : { width: '100%' }} // If image, let image define height via h-auto
                                         >
                                             {/* Background */}
                                             {bgImageFront?.toLowerCase().endsWith('.pdf') ? (
@@ -673,7 +698,7 @@ export default function CertificateViewer() {
                                                 <img
                                                     src={bgImageFront}
                                                     alt="Certificate Background Front"
-                                                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                                                    className="w-full h-auto object-cover pointer-events-none block"
                                                     onLoad={(e) => setAspectRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
                                                 />
                                             )}
