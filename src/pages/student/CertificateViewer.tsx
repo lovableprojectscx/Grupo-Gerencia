@@ -378,34 +378,46 @@ export default function CertificateViewer() {
 
                     // 1. Determine Box Dimensions (in PDF points)
                     // If no box metrics, default to legacy behavior (30% W, 10% H approx or just fallback)
+                    // --- PROFESSIONAL MULTI-LINE TEXT FITTING ---
+
                     const boxW_percent = field.boxWidth || field.maxWidth || 30;
                     const boxH_percent = field.boxHeight || 10;
-
                     const maxBoxWidth = page.getWidth() * (boxW_percent / 100);
                     const maxBoxHeight = page.getHeight() * (boxH_percent / 100);
 
-                    // 2. Measure Text Loop
-                    let currentFontSize = fontSize;
-
-                    // Helper to measure height (Approximate based on font size + line gap?)
-                    // pdf-lib font.heightAtSize(size) gives height.
-
-                    // Iteratively shrink if too wide OR too tall
                     const minFontSize = 6;
-
-                    // Simple infinite loop protection
+                    let currentFontSize = fontSize;
+                    let lines: string[] = [];
                     let iterations = 0;
-                    while (iterations < 50) { // Max 50 shrinkage steps
-                        const textWidth = font.widthOfTextAtSize(text, currentFontSize);
-                        const textHeight = font.heightAtSize(currentFontSize); // Basic height
+                    const lineHeightMultiplier = 1.15; // Match CSS
 
-                        if (textWidth <= maxBoxWidth && textHeight <= maxBoxHeight) {
+                    // Fit Loop: Try to wrap text. If it overflows height, shrink font.
+                    while (iterations < 50) {
+                        const words = text.split(' ');
+                        lines = [];
+                        let currentLine = words[0];
+
+                        for (let i = 1; i < words.length; i++) {
+                            const word = words[i];
+                            const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
+                            if (width < maxBoxWidth) {
+                                currentLine += " " + word;
+                            } else {
+                                lines.push(currentLine);
+                                currentLine = word;
+                            }
+                        }
+                        lines.push(currentLine);
+
+                        // Check Total Height vs Box Height and Max Line Width overflow (for single long words)
+                        const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
+                        const maxWordWidth = Math.max(...lines.map(l => font.widthOfTextAtSize(l, currentFontSize)));
+
+                        if (totalHeight <= maxBoxHeight && maxWordWidth <= maxBoxWidth) {
                             break; // Fits!
                         }
 
-                        // Shrink
                         currentFontSize *= 0.90;
-
                         if (currentFontSize < minFontSize) {
                             currentFontSize = minFontSize;
                             break;
@@ -413,40 +425,72 @@ export default function CertificateViewer() {
                         iterations++;
                     }
 
-                    const finalWidth = font.widthOfTextAtSize(text, currentFontSize);
+                    // --- DRAWING ---
+                    // Center the BLOCK of text vertically within the Box
+                    // Box Center Y is `y` (calculated earlier from %)
+                    // Total Block Height
+                    const totalBlockHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
 
-                    // Recalculate width for centering
-                    // Note: x/y are center coordinates of the Box.
+                    // Box Top Y = y + (maxBoxHeight / 2) ? No, y is center.
+                    // Start Drawing Y.
+                    // If we draw from top-down:
+                    // Top Line Baseline = Box Center Y + (TotalHeight / 2) - (FirstLineAscent)?
+                    // Simplified: Center Y - (TotalHeight / 2) is Top of block.
+                    // But drawText takes Baseline.
+                    // Let's perform line-by-line shift.
 
-                    // If x/y are center of the field, we want to draw text centered on that x/y?
-                    // Yes, logic:
+                    // Standard approach:
+                    // Start Y = CenterY + (TotalHeight / 2) - (LineHeight * 0.8) (approx ascent correction)
+                    // Let's try: StartY = y + (totalBlockHeight / 2) - (font.heightAtSize(currentFontSize));
 
-                    const x = (field.x / 100) * page.getWidth();
-                    const y = page.getHeight() - ((field.y / 100) * page.getHeight());
+                    // Better:
+                    // center Y is `y`.
+                    // Top of text block should be `y + totalBlockHeight/2`.
+                    // First line baseline is `Top - LineHeight`.
+                    const fontHeight = font.heightAtSize(currentFontSize);
+                    const singleLineHeight = fontHeight * lineHeightMultiplier;
 
-                    const adjustedX = x - (finalWidth / 2);
-                    // y is baseline... we usually need to adjust for height to center vertically
-                    // font.heightAtSize includes ascender/descender. 
-                    // Approximation: Shift down by ~ 1/3 height for visual middle centering relative to the Box Center?
-                    // Actually, if Y is center, and we draw at Y, text is usually above baseline?
-                    // pdf-lib drawText y is baseline.
-                    // To center vertically: y = centerY - (height/2) + descent?
-                    // Let's stick to existing Y logic which was 'adjustedY = y'. 
-                    // If the user visually centers in the tool (Flexbox), the 'y' saved IS the center.
-                    // But pdf-lib draws from baseline.
-                    // Let's try to center strictly:
-                    const textHeight = font.heightAtSize(currentFontSize);
-                    const adjustedY = y - (textHeight / 3); // Rough visual center adjustment
+                    // Initial baseline for first line
+                    // We want the MIDDLE of the text block to be at `y`.
+                    // Middle of block = y.
+                    // Top of block = y + totalBlockHeight/2.
+                    // First line baseline ~ Top - fontHeight (roughly).
+                    // Let's refine: First line starts at `y + (totalBlockHeight / 2) - fontHeight`. (Assuming fontHeight includes descent).
+
+                    // Actually, more precise:
+                    // Center of first line = y + (totalBlockHeight/2) - (singleLineHeight/2).
+                    // Baseline of first line = Center of first line - (fontHeight/3) (Visual adjustment).
+
+                    let lineY = y + (totalBlockHeight / 2) - singleLineHeight + (singleLineHeight * 0.25); // Heuristic adjustment to start near top
 
                     const colorHex = field.color || "#000000";
-                    const r = parseInt(colorHex.slice(1, 3), 16) / 255;
-                    const g = parseInt(colorHex.slice(3, 5), 16) / 255;
-                    const b = parseInt(colorHex.slice(5, 7), 16) / 255;
-                    const color = rgb(r, g, b);
+                    const rgbColor = rgb(
+                        parseInt(colorHex.slice(1, 3), 16) / 255,
+                        parseInt(colorHex.slice(3, 5), 16) / 255,
+                        parseInt(colorHex.slice(5, 7), 16) / 255
+                    );
 
-                    // --- SIMULATED BOLD LOGIC ---
-                    // Base Pass (Center)
-                    page.drawText(text, { x: adjustedX, y: adjustedY, size: currentFontSize, font: font, color: color });
+                    // Draw each line
+                    for (const line of lines) {
+                        const lineWidth = font.widthOfTextAtSize(line, currentFontSize);
+
+                        // Center defined by `x`
+                        const lineX = x - (lineWidth / 2);
+
+                        // Main Text
+                        page.drawText(line, { x: lineX, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+
+                        // Simulated Bold
+                        const isCustomFont = FONT_URLS[field.fontFamily];
+                        if (isCustomFont) {
+                            const offset = currentFontSize / 80;
+                            page.drawText(line, { x: lineX + offset, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+                            page.drawText(line, { x: lineX, y: lineY + offset, size: currentFontSize, font: font, color: rgbColor });
+                        }
+
+                        // Move down
+                        lineY -= singleLineHeight;
+                    }
 
                     // Only apply simulated bold to Custom Fonts (Standard fonts serve slightly offset automatically? No, standard fonts are already Bold instance)
                     // But custom fonts (Cinzel, GreatVibes, etc.) are NOT.

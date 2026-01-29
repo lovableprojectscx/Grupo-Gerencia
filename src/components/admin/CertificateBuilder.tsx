@@ -78,10 +78,14 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85 }: 
                 fontSize: `${currentFontSize}px`,
                 color: color,
                 fontFamily: fontFamily,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
+                whiteSpace: "pre-wrap", // Allow wrapping
+                lineHeight: 1.15, // Tight professional line height
+                width: "100%",
+                display: "flex",
+                alignItems: "center", // Vertically center within the box
+                justifyContent: "center", // Horizontally center
                 textAlign: "center",
-                width: "100%"
+                wordBreak: "break-word"
             }}
         >
             {text}
