@@ -91,6 +91,15 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85 }: 
 
 
 
+const isUnwantedField = (field: any) => {
+    const unwanted = ['certificates_enabled', 'live_date', 'live_url', 'created_at', 'updated_at', 'id', 'user_id', 'program_type'];
+    const value = field.value?.toString().trim() || "";
+    const id = field.id?.toString().trim() || "";
+    const label = field.label?.toString().trim() || "";
+
+    return unwanted.includes(value) || unwanted.includes(id) || unwanted.includes(label);
+};
+
 export function CertificateBuilder({ courseId, defaultMetadata = [], template, onTemplateChange }: CertificateBuilderProps) {
     const [activePage, setActivePage] = useState<"front" | "back">("front");
     const [bgImageFront, setBgImageFront] = useState<string | null>(null);
@@ -118,10 +127,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
             if (template.fields) {
                 // Ensure new fields have box props if missing, AND filter out unwanted technical fields that might have been saved
-                const unwantedKeys = ['certificates_enabled', 'live_date', 'live_url', 'created_at', 'updated_at', 'id', 'user_id', 'program_type'];
-
                 const migratedFields = template.fields
-                    .filter((f: any) => !unwantedKeys.includes(f.value) && !unwantedKeys.includes(f.id)) // Check if the field value or ID matches unwanted keys
+                    .filter((f: any) => !isUnwantedField(f)) // Aggressive filter
                     .map((f: any) => ({
                         ...f,
                         boxWidth: f.boxWidth || f.maxWidth || 30,
@@ -133,8 +140,9 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         }
     }, [template]);
 
-    // Filter fields for active page
+    // Filter fields for active page AND sanitize
     const activeFields = fields.filter(f => {
+        if (isUnwantedField(f)) return false; // Extra safety check during render
         if (activePage === 'front') return !f.page || f.page === 'front';
         return f.page === 'back';
     });
@@ -142,9 +150,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     const selectedField = fields.find(f => f.id === selectedFieldId);
 
     // Default metadata extraction & FILTERING
-    const fetchedMetadata = (defaultMetadata || []).filter(m =>
-        !['certificates_enabled', 'live_date', 'live_url', 'created_at', 'updated_at', 'id', 'user_id', 'program_type'].includes(m.key)
-    );
+    const fetchedMetadata = (defaultMetadata || []).filter(m => !isUnwantedField({ value: m.key, id: m.key, label: m.key }));
 
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -521,7 +527,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                             </div>
                         </div>
 
-                        {selectedField && (
+                        {selectedField ? (
                             <div className="space-y-4 pt-4 border-t border-border animate-in fade-in slide-in-from-right-4">
                                 <h4 className="font-medium text-sm text-primary">Editando: {selectedField.label}</h4>
                                 <div className="space-y-3">
@@ -582,6 +588,11 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                         </Select>
                                     </div>
                                 </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 border border-dashed rounded-lg bg-muted/20 text-center space-y-2">
+                                <Move className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
+                                <p className="text-sm font-medium text-muted-foreground">Selecciona un campo en la lista o en el certificado para editar sus dimensiones y propiedades.</p>
                             </div>
                         )}
                     </CardContent>
