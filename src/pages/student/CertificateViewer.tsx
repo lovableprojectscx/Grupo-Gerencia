@@ -33,6 +33,73 @@ const FONT_URLS: Record<string, string> = {
 
 
 
+// Helper Component for "Fit Text" logic in SVG/HTML
+// It will shrink the font size until it fits within the maxWidth (percentage of parent)
+const SmartText = ({
+    text,
+    x,
+    y,
+    fontSize,
+    color,
+    fontFamily,
+    maxWidthPercent = 80
+}: any) => {
+    const textRef = useRef<HTMLDivElement>(null);
+    const [currentFontSize, setCurrentFontSize] = useState(fontSize);
+
+    // Reset when text or base fontSize changes
+    useEffect(() => {
+        setCurrentFontSize(fontSize);
+    }, [text, fontSize]);
+
+    useEffect(() => {
+        const el = textRef.current;
+        if (!el || !el.parentElement) return;
+
+        // Parent width (the A4 container)
+        const parentWidth = el.parentElement.clientWidth;
+        const maxPx = (maxWidthPercent / 100) * parentWidth;
+
+        // Heuristic: If we are wider than max, shrink
+        const checkFit = () => {
+            // Loop protection: limit logical min size
+            if (el.scrollWidth > maxPx && currentFontSize > 6) {
+                setCurrentFontSize(prev => prev * 0.90);
+            }
+        };
+
+        // Simple check
+        if (el.scrollWidth > maxPx && currentFontSize > 6) {
+            setCurrentFontSize(prev => prev * 0.90);
+        }
+
+    }, [text, currentFontSize, maxWidthPercent, fontSize]);
+
+    return (
+        <div
+            ref={textRef}
+            style={{
+                position: "absolute",
+                left: `${x}%`,
+                top: `${y}%`,
+                transform: "translate(-50%, -50%)",
+                fontSize: `${currentFontSize}px`,
+                color: color,
+                fontFamily: fontFamily,
+                textAlign: "center",
+                whiteSpace: "nowrap",
+                maxWidth: `${maxWidthPercent}%`,
+                fontWeight: "bold",
+                lineHeight: 1.2,
+                transition: "font-size 0.1s ease-out"
+            }}
+            className="print:leading-none"
+        >
+            {text}
+        </div>
+    );
+};
+
 export default function CertificateViewer() {
     const { id } = useParams();
     const certificateRef = useRef<HTMLDivElement>(null);
@@ -273,16 +340,40 @@ export default function CertificateViewer() {
                     const fontSize = field.fontSize * pdfScale;
                     const font = await getFont(field.fontFamily); // AWAIT HERE
 
-                    const textWidth = font.widthOfTextAtSize(text, fontSize);
 
-                    // Coordinates
+
+                    // --- SMART TEXT SCALING LOGIC ---
+
+                    // 1. Determine Max Width (in PDF points)
+                    // Default to 85% of page width if not specified (Standard safe area)
+                    // 1. Determine Max Width (in PDF points)
+                    // Use field.maxWidth if defined, otherwise default to 85%
+                    const mwPercent = field.maxWidth || 85;
+                    const maxWidth = page.getWidth() * (mwPercent / 100);
+
+                    // 2. Measure Text at initial font size
+                    let currentFontSize = fontSize;
+                    let textWidth = font.widthOfTextAtSize(text, currentFontSize);
+
+                    // 3. Iteratively shrink if too wide
+                    // Limit minimum font size to avoid unreadable microscopic text (e.g., 6pt)
+                    const minFontSize = 6;
+
+                    if (textWidth > maxWidth) {
+                        // Calculate exact required scale ratio
+                        const ratio = maxWidth / textWidth;
+                        // Apply ratio (minus a tiny buffer) or iterative? Direct ratio is faster and precise.
+                        currentFontSize = Math.max(currentFontSize * ratio, minFontSize);
+
+                        // Recalculate width for centering
+                        textWidth = font.widthOfTextAtSize(text, currentFontSize);
+                    }
+
+                    // Coordinates (Re-calculate centered X with new width)
                     const x = (field.x / 100) * page.getWidth();
                     const y = page.getHeight() - ((field.y / 100) * page.getHeight());
 
                     const adjustedX = x - (textWidth / 2);
-                    // Removing vertical offset completely to lift text to the max visual center.
-                    // User feedback indicates "raising" is the key. 
-                    // Baseline at 'y' places visual center of Caps comfortably above the line.
                     const adjustedY = y;
 
                     const colorHex = field.color || "#000000";
@@ -293,18 +384,17 @@ export default function CertificateViewer() {
 
                     // --- SIMULATED BOLD LOGIC ---
                     // Base Pass (Center)
-                    page.drawText(text, { x: adjustedX, y: adjustedY, size: fontSize, font: font, color: color });
+                    page.drawText(text, { x: adjustedX, y: adjustedY, size: currentFontSize, font: font, color: color });
 
                     // Only apply simulated bold to Custom Fonts (Standard fonts serve slightly offset automatically? No, standard fonts are already Bold instance)
                     // But custom fonts (Cinzel, GreatVibes, etc.) are NOT.
                     const isCustomFont = FONT_URLS[field.fontFamily];
 
                     if (isCustomFont) {
-                        const offset = fontSize / 80; // Subtle stroke (1/80th of font size)
-                        page.drawText(text, { x: adjustedX + offset, y: adjustedY, size: fontSize, font: font, color: color });
-                        page.drawText(text, { x: adjustedX, y: adjustedY + offset, size: fontSize, font: font, color: color });
-                        // Add diagonal for extra thickness if needed, but 2-pass is usually enough for "Bold" feel without blur
-                        // page.drawText(text, { x: adjustedX + offset, y: adjustedY + offset, size: fontSize, font: font, color: color });
+                        // Adjust stroke offset based on new font size
+                        const offset = currentFontSize / 80;
+                        page.drawText(text, { x: adjustedX + offset, y: adjustedY, size: currentFontSize, font: font, color: color });
+                        page.drawText(text, { x: adjustedX, y: adjustedY + offset, size: currentFontSize, font: font, color: color });
                     }
                 }
             };
@@ -587,26 +677,16 @@ export default function CertificateViewer() {
                                                 const finalFontSize = field.fontSize * scaleFactor;
 
                                                 return (
-                                                    <div
+                                                    <SmartText
                                                         key={field.id}
-                                                        style={{
-                                                            position: "absolute",
-                                                            left: `${field.x}%`,
-                                                            top: `${field.y}%`,
-                                                            transform: "translate(-50%, -50%)",
-                                                            fontSize: `${finalFontSize}px`,
-                                                            color: field.color,
-                                                            fontFamily: field.fontFamily,
-                                                            textAlign: "center",
-                                                            whiteSpace: "nowrap",
-                                                            maxWidth: "90%",
-                                                            fontWeight: "bold",
-                                                            lineHeight: 1.2
-                                                        }}
-                                                        className="print:leading-none"
-                                                    >
-                                                        {displayValue}
-                                                    </div>
+                                                        text={displayValue}
+                                                        x={field.x}
+                                                        y={field.y}
+                                                        fontSize={finalFontSize}
+                                                        color={field.color}
+                                                        fontFamily={field.fontFamily}
+                                                        maxWidthPercent={field.maxWidth || 85} // Dynamic max width or default 85
+                                                    />
                                                 );
                                             })}
                                         </div>
@@ -634,13 +714,16 @@ export default function CertificateViewer() {
                                                 if (!field.visible || field.page !== 'back') return null;
                                                 const finalFontSize = field.fontSize * scaleFactor;
                                                 return (
-                                                    <div key={field.id} style={{
-                                                        position: "absolute", left: `${field.x}%`, top: `${field.y}%`, transform: "translate(-50%, -50%)",
-                                                        fontSize: `${finalFontSize}px`, color: field.color, fontFamily: field.fontFamily,
-                                                        textAlign: "center", whiteSpace: "nowrap", fontWeight: "bold"
-                                                    }}>
-                                                        {getFieldValue(field)}
-                                                    </div>
+                                                    <SmartText
+                                                        key={field.id}
+                                                        text={getFieldValue(field)}
+                                                        x={field.x}
+                                                        y={field.y}
+                                                        fontSize={finalFontSize}
+                                                        color={field.color}
+                                                        fontFamily={field.fontFamily}
+                                                        maxWidthPercent={field.maxWidth || 85}
+                                                    />
                                                 )
                                             })}
                                         </div>

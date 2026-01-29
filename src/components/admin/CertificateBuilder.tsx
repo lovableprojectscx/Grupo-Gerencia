@@ -21,7 +21,9 @@ interface FieldPosition {
     color: string;
     fontFamily: string;
     visible: boolean;
-    value?: string; // For preview
+    value?: string;
+    page?: "front" | "back";
+    maxWidth?: number; // Added maxWidth property
 }
 
 const defaultFields: FieldPosition[] = [
@@ -39,309 +41,249 @@ interface CertificateBuilderProps {
     onTemplateChange?: (template: any) => void;
 }
 
-export function CertificateBuilder({ courseId, defaultMetadata = [], template, onTemplateChange }: CertificateBuilderProps) {
-    const [bgImageFront, setBgImageFront] = useState<string>(template?.bgImageFront || template?.bgImage || "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=1200&auto=format&fit=crop&q=80");
-    const [bgImageBack, setBgImageBack] = useState<string>(template?.bgImageBack || ""); // Default empty/white
-    const [activePage, setActivePage] = useState<"front" | "back">("front");
-
-    const [uploading, setUploading] = useState(false);
-
-    // Ensure fields have 'page' property. detailed migration.
-    const initialFields = (template?.fields && template.fields.length > 0)
-        ? template.fields.map((f: any) => ({ ...f, page: f.page || "front" }))
-        : defaultFields.map(f => ({ ...f, page: "front" }));
-
-    // Add default back fields if not present
-    if (!initialFields.some((f: any) => f.page === "back")) {
-        initialFields.push(
-            { id: "code-back", label: "Número de Registro", x: 50, y: 30, fontSize: 32, color: "#000000", fontFamily: "Courier New", visible: true, value: "REG-2026-001", page: "back" },
-            { id: "studentName-back", label: "Nombre del Estudiante", x: 50, y: 50, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, value: "Maria Elena Torres", page: "back" }
-        );
-    }
-
-    const [fields, setFields] = useState<any[]>(initialFields);
-    const [fetchedMetadata, setFetchedMetadata] = useState<{ key: string, value: string }[]>(defaultMetadata);
+const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85 }: any) => {
+    const textRef = useRef<HTMLDivElement>(null);
+    const [currentFontSize, setCurrentFontSize] = useState(fontSize);
 
     useEffect(() => {
-        if (defaultMetadata) setFetchedMetadata(defaultMetadata);
-    }, [defaultMetadata]);
+        setCurrentFontSize(fontSize);
+    }, [text, fontSize]);
 
+    useEffect(() => {
+        const el = textRef.current;
+        if (!el || !el.parentElement) return;
+
+        // In the builder, the parent ID constrained by the field.maxWidth.
+        // We compare scrollWidth (content) vs clientWidth (constraint).
+        if (el.scrollWidth > el.clientWidth && currentFontSize > 6) {
+            setCurrentFontSize(prev => prev * 0.90);
+        }
+    }, [text, currentFontSize, maxWidthPercent, fontSize]);
+
+    return (
+        <div
+            ref={textRef}
+            style={{
+                fontSize: `${currentFontSize}px`,
+                color: color,
+                fontFamily: fontFamily,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textAlign: "center",
+                width: "100%"
+            }}
+        >
+            {text}
+        </div>
+    );
+};
+
+
+
+export function CertificateBuilder({ courseId, defaultMetadata = [], template, onTemplateChange }: CertificateBuilderProps) {
+    const [activePage, setActivePage] = useState<"front" | "back">("front");
+    const [bgImageFront, setBgImageFront] = useState<string | null>(null);
+    const [bgImageBack, setBgImageBack] = useState<string | null>(null);
+    const [aspectRatio, setAspectRatio] = useState(1.414); // A4 Landscape default
+    const [fields, setFields] = useState<FieldPosition[]>(defaultFields);
+    const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [uploading, setUploading] = useState(false);
+    const [numPages, setNumPages] = useState<number>(0);
+    const [hoursType, setHoursType] = useState<string>("academic"); // 'academic', 'lecture', 'both'
+
+    // Smart Guides State
+    const [showVerticalGuide, setShowVerticalGuide] = useState(false);
+    const [showHorizontalGuide, setShowHorizontalGuide] = useState(false);
+
+    // Initialize from template
     useEffect(() => {
         if (template) {
-            if (template.bgImageFront && template.bgImageFront !== bgImageFront) setBgImageFront(template.bgImageFront);
-            if (template.bgImageBack && template.bgImageBack !== bgImageBack) setBgImageBack(template.bgImageBack);
-            // Re-sync fields if needed, simplified for now
+            if (template.bgImageFront) setBgImageFront(template.bgImageFront);
+            if (template.bgImageBack) setBgImageBack(template.bgImageBack);
+            // Legacy support
+            if (template.bgImage && !template.bgImageFront) setBgImageFront(template.bgImage);
+
+            if (template.fields) setFields(template.fields);
+            if (template.hoursType) setHoursType(template.hoursType);
         }
     }, [template]);
 
-    const notifyParent = (currentFields: any[], bgF: string, bgB: string) => {
-        if (onTemplateChange) {
-            onTemplateChange({
-                bgImageFront: bgF,
-                bgImageBack: bgB,
-                bgImage: bgF, // Legacy support
-                fields: currentFields
-            });
-        }
-    };
+    // Filter fields for active page
+    const activeFields = fields.filter(f => {
+        if (activePage === 'front') return !f.page || f.page === 'front';
+        return f.page === 'back';
+    });
 
-    const fieldsRef = useRef(fields);
-    useEffect(() => { fieldsRef.current = fields; }, [fields]);
+    const selectedField = fields.find(f => f.id === selectedFieldId);
 
-    // Metadata injection
-    // Metadata injection - Only if we don't have a template or explicitly resetting
-    // Removed automatic injection on every metadata change to prevent "zombie" fields that user deleted
-    // Initialize hoursType from template or default to academic
-    const [hoursType, setHoursType] = useState<"academic" | "lecture" | "both">(template?.hoursType || "academic");
+    // Default metadata extraction
+    const fetchedMetadata = defaultMetadata || [];
 
-    // Initial load of fields logic is already handled by initialFields const
-    // We just need to handle dynamic updates from metadata or hoursType
-
-    useEffect(() => {
-        // Only run this if we have metadata to process
-        if (fetchedMetadata.length === 0) return;
-
-        setFields(prevFields => {
-            let newFieldsList = [...prevFields];
-
-            // 1. Strict Removal Logic based on rules
-            if (hoursType === "academic") {
-                // Remove Lectivas if present
-                newFieldsList = newFieldsList.filter(f => f.label !== "Horas Lectivas" && f.id !== "meta-Horas-Lectivas");
-            } else if (hoursType === "lecture") {
-                // Remove Academicas if present
-                newFieldsList = newFieldsList.filter(f => f.label !== "Horas Académicas" && f.id !== "meta-Horas-Académicas");
-            }
-            // If "both", we keep both (don't filter either out)
-
-            // 2. Add Logic
-            // We iterate through relevant metadata and add if missing
-            const relevantMetadata = fetchedMetadata.filter(meta => {
-                if (hoursType === "academic" && meta.key === "Horas Lectivas") return false;
-                if (hoursType === "lecture" && meta.key === "Horas Académicas") return false;
-                return true;
-            });
-
-            relevantMetadata.forEach((meta, i) => {
-                const stableId = `meta-${meta.key.replace(/\s+/g, '-')}`;
-
-                // Check if this field effectively exists (by ID or by Label)
-                const alreadyExists = newFieldsList.some(f => f.id === stableId || f.label === meta.key);
-
-                if (!alreadyExists) {
-                    // Start position logic: Try to place hours intelligently if possible, otherwise default stack
-                    let defaultY = 85 + (i * 5);
-                    let defaultX = 20;
-
-                    // Little helper for better default placement of hours if they are new
-                    if (meta.key === "Horas Académicas") { defaultX = 30; defaultY = 75; }
-                    if (meta.key === "Horas Lectivas") { defaultX = 70; defaultY = 75; }
-
-                    newFieldsList.push({
-                        id: stableId,
-                        label: meta.key,
-                        x: defaultX,
-                        y: defaultY,
-                        fontSize: 14,
-                        color: "#333333",
-                        fontFamily: "Helvetica",
-                        visible: true,
-                        value: meta.value,
-                        page: "front"
-                    });
-                }
-            });
-
-            return newFieldsList;
-        });
-    }, [fetchedMetadata, hoursType]); // Removed template from dep array to prevent loop resets
-
-    const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    const handleSave = async () => {
-        if (!courseId) return;
-        const templateData = { bgImageFront, bgImageBack, bgImage: bgImageFront, fields, hoursType }; // Save hoursType
-
-        const { error } = await supabase
-            .from("courses")
-            .update({ certificate_template: templateData })
-            .eq("id", courseId);
-
-        if (error) toast.error("Error al guardar: " + error.message);
-        else {
-            toast.success("Diseño guardado correctamente");
-            if (onTemplateChange) onTemplateChange(templateData);
-        }
-    };
-
-    const [numPages, setNumPages] = useState<number>(0);
-    const [aspectRatio, setAspectRatio] = useState(1.414); // Default to A4 Landscape
-
-    const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-        setNumPages(numPages);
-    };
-
-    const onPageLoadSuccess = (page: any) => {
-        const ratio = page.originalWidth / page.originalHeight;
-        setAspectRatio(ratio);
-    };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setUploading(true);
-        const toastId = toast.loading("Subiendo archivo...");
-
         try {
-            const fileExt = file.name.split('.').pop()?.toLowerCase();
-            const fileName = `cert-${activePage}-${Math.random()}.${fileExt}`;
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `certificates/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage.from('course-content').upload(filePath, file);
+            const { error: uploadError } = await supabase.storage
+                .from('course-content')
+                .upload(filePath, file);
+
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage.from('course-content').getPublicUrl(filePath);
-            const publicUrl = data.publicUrl;
+            const { data: { publicUrl } } = supabase.storage
+                .from('course-content')
+                .getPublicUrl(filePath);
 
-            if (activePage === "front") {
-                setBgImageFront(publicUrl);
-                // Smart Feature: If PDF, assume it might be 2 pages and set back same as front by default
-                if (file.type === 'application/pdf') {
-                    setBgImageBack(publicUrl);
-                    notifyParent(fields, publicUrl, publicUrl);
-                } else {
-                    notifyParent(fields, publicUrl, bgImageBack);
-                }
-            } else {
-                setBgImageBack(publicUrl);
-                notifyParent(fields, bgImageFront, publicUrl);
-            }
-            toast.success("Fondo actualizado", { id: toastId });
+            if (activePage === 'front') setBgImageFront(publicUrl);
+            else setBgImageBack(publicUrl);
+
+            toast.success("Fondo actualizado correctamente");
         } catch (error: any) {
-            console.error(error);
-            toast.error("Error: " + error.message, { id: toastId });
+            toast.error("Error al subir imagen: " + error.message);
         } finally {
             setUploading(false);
-            e.target.value = "";
         }
     };
 
-    const updateField = (id: string, updates: any) => {
-        const newFields = fields.map(f => f.id === id ? { ...f, ...updates } : f);
-        setFields(newFields);
-        notifyParent(newFields, bgImageFront, bgImageBack);
-    };
-
-    const addCustomField = (key?: string, val?: string) => {
-        const newId = `custom-${Date.now()}`;
-        setFields([
-            ...fields,
-            {
-                id: newId,
-                label: key || "Nuevo Campo",
-                x: 50,
-                y: 50,
-                fontSize: 18,
-                color: "#000000",
-                fontFamily: "Helvetica",
-                visible: true,
-                value: val || "Texto",
-                page: activePage
-            }
-        ]);
-        setSelectedFieldId(newId);
-    };
-
-    const removeField = (id: string) => {
-        setFields(fields.filter(f => f.id !== id));
-        if (selectedFieldId === id) setSelectedFieldId(null);
-    };
-
-    const selectedField = fields.find(f => f.id === selectedFieldId);
-
-    // Drag Logic
-    const [isDragging, setIsDragging] = useState(false);
-    const [showVerticalGuide, setShowVerticalGuide] = useState(false);
-    const [showHorizontalGuide, setShowHorizontalGuide] = useState(false);
-
-    const dragRef = useRef<{ id: string; startX: number; startY: number; initialLeft: number; initialTop: number } | null>(null);
-
     const handleMouseDown = (e: React.MouseEvent, id: string) => {
-        if (!containerRef.current) return;
-        e.preventDefault(); e.stopPropagation();
+        e.stopPropagation();
+        setSelectedFieldId(id);
+        setIsDragging(true);
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const startX = e.clientX;
+        const startY = e.clientY;
+
         const field = fields.find(f => f.id === id);
         if (!field) return;
 
-        setIsDragging(true); setSelectedFieldId(id);
-        dragRef.current = { id, startX: e.clientX, startY: e.clientY, initialLeft: field.x, initialTop: field.y };
-        window.addEventListener('mousemove', handleGlobalMouseMove);
-        window.addEventListener('mouseup', handleGlobalMouseUp);
-    };
+        const startFieldX = field.x;
+        const startFieldY = field.y;
 
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-        if (!dragRef.current || !containerRef.current) return;
-        const { startX, startY, initialLeft, initialTop, id } = dragRef.current;
-        const rect = containerRef.current.getBoundingClientRect();
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
 
-        // Calculate raw delta as percentage
-        const deltaX = ((e.clientX - startX) / rect.width) * 100;
-        const deltaY = ((e.clientY - startY) / rect.height) * 100;
+            // Convert pixels to percentage
+            const deltaXPercent = (deltaX / containerRect.width) * 100;
+            const deltaYPercent = (deltaY / containerRect.height) * 100;
 
-        let newX = Math.max(0, Math.min(100, initialLeft + deltaX));
-        let newY = Math.max(0, Math.min(100, initialTop + deltaY));
+            let newX = startFieldX + deltaXPercent;
+            let newY = startFieldY + deltaYPercent;
 
-        // SNAP LOGIC
-        const SNAP_THRESHOLD = 1.5; // Snap if within 1.5% of center
+            // Snap to Center (50%)
+            const snapThreshold = 2; // 2% tolerance
+            if (Math.abs(newX - 50) < snapThreshold) {
+                newX = 50;
+                setShowVerticalGuide(true);
+            } else {
+                setShowVerticalGuide(false);
+            }
 
-        // Center X (50%)
-        if (Math.abs(newX - 50) < SNAP_THRESHOLD) {
-            newX = 50;
-            setShowVerticalGuide(true);
-        } else {
-            setShowVerticalGuide(false);
-        }
+            if (Math.abs(newY - 50) < snapThreshold) {
+                newY = 50;
+                setShowHorizontalGuide(true);
+            } else {
+                setShowHorizontalGuide(false);
+            }
 
-        // Center Y (50%)
-        if (Math.abs(newY - 50) < SNAP_THRESHOLD) {
-            newY = 50;
-            setShowHorizontalGuide(true);
-        } else {
-            setShowHorizontalGuide(false);
-        }
-
-        setFields(prev => prev.map(f => f.id === id ? { ...f, x: Number(newX.toFixed(1)), y: Number(newY.toFixed(1)) } : f));
-    };
-
-    const handleGlobalMouseUp = () => {
-        if (dragRef.current) notifyParent(fieldsRef.current, bgImageFront, bgImageBack);
-        setIsDragging(false);
-        setShowVerticalGuide(false);
-        setShowHorizontalGuide(false);
-        dragRef.current = null;
-        window.removeEventListener('mousemove', handleGlobalMouseMove);
-        window.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-
-    useEffect(() => {
-        return () => {
-            window.removeEventListener('mousemove', handleGlobalMouseMove);
-            window.removeEventListener('mouseup', handleGlobalMouseUp);
+            updateField(id, { x: newX, y: newY });
         };
-    }, []);
 
-    const handlePreviewPDF = async () => {
-        // Simple preview alert for now as dual page preview is complex in one canvas without proper render
-        toast.info("Para ver el PDF completo, guarda y usa la vista previa del estudiante.");
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            setShowVerticalGuide(false);
+            setShowHorizontalGuide(false);
+            document.removeEventListener("mousemove", handleMouseMove);
+            document.removeEventListener("mouseup", handleMouseUp);
+        };
+
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
     };
 
-    const activeFields = fields.filter(f => f.visible && f.page === activePage);
+    const updateField = (id: string, updates: Partial<FieldPosition>) => {
+        setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    };
+
+    const addCustomField = (key?: string, value?: string) => {
+        const newField: FieldPosition = {
+            id: key ? `meta-${key}-${Math.random().toString(36).substr(2, 5)}` : `custom-${Math.random().toString(36).substr(2, 5)}`,
+            label: key || "Nuevo Campo",
+            x: 50,
+            y: 50,
+            fontSize: 16, // Default
+            color: "#000000",
+            fontFamily: "Helvetica",
+            visible: true,
+            value: value || "Texto de Ejemplo",
+            page: activePage,
+            maxWidth: 85 // Default Smart Fitting
+        };
+        setFields(prev => [...prev, newField]);
+        setSelectedFieldId(newField.id);
+    };
+
+    const removeField = (id: string) => {
+        setFields(prev => prev.filter(f => f.id !== id));
+        if (selectedFieldId === id) setSelectedFieldId(null);
+    };
+
+    const handleSave = async () => {
+        if (!courseId) return;
+
+        const templateData = {
+            bgImageFront,
+            bgImageBack,
+            fields,
+            hoursType
+        };
+
+        // If provided an external handler, use it (for local state updaters)
+        if (onTemplateChange) {
+            onTemplateChange(templateData);
+        }
+
+        const toastId = toast.loading("Guardando plantilla...");
+
+        const { error } = await supabase
+            .from('courses')
+            .update({ certificate_template: templateData })
+            .eq('id', courseId);
+
+        if (error) {
+            toast.error("Error al guardar: " + error.message, { id: toastId });
+        } else {
+            toast.success("Plantilla guardada correctamente", { id: toastId });
+        }
+    };
+
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+        setNumPages(numPages);
+    }
+
+    function onPageLoadSuccess(page: any) {
+        // PDF.js page object
+        // console.log('Page loaded', page);
+        // We can get original aspect ratio if needed, but we usually set container width fixed
+    }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-100px)]">
 
             <div className="flex flex-col gap-4">
+                {/* ... (Tabs and header remain) */}
                 <Tabs value={activePage} onValueChange={(v: any) => setActivePage(v)} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="front">Hoja 1 (Frontal)</TabsTrigger>
@@ -355,7 +297,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                         className="relative w-full max-w-[800px] bg-white shadow-2xl rounded-sm overflow-hidden select-none"
                         style={{ aspectRatio: aspectRatio }}
                     >
-                        {/* Background */}
+                        {/* Background Rendering (Keep existing logic) */}
                         {(() => {
                             const currentBg = activePage === "front" ? bgImageFront : bgImageBack;
                             if (!currentBg) {
@@ -406,7 +348,9 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                             );
                         })()}
 
-                        {/* Fields */}
+
+
+                            // Fields
                         {activeFields.map((field) => (
                             <div
                                 key={field.id}
@@ -417,22 +361,33 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     left: `${field.x}%`,
                                     top: `${field.y}%`,
                                     transform: "translate(-50%, -50%)",
-                                    fontSize: `${field.fontSize}px`,
-                                    color: field.color,
-                                    fontFamily: field.fontFamily,
+                                    // fontSize is handled by SmartText
                                     cursor: isDragging ? "grabbing" : "grab",
                                     border: selectedFieldId === field.id ? "2px dashed blue" : "1px dashed transparent",
-                                    padding: "4px 8px",
+                                    padding: "4px 8px", // Padding might affect width calculation, keep minimal
                                     zIndex: selectedFieldId === field.id ? 20 : 10,
-                                    whiteSpace: "nowrap"
+
+                                    // Constraint Logic
+                                    maxWidth: field.maxWidth ? `${field.maxWidth}%` : '85%',
+                                    width: '100%', // Allow it to take up to maxWidth. Wait, 'auto' is better so it doesn't stretch small text?
+                                    // Actually, if we use SmartText, we want the container to Define the limit.
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center"
                                 }}
                                 className="hover:border-primary/50 transition-colors font-bold"
                             >
-                                {field.value}
+                                <SmartText
+                                    text={field.value}
+                                    fontSize={field.fontSize}
+                                    color={field.color}
+                                    fontFamily={field.fontFamily}
+                                    maxWidthPercent={field.maxWidth || 85}
+                                />
                             </div>
                         ))}
 
-                        {/* Smart Guides (Canva-like) */}
+                        {/* ... (Smart Guides remain) */}
                         {showVerticalGuide && (
                             <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-red-500 z-50 pointer-events-none transform -translate-x-1/2 opacity-70 border-r border-dashed border-red-500" />
                         )}
@@ -444,6 +399,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-2">
+                {/* ... (Image Upload Card) */}
                 <Card>
                     <CardContent className="p-4 space-y-4">
                         <Label className="text-base font-semibold">Fondo del Certificado ({activePage === "front" ? "Frontal" : "Reverso"})</Label>
@@ -470,6 +426,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
                 <Card className="flex-1 overflow-y-auto">
                     <CardContent className="p-4 space-y-6">
+                        {/* ... (Hours Config) */}
                         <div className="space-y-2 pb-4 border-b">
                             <Label className="text-base font-semibold">Configuración de Horas</Label>
                             <Select value={hoursType} onValueChange={(v: any) => setHoursType(v)}>
@@ -486,6 +443,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                         </div>
 
                         <div className="space-y-2">
+                            {/* ... (Fields List) */}
                             <Label className="text-base font-semibold">Campos - {activePage === 'front' ? 'Frontal' : 'Reverso'}</Label>
                             <div className="space-y-2 mb-4">
                                 <Label className="text-xs text-muted-foreground">Variables Disponibles</Label>
@@ -547,6 +505,21 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                         </div>
                                     </div>
                                     <div className="space-y-1">
+                                        <Label className="text-xs">Ancho Máximo (Smart Fitting) (%)</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Slider
+                                                value={[selectedField.maxWidth || 85]}
+                                                min={10}
+                                                max={100}
+                                                step={1}
+                                                onValueChange={(val) => updateField(selectedField.id, { maxWidth: val[0] })}
+                                                className="flex-1"
+                                            />
+                                            <span className="text-xs w-8">{selectedField.maxWidth || 85}%</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground">Si el texto supera este ancho, se reducirá automáticamente.</p>
+                                    </div>
+                                    <div className="space-y-1">
                                         <Label className="text-xs">Fuente</Label>
                                         <Select value={selectedField.fontFamily} onValueChange={(val) => updateField(selectedField.id, { fontFamily: val })}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -555,7 +528,6 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                                 <SelectItem value="Times New Roman">Times New Roman</SelectItem>
                                                 <SelectItem value="Courier New">Courier New</SelectItem>
                                                 <SelectItem value="Arial">Arial</SelectItem>
-                                                {/* Premium Fonts */}
                                                 <SelectItem value="Great Vibes">Great Vibes (Firma)</SelectItem>
                                                 <SelectItem value="Cinzel">Cinzel (Clásico)</SelectItem>
                                                 <SelectItem value="Playfair Display">Playfair Display (Elegante)</SelectItem>
