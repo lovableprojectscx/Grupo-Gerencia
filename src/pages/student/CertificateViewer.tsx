@@ -223,6 +223,52 @@ export default function CertificateViewer() {
         setHasChosen(true);
     };
 
+    // --- HELPER FUNCTIONS (Moved up for scope safety) ---
+    const enrollment = certificate?.enrollment;
+    const issued_at = certificate?.issued_at;
+    const student = enrollment?.student;
+    const course = enrollment?.course;
+
+    // Default values if no template - Use the already defined 'template'
+    const bgImageFront = template.bgImageFront || template.bgImage || "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=1200&auto=format&fit=crop&q=80";
+    const bgImageBack = template.bgImageBack || null;
+
+    const getFieldValue = (field: any) => {
+        if (!certificate) return "";
+
+        switch (field.id) {
+            case "studentName":
+            case "studentName-back":
+                return certificate.metadata?.student_name || student?.full_name || "Estudiante";
+            case "studentDni":
+            case "studentDni-back":
+                const dni = certificate.metadata?.student_dni || student?.dni;
+                return dni ? `DNI: ${dni}` : "DNI: --------";
+            case "courseName":
+            case "courseName-back":
+                return course?.title || "Curso";
+            case "date":
+            case "date-back":
+                return issued_at ? format(new Date(issued_at), "d 'de' MMMM, yyyy", { locale: es }) : "Fecha desconocida";
+            case "code":
+            case "code-back":
+                // Prioritize sequential registration number
+                if (certificate.registration_number) return `#${certificate.registration_number}`;
+                if (certificate.metadata?.registration_number) return `#${certificate.metadata.registration_number}`;
+                return certificate.code || certificate.id;
+            default:
+                if (field.id.startsWith('meta-')) {
+                    const metaKey = field.label;
+                    return certificate.metadata?.[metaKey] || course?.metadata?.find((m: any) => m.key === metaKey)?.value || "";
+                }
+                if (field.id.startsWith('custom-')) {
+                    return field.value;
+                }
+                return "";
+        }
+    };
+
+
     const handleDownloadPDF = async () => {
         if (!certificate) return;
         const toastId = toast.loading("Generando PDF Vectorial de alta calidad...");
@@ -330,15 +376,12 @@ export default function CertificateViewer() {
 
             // Draw Fields on Front
             const drawFields = async (page: any, fields: any[], pageName: string) => {
-                // Calculate Scale Factor relative to the design reference width (800px)
-                // In Preview: fontSize is relative to containerWidth (which scales).
-                // In PDF: We must scale relative to PageWidth.
                 const pdfScale = page.getWidth() / 800;
 
-                for (const field of fields) { // Use for..of for async await
+                for (const field of fields) {
                     if (!field.visible || (field.page && field.page !== pageName)) continue;
 
-                    // Logic to swap Academic/Lecture if needed (reusing logic from render)
+                    // Logic to swap Academic/Lecture if needed
                     const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
                     const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
 
@@ -370,16 +413,9 @@ export default function CertificateViewer() {
 
                     // Dynamic Font Sizing
                     const fontSize = field.fontSize * pdfScale;
-                    const font = await getFont(field.fontFamily); // AWAIT HERE
+                    const font = await getFont(field.fontFamily);
 
-
-
-                    // --- SMART TEXT SCALING LOGIC (BOX MODEL) ---
-
-                    // 1. Determine Box Dimensions (in PDF points)
-                    // If no box metrics, default to legacy behavior (30% W, 10% H approx or just fallback)
                     // --- PROFESSIONAL MULTI-LINE TEXT FITTING ---
-
                     const boxW_percent = field.boxWidth || field.maxWidth || 30;
                     const boxH_percent = field.boxHeight || 10;
                     const maxBoxWidth = page.getWidth() * (boxW_percent / 100);
@@ -396,466 +432,396 @@ export default function CertificateViewer() {
                     // User requested MINIMUM 30px. If it doesn't fit height at 30px, allow overflow.
                     const minimumLegibleSize = 30;
 
-                    // Respect manual newlines first
-                    const paragraphs = text.split('\n');
+                    while (iterations < 50) {
+                        lines = [];
 
-                    for (const paragraph of paragraphs) {
-                        const words = paragraph.split(' ');
-                        let currentLine = words[0];
+                        // Respect manual newlines first
+                        const paragraphs = text.split('\n');
 
-                        for (let i = 1; i < words.length; i++) {
-                            const word = words[i];
-                            const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
-                            if (width < maxBoxWidth) {
-                                currentLine += " " + word;
-                            } else {
-                                lines.push(currentLine);
-                                currentLine = word;
+                        for (const paragraph of paragraphs) {
+                            const words = paragraph.split(' ');
+                            let currentLine = words[0];
+
+                            for (let i = 1; i < words.length; i++) {
+                                const word = words[i];
+                                const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
+                                if (width < maxBoxWidth) {
+                                    currentLine += " " + word;
+                                } else {
+                                    lines.push(currentLine);
+                                    currentLine = word;
+                                }
                             }
+                            lines.push(currentLine);
                         }
-                        lines.push(currentLine);
+
+                        // Check Dimensions
+                        const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
+                        const maxWordWidth = Math.max(...lines.map(l => font.widthOfTextAtSize(l, currentFontSize)));
+
+                        const fitsWidth = maxWordWidth <= maxBoxWidth;
+                        const fitsHeight = totalHeight <= maxBoxHeight;
+                        const isLegible = currentFontSize >= minimumLegibleSize;
+
+                        // STOP shrinking if:
+                        // 1. Fits everything perfectly.
+                        // 2. Fits Width, but Height fails... BUT we are already at minimum legibility. 
+                        //    (Better to overflow height than be unreadable)
+                        if (fitsWidth && (fitsHeight || !isLegible)) {
+                            break;
+                        }
+
+                        currentFontSize *= 0.90;
+                        if (currentFontSize < minFontSize) {
+                            currentFontSize = minFontSize;
+                            break;
+                        }
+                        iterations++;
                     }
 
-                    // Check Dimensions
-                    const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
-                    const maxWordWidth = Math.max(...lines.map(l => font.widthOfTextAtSize(l, currentFontSize)));
+                    // --- DRAWING ---
+                    const fontHeight = font.heightAtSize(currentFontSize);
+                    const singleLineHeight = fontHeight * lineHeightMultiplier;
+                    const totalBlockHeight = lines.length * singleLineHeight;
 
-                    const fitsWidth = maxWordWidth <= maxBoxWidth;
-                    const fitsHeight = totalHeight <= maxBoxHeight;
-                    const isLegible = currentFontSize >= minimumLegibleSize;
+                    // Recalculate center coordinates
+                    const x = (field.x / 100) * page.getWidth();
+                    const y = page.getHeight() - ((field.y / 100) * page.getHeight());
 
-                    // STOP shrinking if:
-                    // 1. Fits everything perfectly.
-                    // 2. Fits Width, but Height fails... BUT we are already at minimum legibility.
-                    //    (Better to overflow height than be unreadable)
-                    if (fitsWidth && (fitsHeight || !isLegible)) {
-                        break;
+                    let lineY = y + (totalBlockHeight / 2) - singleLineHeight + (singleLineHeight * 0.25);
+
+                    const colorHex = field.color || "#000000";
+                    const rgbColor = rgb(
+                        parseInt(colorHex.slice(1, 3), 16) / 255,
+                        parseInt(colorHex.slice(3, 5), 16) / 255,
+                        parseInt(colorHex.slice(5, 7), 16) / 255
+                    );
+
+                    // Draw each line
+                    for (const line of lines) {
+                        const lineWidth = font.widthOfTextAtSize(line, currentFontSize);
+                        const lineX = x - (lineWidth / 2);
+
+                        // Main Text
+                        page.drawText(line, { x: lineX, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+
+                        // Simulated Bold
+                        const isCustomFont = FONT_URLS[field.fontFamily];
+                        if (isCustomFont) {
+                            const offset = currentFontSize / 80;
+                            page.drawText(line, { x: lineX + offset, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+                            page.drawText(line, { x: lineX, y: lineY + offset, size: currentFontSize, font: font, color: rgbColor });
+                        }
+
+                        lineY -= singleLineHeight;
                     }
-
-                    currentFontSize *= 0.90;
-                    if (currentFontSize < minFontSize) {
-                        currentFontSize = minFontSize;
-                        break;
-                    }
-                    iterations++;
                 }
+            };
 
-                // --- DRAWING ---
-                // Center the BLOCK of text vertically within the Box
-                // Box Center Y is `y` (calculated earlier from %)
-                // Total Block Height
-                const totalBlockHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
+            if (template.fields) await drawFields(frontPage, template.fields, 'front');
 
-                // Box Top Y = y + (maxBoxHeight / 2) ? No, y is center.
-                // Start Drawing Y.
-                // If we draw from top-down:
-                // Top Line Baseline = Box Center Y + (TotalHeight / 2) - (FirstLineAscent)?
-                // Simplified: Center Y - (TotalHeight / 2) is Top of block.
-                // But drawText takes Baseline.
-                // Let's perform line-by-line shift.
+            // Handle Back Page Logic ...
+            const hasBackFields = template.fields?.some((f: any) => f.page === 'back');
 
-                // Standard approach:
-                // Start Y = CenterY + (TotalHeight / 2) - (LineHeight * 0.8) (approx ascent correction)
-                // Let's try: StartY = y + (totalBlockHeight / 2) - (font.heightAtSize(currentFontSize));
-
-                // Better:
-                // center Y is `y`.
-                // Top of text block should be `y + totalBlockHeight/2`.
-                // First line baseline is `Top - LineHeight`.
-                const fontHeight = font.heightAtSize(currentFontSize);
-                const singleLineHeight = fontHeight * lineHeightMultiplier;
-
-                // Initial baseline for first line
-                // We want the MIDDLE of the text block to be at `y`.
-                // Middle of block = y.
-                // Top of block = y + totalBlockHeight/2.
-                // First line baseline ~ Top - fontHeight (roughly).
-                // Let's refine: First line starts at `y + (totalBlockHeight / 2) - fontHeight`. (Assuming fontHeight includes descent).
-
-                // Actually, more precise:
-                // Center of first line = y + (totalBlockHeight/2) - (singleLineHeight/2).
-                // Baseline of first line = Center of first line - (fontHeight/3) (Visual adjustment).
-
-                // Recalculate center coordinates
-                const x = (field.x / 100) * page.getWidth();
-                const y = page.getHeight() - ((field.y / 100) * page.getHeight());
-
-                let lineY = y + (totalBlockHeight / 2) - singleLineHeight + (singleLineHeight * 0.25); // Heuristic adjustment to start near top
-
-                const colorHex = field.color || "#000000";
-                const rgbColor = rgb(
-                    parseInt(colorHex.slice(1, 3), 16) / 255,
-                    parseInt(colorHex.slice(3, 5), 16) / 255,
-                    parseInt(colorHex.slice(5, 7), 16) / 255
-                );
-
-                // Draw each line
-                for (const line of lines) {
-                    const lineWidth = font.widthOfTextAtSize(line, currentFontSize);
-
-                    // Center defined by `x`
-                    const lineX = x - (lineWidth / 2);
-
-                    // Main Text
-                    page.drawText(line, { x: lineX, y: lineY, size: currentFontSize, font: font, color: rgbColor });
-
-                    // Simulated Bold
-                    const isCustomFont = FONT_URLS[field.fontFamily];
-                    if (isCustomFont) {
-                        const offset = currentFontSize / 80;
-                        page.drawText(line, { x: lineX + offset, y: lineY, size: currentFontSize, font: font, color: rgbColor });
-                        page.drawText(line, { x: lineX, y: lineY + offset, size: currentFontSize, font: font, color: rgbColor });
-                    }
-
-                    // Move down
-                    lineY -= singleLineHeight;
-                }
-
-
-            }
-        };
-
-        if (template.fields) await drawFields(frontPage, template.fields, 'front');
-
-        // Handle Back Page Logic ...
-        const hasBackFields = template.fields?.some((f: any) => f.page === 'back');
-
-        if (bgBack || hasBackFields) {
-            // ... Page creation logic same as before ...
-            let backPage;
-            if (pages.length > 1) {
-                backPage = pages[1];
-            } else {
-                if (bgBack && bgBack.toLowerCase().endsWith('.pdf')) {
-                    const backPdfBytes = await fetch(bgBack).then(res => res.arrayBuffer());
-                    const backPdf = await PDFDocument.load(backPdfBytes);
-                    const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
-                    backPage = pdfDoc.addPage(copiedPage);
+            if (bgBack || hasBackFields) {
+                // ... Page creation logic same as before ...
+                let backPage;
+                if (pages.length > 1) {
+                    backPage = pages[1];
                 } else {
-                    // Image or blank
-                    if (bgBack) {
-                        try {
-                            const imgBytes = await fetch(bgBack).then(res => res.arrayBuffer());
-                            const imgExt = bgBack.split('.').pop()?.toLowerCase();
-                            let embeddedImage;
-                            if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
-                            else embeddedImage = await pdfDoc.embedJpg(imgBytes);
-
-                            // Use exact image dimensions for the page
-                            const { width, height } = embeddedImage;
-                            backPage = pdfDoc.addPage([width, height]);
-
-                            backPage.drawImage(embeddedImage, {
-                                x: 0,
-                                y: 0,
-                                width: width,
-                                height: height,
-                            });
-                        } catch (e) {
-                            console.error("Error back page image:", e);
-                            backPage = pdfDoc.addPage([842, 595]); // Fallback
-                        }
+                    if (bgBack && bgBack.toLowerCase().endsWith('.pdf')) {
+                        const backPdfBytes = await fetch(bgBack).then(res => res.arrayBuffer());
+                        const backPdf = await PDFDocument.load(backPdfBytes);
+                        const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
+                        backPage = pdfDoc.addPage(copiedPage);
                     } else {
-                        backPage = pdfDoc.addPage([842, 595]);
+                        // Image or blank
+                        if (bgBack) {
+                            try {
+                                const imgBytes = await fetch(bgBack).then(res => res.arrayBuffer());
+                                const imgExt = bgBack.split('.').pop()?.toLowerCase();
+                                let embeddedImage;
+                                if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
+                                else embeddedImage = await pdfDoc.embedJpg(imgBytes);
+
+                                // Use exact image dimensions for the page
+                                const { width, height } = embeddedImage;
+                                backPage = pdfDoc.addPage([width, height]);
+
+                                backPage.drawImage(embeddedImage, {
+                                    x: 0,
+                                    y: 0,
+                                    width: width,
+                                    height: height,
+                                });
+                            } catch (e) {
+                                console.error("Error back page image:", e);
+                                backPage = pdfDoc.addPage([842, 595]); // Fallback
+                            }
+                        } else {
+                            backPage = pdfDoc.addPage([842, 595]);
+                        }
                     }
                 }
+
+                if (template.fields) await drawFields(backPage, template.fields, 'back');
             }
 
-            if (template.fields) await drawFields(backPage, template.fields, 'back');
+            const pdfBytes = await pdfDoc.save();
+            // Trigger download
+            const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `certificado-${id}.pdf`;
+            link.click();
+
+            toast.success("PDF descargado correctamente", { id: toastId });
+        } catch (error: any) {
+            console.error("Error generating PDF:", error);
+            toast.error("Error al generar PDF: " + error.message, { id: toastId });
         }
+    };
 
-        const pdfBytes = await pdfDoc.save();
-        // Trigger download
-        const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `certificado-${id}.pdf`;
-        link.click();
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
 
-        toast.success("PDF descargado correctamente", { id: toastId });
-    } catch (error: any) {
-        console.error("Error generating PDF:", error);
-        toast.error("Error al generar PDF: " + error.message, { id: toastId });
-    }
-};
+    if (error || !certificate) return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+            <AlertCircle className="w-12 h-12 text-destructive" />
+            <h1 className="text-xl font-bold">Certificado no encontrado</h1>
+            <p className="text-muted-foreground">El código de verificación no es válido o el certificado no existe.</p>
+            <Link to="/"><Button variant="outline">Volver al inicio</Button></Link>
+        </div>
+    );
 
-if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
 
-if (error || !certificate) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <AlertCircle className="w-12 h-12 text-destructive" />
-        <h1 className="text-xl font-bold">Certificado no encontrado</h1>
-        <p className="text-muted-foreground">El código de verificación no es válido o el certificado no existe.</p>
-        <Link to="/"><Button variant="outline">Volver al inicio</Button></Link>
-    </div>
-);
 
-const { enrollment, issued_at } = certificate;
-const { student, course } = enrollment || {};
+    // calculate font scale factor based on original reference width (e.g. 800px)
+    // If user designed on 800px wide canvas, and now it's 400px, font should be 0.5x
+    const scaleFactor = containerWidth / 800;
 
-// Default values if no template - Use the already defined 'template'
-const bgImageFront = template.bgImageFront || template.bgImage || "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=1200&auto=format&fit=crop&q=80";
-const bgImageBack = template.bgImageBack || null;
-const getFieldValue = (field: any) => {
-    switch (field.id) {
-        case "studentName":
-        case "studentName-back":
-            return certificate.metadata?.student_name || student?.full_name || "Estudiante";
-        case "studentDni":
-        case "studentDni-back":
-            const dni = certificate.metadata?.student_dni || student?.dni;
-            return dni ? `DNI: ${dni}` : "DNI: --------";
-        case "courseName":
-        case "courseName-back":
-            return course?.title || "Curso";
-        case "date":
-        case "date-back":
-            return issued_at ? format(new Date(issued_at), "d 'de' MMMM, yyyy", { locale: es }) : "Fecha desconocida";
-        case "code":
-        case "code-back":
-            // Prioritize sequential registration number
-            if (certificate.registration_number) return `#${certificate.registration_number}`;
-            if (certificate.metadata?.registration_number) return `#${certificate.metadata.registration_number}`;
-            return certificate.code || certificate.id;
-        default:
-            if (field.id.startsWith('meta-')) {
-                const metaKey = field.label;
-                return certificate.metadata?.[metaKey] || course.metadata?.find((m: any) => m.key === metaKey)?.value || "";
-            }
-            if (field.id.startsWith('custom-')) {
-                return field.value;
-            }
-            return "";
-    }
-};
+    return (
+        <div className="min-h-screen bg-background">
+            <Navbar />
 
-// calculate font scale factor based on original reference width (e.g. 800px)
-// If user designed on 800px wide canvas, and now it's 400px, font should be 0.5x
-const scaleFactor = containerWidth / 800;
+            <div className="container mx-auto px-4 py-8 mt-20">
+                <div className="max-w-4xl mx-auto space-y-8">
 
-return (
-    <div className="min-h-screen bg-background">
-        <Navbar />
-
-        <div className="container mx-auto px-4 py-8 mt-20">
-            <div className="max-w-4xl mx-auto space-y-8">
-
-                {/* Header Actions */}
-                <div className="flex items-center justify-between">
-                    <Button variant="ghost" asChild>
-                        <Link to="/dashboard">
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Volver al Panel
-                        </Link>
-                    </Button>
-                    {/* Only show download if chosen */}
-                    {!showChoiceScreen && (
-                        <div className="flex gap-2">
-                            <Button onClick={handleDownloadPDF} className="shadow-lg hover:shadow-xl transition-all">
-                                <Download className="w-4 h-4 mr-2" />
-                                Descargar PDF
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                {/* CHOICE SCREEN (Blocking) */}
-                {showChoiceScreen ? (
-                    <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
-                        <div className="bg-card border shadow-2xl rounded-2xl p-10 max-w-lg w-full text-center space-y-8">
-                            <div className="space-y-2">
-                                <h2 className="text-3xl font-bold tracking-tight">Personaliza tu Certificado</h2>
-                                <p className="text-muted-foreground">Este curso incluye horas académicas y lectivas. ¿Cuál deseas mostrar?</p>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                                <Button
-                                    size="lg"
-                                    className="h-24 text-lg border-2 border-transparent hover:border-primary/20 flex flex-col gap-2"
-                                    variant="outline"
-                                    onClick={() => handleChoice('academic')}
-                                >
-                                    <span className="font-bold">Académicas</span>
-                                    <span className="text-xs font-normal text-muted-foreground">Mostrar horas teóricas</span>
+                    {/* Header Actions */}
+                    <div className="flex items-center justify-between">
+                        <Button variant="ghost" asChild>
+                            <Link to="/dashboard">
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Volver al Panel
+                            </Link>
+                        </Button>
+                        {/* Only show download if chosen */}
+                        {!showChoiceScreen && (
+                            <div className="flex gap-2">
+                                <Button onClick={handleDownloadPDF} className="shadow-lg hover:shadow-xl transition-all">
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Descargar PDF
                                 </Button>
-                                <Button
-                                    size="lg"
-                                    className="h-24 text-lg border-2 border-transparent hover:border-primary/20 flex flex-col gap-2"
-                                    variant="outline"
-                                    onClick={() => handleChoice('lecture')}
-                                >
-                                    <span className="font-bold">Lectivas</span>
-                                    <span className="text-xs font-normal text-muted-foreground">Mostrar horas prácticas</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    /* CERTIFICATE PREVIEW */
-                    <>
-                        {/* Toggle (allows changing mind) */}
-                        {adminHoursType === 'both' && (
-                            <div className="flex justify-center -mb-4 z-10 relative">
-                                <div className="bg-background/80 backdrop-blur-sm border rounded-full p-1 shadow-sm flex gap-1">
-                                    <Button
-                                        variant={hoursMode === 'academic' ? "secondary" : "ghost"}
-                                        size="sm"
-                                        className="rounded-full px-4"
-                                        onClick={() => setHoursMode('academic')}
-                                    >
-                                        Académicas
-                                    </Button>
-                                    <Button
-                                        variant={hoursMode === 'lecture' ? "secondary" : "ghost"}
-                                        size="sm"
-                                        className="rounded-full px-4"
-                                        onClick={() => setHoursMode('lecture')}
-                                    >
-                                        Lectivas
-                                    </Button>
-                                </div>
                             </div>
                         )}
+                    </div>
 
-                        {/* Front Page */}
-                        <div className="bg-card rounded-xl border shadow-sm overflow-hidden p-4 md:p-8 flex flex-col items-center gap-8">
-                            <div className="w-full max-w-[800px] mx-auto">
-                                <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Frontal</h2>
+                    {/* CHOICE SCREEN (Blocking) */}
+                    {showChoiceScreen ? (
+                        <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
+                            <div className="bg-card border shadow-2xl rounded-2xl p-10 max-w-lg w-full text-center space-y-8">
+                                <div className="space-y-2">
+                                    <h2 className="text-3xl font-bold tracking-tight">Personaliza tu Certificado</h2>
+                                    <p className="text-muted-foreground">Este curso incluye horas académicas y lectivas. ¿Cuál deseas mostrar?</p>
+                                </div>
 
-                                {/* CONTAINER REF for ResizeObserver */}
-                                <div ref={certificateRef} className="w-full relative shadow-2xl">
-
-                                    <div
-                                        // Updated Layout Engine (Matches Builder)
-                                        id="certificate-front-container"
-                                        className="relative bg-white overflow-hidden select-none"
-                                        style={(!bgImageFront || bgImageFront.toLowerCase().endsWith('.pdf')) ? {
-                                            width: '100%',
-                                            aspectRatio: aspectRatio,
-                                        } : { width: '100%' }} // If image, let image define height via h-auto
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                                    <Button
+                                        size="lg"
+                                        className="h-24 text-lg border-2 border-transparent hover:border-primary/20 flex flex-col gap-2"
+                                        variant="outline"
+                                        onClick={() => handleChoice('academic')}
                                     >
-                                        {/* Background */}
-                                        {bgImageFront?.toLowerCase().endsWith('.pdf') ? (
-                                            <div className="absolute inset-0 w-full h-full">
-                                                <Document file={bgImageFront} loading={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" /></div>}>
-                                                    {/* Responsive Page Width */}
-                                                    <Page
-                                                        pageNumber={1}
-                                                        width={containerWidth}
-                                                        renderTextLayer={false}
-                                                        renderAnnotationLayer={false}
-                                                        onLoadSuccess={onPageLoadSuccess}
-                                                    />
-                                                </Document>
-                                            </div>
-                                        ) : (
-                                            <img
-                                                src={bgImageFront}
-                                                alt="Certificate Background Front"
-                                                className="w-full h-auto object-cover pointer-events-none block"
-                                                onLoad={(e) => setAspectRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
-                                            />
-                                        )}
-
-                                        {/* Fields */}
-                                        {template.fields?.map((field: any) => {
-                                            if (!field.visible || (field.page && field.page !== 'front')) return null;
-
-                                            // --- Logic for visibility same as before ---
-                                            const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
-                                            const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
-
-                                            if (hoursMode === 'academic' && isLectureField) {
-                                                const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
-                                                if (templateHasAcademic) return null;
-                                            }
-                                            if (hoursMode === 'lecture' && isAcademicField) {
-                                                const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
-                                                if (templateHasLecture) return null;
-                                            }
-
-                                            let displayValue = getFieldValue(field);
-
-                                            // Swap Value Logic
-                                            if (isAcademicField && hoursMode === 'lecture') {
-                                                const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
-                                                if (!templateHasLecture) {
-                                                    displayValue = certificate.metadata?.["Horas Lectivas"] || course.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || "";
-                                                }
-                                            }
-                                            if (isLectureField && hoursMode === 'academic') {
-                                                const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
-                                                if (!templateHasAcademic) {
-                                                    displayValue = certificate.metadata?.["Horas Académicas"] || course.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || "";
-                                                }
-                                            }
-
-                                            // Sizing: Scale font based on container width ratio
-                                            const finalFontSize = field.fontSize * scaleFactor;
-
-                                            return (
-                                                <SmartText
-                                                    key={field.id}
-                                                    text={displayValue}
-                                                    x={field.x}
-                                                    y={field.y}
-                                                    fontSize={finalFontSize}
-                                                    color={field.color}
-                                                    fontFamily={field.fontFamily}
-                                                    boxWidthPercent={field.boxWidth || field.maxWidth || 30}
-                                                    boxHeightPercent={field.boxHeight || 10}
-                                                // maxWidthPercent removed
-                                                />
-                                            );
-                                        })}
-                                    </div>
+                                        <span className="font-bold">Académicas</span>
+                                        <span className="text-xs font-normal text-muted-foreground">Mostrar horas teóricas</span>
+                                    </Button>
+                                    <Button
+                                        size="lg"
+                                        className="h-24 text-lg border-2 border-transparent hover:border-primary/20 flex flex-col gap-2"
+                                        variant="outline"
+                                        onClick={() => handleChoice('lecture')}
+                                    >
+                                        <span className="font-bold">Lectivas</span>
+                                        <span className="text-xs font-normal text-muted-foreground">Mostrar horas prácticas</span>
+                                    </Button>
                                 </div>
                             </div>
-
-                            {/* Back Page (Hidden if not needed, similar logic) */}
-                            {(bgImageBack || template.fields?.some((f: any) => f.page === 'back')) && (
-                                <div className="w-full max-w-[800px] mx-auto opacity-75 hover:opacity-100 transition-opacity">
-                                    <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Posterior</h2>
-                                    <div className="relative bg-white shadow-xl mx-auto overflow-hidden select-none border" style={{ width: '100%', aspectRatio: aspectRatio }}>
-                                        {/* Background Back */}
-                                        {bgImageBack && (
-                                            bgImageBack.toLowerCase().endsWith('.pdf') ? (
-                                                <div className="absolute inset-0 w-full h-full">
-                                                    <Document file={bgImageBack} loading={<Loader2 className="animate-spin" />}>
-                                                        <Page pageNumber={bgImageBack === bgImageFront ? 2 : 1} width={containerWidth} renderTextLayer={false} renderAnnotationLayer={false} />
-                                                    </Document>
-                                                </div>
-                                            ) : <img src={bgImageBack} className="absolute inset-0 w-full h-full object-cover" />
-                                        )}
-
-                                        {/* Fields Back */}
-                                        {template.fields?.map((field: any) => {
-                                            if (!field.visible || field.page !== 'back') return null;
-                                            const finalFontSize = field.fontSize * scaleFactor;
-                                            return (
-                                                <SmartText
-                                                    key={field.id}
-                                                    text={getFieldValue(field)}
-                                                    x={field.x}
-                                                    y={field.y}
-                                                    fontSize={finalFontSize}
-                                                    color={field.color}
-                                                    fontFamily={field.fontFamily}
-                                                    boxWidthPercent={field.boxWidth || field.maxWidth || 30}
-                                                    boxHeightPercent={field.boxHeight || 10}
-                                                />
-                                            )
-                                        })}
+                        </div>
+                    ) : (
+                        /* CERTIFICATE PREVIEW */
+                        <>
+                            {/* Toggle (allows changing mind) */}
+                            {adminHoursType === 'both' && (
+                                <div className="flex justify-center -mb-4 z-10 relative">
+                                    <div className="bg-background/80 backdrop-blur-sm border rounded-full p-1 shadow-sm flex gap-1">
+                                        <Button
+                                            variant={hoursMode === 'academic' ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="rounded-full px-4"
+                                            onClick={() => setHoursMode('academic')}
+                                        >
+                                            Académicas
+                                        </Button>
+                                        <Button
+                                            variant={hoursMode === 'lecture' ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="rounded-full px-4"
+                                            onClick={() => setHoursMode('lecture')}
+                                        >
+                                            Lectivas
+                                        </Button>
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    </>
-                )}
 
+                            {/* Front Page */}
+                            <div className="bg-card rounded-xl border shadow-sm overflow-hidden p-4 md:p-8 flex flex-col items-center gap-8">
+                                <div className="w-full max-w-[800px] mx-auto">
+                                    <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Frontal</h2>
+
+                                    {/* CONTAINER REF for ResizeObserver */}
+                                    <div ref={certificateRef} className="w-full relative shadow-2xl">
+
+                                        <div
+                                            // Updated Layout Engine (Matches Builder)
+                                            id="certificate-front-container"
+                                            className="relative bg-white overflow-hidden select-none"
+                                            style={(!bgImageFront || bgImageFront.toLowerCase().endsWith('.pdf')) ? {
+                                                width: '100%',
+                                                aspectRatio: aspectRatio,
+                                            } : { width: '100%' }} // If image, let image define height via h-auto
+                                        >
+                                            {/* Background */}
+                                            {bgImageFront?.toLowerCase().endsWith('.pdf') ? (
+                                                <div className="absolute inset-0 w-full h-full">
+                                                    <Document file={bgImageFront} loading={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" /></div>}>
+                                                        {/* Responsive Page Width */}
+                                                        <Page
+                                                            pageNumber={1}
+                                                            width={containerWidth}
+                                                            renderTextLayer={false}
+                                                            renderAnnotationLayer={false}
+                                                            onLoadSuccess={onPageLoadSuccess}
+                                                        />
+                                                    </Document>
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={bgImageFront}
+                                                    alt="Certificate Background Front"
+                                                    className="w-full h-auto object-cover pointer-events-none block"
+                                                    onLoad={(e) => setAspectRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
+                                                />
+                                            )}
+
+                                            {/* Fields */}
+                                            {template.fields?.map((field: any) => {
+                                                if (!field.visible || (field.page && field.page !== 'front')) return null;
+
+                                                // --- Logic for visibility same as before ---
+                                                const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
+                                                const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
+
+                                                if (hoursMode === 'academic' && isLectureField) {
+                                                    const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+                                                    if (templateHasAcademic) return null;
+                                                }
+                                                if (hoursMode === 'lecture' && isAcademicField) {
+                                                    const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+                                                    if (templateHasLecture) return null;
+                                                }
+
+                                                let displayValue = getFieldValue(field);
+
+                                                // Swap Value Logic
+                                                if (isAcademicField && hoursMode === 'lecture') {
+                                                    const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+                                                    if (!templateHasLecture) {
+                                                        displayValue = certificate.metadata?.["Horas Lectivas"] || course.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || "";
+                                                    }
+                                                }
+                                                if (isLectureField && hoursMode === 'academic') {
+                                                    const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+                                                    if (!templateHasAcademic) {
+                                                        displayValue = certificate.metadata?.["Horas Académicas"] || course.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || "";
+                                                    }
+                                                }
+
+                                                // Sizing: Scale font based on container width ratio
+                                                const finalFontSize = field.fontSize * scaleFactor;
+
+                                                return (
+                                                    <SmartText
+                                                        key={field.id}
+                                                        text={displayValue}
+                                                        x={field.x}
+                                                        y={field.y}
+                                                        fontSize={finalFontSize}
+                                                        color={field.color}
+                                                        fontFamily={field.fontFamily}
+                                                        boxWidthPercent={field.boxWidth || field.maxWidth || 30}
+                                                        boxHeightPercent={field.boxHeight || 10}
+                                                    // maxWidthPercent removed
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Back Page (Hidden if not needed, similar logic) */}
+                                {(bgImageBack || template.fields?.some((f: any) => f.page === 'back')) && (
+                                    <div className="w-full max-w-[800px] mx-auto opacity-75 hover:opacity-100 transition-opacity">
+                                        <h2 className="text-center text-lg font-semibold text-muted-foreground mb-4">Vista Posterior</h2>
+                                        <div className="relative bg-white shadow-xl mx-auto overflow-hidden select-none border" style={{ width: '100%', aspectRatio: aspectRatio }}>
+                                            {/* Background Back */}
+                                            {bgImageBack && (
+                                                bgImageBack.toLowerCase().endsWith('.pdf') ? (
+                                                    <div className="absolute inset-0 w-full h-full">
+                                                        <Document file={bgImageBack} loading={<Loader2 className="animate-spin" />}>
+                                                            <Page pageNumber={bgImageBack === bgImageFront ? 2 : 1} width={containerWidth} renderTextLayer={false} renderAnnotationLayer={false} />
+                                                        </Document>
+                                                    </div>
+                                                ) : <img src={bgImageBack} className="absolute inset-0 w-full h-full object-cover" />
+                                            )}
+
+                                            {/* Fields Back */}
+                                            {template.fields?.map((field: any) => {
+                                                if (!field.visible || field.page !== 'back') return null;
+                                                const finalFontSize = field.fontSize * scaleFactor;
+                                                return (
+                                                    <SmartText
+                                                        key={field.id}
+                                                        text={getFieldValue(field)}
+                                                        x={field.x}
+                                                        y={field.y}
+                                                        fontSize={finalFontSize}
+                                                        color={field.color}
+                                                        fontFamily={field.fontFamily}
+                                                        boxWidthPercent={field.boxWidth || field.maxWidth || 30}
+                                                        boxHeightPercent={field.boxHeight || 10}
+                                                    />
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                </div>
             </div>
+            <div className="print:hidden"><Footer /></div>
         </div>
-        <div className="print:hidden"><Footer /></div>
-    </div>
-);
+    );
 }
