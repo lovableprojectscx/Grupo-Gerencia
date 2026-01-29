@@ -108,6 +108,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     const [fields, setFields] = useState<FieldPosition[]>(defaultFields);
     const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+    const resizeRef = useRef<{ id: string; direction: string; startX: number; startY: number; startW: number; startH: number } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [uploading, setUploading] = useState(false);
     const [numPages, setNumPages] = useState<number>(0);
@@ -184,8 +186,95 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         }
     };
 
+    const handleResizeStart = (e: React.MouseEvent, id: string, direction: string) => {
+        e.stopPropagation();
+        const field = fields.find(f => f.id === id);
+        if (!field) return;
+
+        setIsResizing(true);
+        resizeRef.current = {
+            id,
+            direction,
+            startX: e.clientX,
+            startY: e.clientY,
+            startW: field.boxWidth || 30, // Default to 30 if null
+            startH: field.boxHeight || 10  // Default to 10 if null
+        };
+
+        const handleGlobalMouseMove = (moveEvent: MouseEvent) => {
+            const current = resizeRef.current;
+            if (!current) return;
+
+            const container = containerRef.current;
+            if (!container) return;
+
+            const rect = container.getBoundingClientRect();
+            const deltaX = moveEvent.clientX - current.startX;
+            const deltaY = moveEvent.clientY - current.startY;
+
+            // Convert delta pixels to percentage of container
+            const deltaWPercent = (deltaX / rect.width) * 100;
+            const deltaHPercent = (deltaY / rect.height) * 100;
+
+            let newW = current.startW;
+            let newH = current.startH;
+
+            // Simple scaling (right/bottom handles for now, or unified logic)
+            // If direction has 'e' (east), add deltaW
+            // If direction has 'w' (west), subtract deltaW (and move X? too complex for now, let's stick to SE/SW/NE/NW handling resizing from center? 
+            // The box is centered at X/Y. 
+            // If we resize, do we keep center or top-left?
+            // The drawing logic: translate(-50%, -50%). So X/Y is the CENTER.
+            // If I increase Width, it grows extending BOTH sides from center.
+            // So if I drag RIGHT edge, I want width to increase.
+            // 1% Growth in Width = 0.5% extension to Right.
+            // So DeltaX results in DeltaW * ?
+            // If I drag Right Handle:
+            // Mouse moves 10px right. Width should increase by 20px (10px left, 10px right) to keep center?
+            // Yes, if X/Y is center, resizing width symmetrically is easiest.
+            // Let's implement symmetric resizing for simplicity first, or standard resizing?
+            // Standard resizing usually moves anchors. 
+            // Given the CSS transform translate(-50%, -50%), the X/Y is the geometric center.
+            // If I standard resize (edge), I must ALSO update X/Y to shift the center.
+            // Let's try SYMMETRIC resizing first (holding Alt style behavior by default) because coordinates are center-based.
+            // It feels intuitive for "centering" designs.
+
+            // Actually, user wants to drag corner.
+            // If I drag SE corner, I expect it to grow Down and Right.
+            // Since it is centered, if it grows Down/Right, the specific implementation depends on if we update X/Y.
+
+            // OPTION A: Symmetric Resizing (easiest for code).
+            // Width += deltaX * 2 (because 1 unit mouse move = 1 unit from center = 2 units total width increase).
+            // Height += deltaY * 2.
+
+            if (current.direction.includes('e')) newW += (deltaWPercent * 2);
+            if (current.direction.includes('w')) newW -= (deltaWPercent * 2);
+            if (current.direction.includes('s')) newH += (deltaHPercent * 2);
+            if (current.direction.includes('n')) newH -= (deltaHPercent * 2);
+
+            // Constraints
+            if (newW < 5) newW = 5;
+            if (newH < 2) newH = 2;
+            if (newW > 100) newW = 100;
+            if (newH > 100) newH = 100;
+
+            updateField(current.id, { boxWidth: newW, boxHeight: newH });
+        };
+
+        const handleGlobalMouseUp = () => {
+            setIsResizing(false);
+            resizeRef.current = null;
+            document.removeEventListener("mousemove", handleGlobalMouseMove);
+            document.removeEventListener("mouseup", handleGlobalMouseUp);
+        };
+
+        document.addEventListener("mousemove", handleGlobalMouseMove);
+        document.addEventListener("mouseup", handleGlobalMouseUp);
+    };
+
     const handleMouseDown = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
+        if (isResizing) return; // Don't drag if stuck in resize mode (safety)
         setSelectedFieldId(id);
         setIsDragging(true);
 
@@ -383,48 +472,84 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
 
 
-                            // Fields
+                        {/* Fields Layer */}
                         {activeFields.map((field) => (
-                            <div
-                                key={field.id}
-                                onMouseDown={(e) => handleMouseDown(e, field.id)}
-                                onClick={(e) => { e.stopPropagation(); setSelectedFieldId(field.id); }}
-                                style={{
-                                    position: "absolute",
-                                    left: `${field.x}%`,
-                                    top: `${field.y}%`,
-                                    transform: "translate(-50%, -50%)",
-                                    // fontSize is handled by SmartText
-                                    cursor: isDragging ? "grabbing" : "grab",
-                                    border: selectedFieldId === field.id ? "2px dashed blue" : "1px dashed transparent",
-                                    padding: "4px 8px", // Padding might affect width calculation, keep minimal
-                                    zIndex: selectedFieldId === field.id ? 20 : 10,
+                            <div key="wrapper" className="contents">
+                                <div
+                                    key={field.id}
+                                    onMouseDown={(e) => handleMouseDown(e, field.id)}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedFieldId(field.id); }}
+                                    style={{
+                                        position: "absolute",
+                                        left: `${field.x}%`,
+                                        top: `${field.y}%`,
+                                        transform: "translate(-50%, -50%)",
+                                        // fontSize is handled by SmartText
+                                        cursor: isDragging ? "grabbing" : "grab",
+                                        border: selectedFieldId === field.id ? "2px dashed blue" : "1px dashed transparent",
+                                        padding: "4px 8px", // Padding might affect width calculation, keep minimal
+                                        zIndex: selectedFieldId === field.id ? 20 : 10,
 
-                                    // Constraint Logic
-                                    // Constraint Logic
-                                    // boxWidth/Height uses percentages of the container
-                                    width: field.boxWidth ? `${field.boxWidth}%` : '30%',
-                                    height: field.boxHeight ? `${field.boxHeight}%` : '10%',
+                                        // Constraint Logic
+                                        // Constraint Logic
+                                        // boxWidth/Height uses percentages of the container
+                                        width: field.boxWidth ? `${field.boxWidth}%` : '30%',
+                                        height: field.boxHeight ? `${field.boxHeight}%` : '10%',
 
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    overflow: "hidden" // Clip content that doesn't fit
-                                }}
-                                className="hover:border-primary/50 transition-colors font-bold group"
-                            >
-                                {/* Visual Box Border (Dashed) - Always visible when selected or hovering, else hidden */}
-                                <div className={`absolute inset-0 border border-dashed pointer-events-none ${selectedFieldId === field.id ? 'border-blue-500 opacity-100' : 'border-gray-400 opacity-0 group-hover:opacity-50'}`} />
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                        overflow: "hidden" // Clip content that doesn't fit
+                                    }}
+                                    className="hover:border-primary/50 transition-colors font-bold group"
+                                >
+                                    {/* Visual Box Border (Dashed) - Always visible when selected or hovering, else hidden */}
+                                    <div className={`absolute inset-0 border border-dashed pointer-events-none ${selectedFieldId === field.id ? 'border-blue-500 opacity-100' : 'border-gray-400 opacity-0 group-hover:opacity-50'}`} />
 
-                                <SmartText
-                                    text={field.value}
-                                    fontSize={field.fontSize}
-                                    color={field.color}
-                                    fontFamily={field.fontFamily}
-                                    // Pass box dimensions to SmartText for calculation? 
-                                    // Actually SmartText uses parent size which is set above.
-                                    maxWidthPercent={100} // Parent is already the box
-                                />
+                                    {/* Resize Handles (Only when selected) */}
+                                    {selectedFieldId === field.id && (
+                                        <>
+                                            {/* Corners */}
+                                            {['nw', 'ne', 'sw', 'se'].map((dir) => (
+                                                <div
+                                                    key={dir}
+                                                    onMouseDown={(e) => handleResizeStart(e, field.id, dir)}
+                                                    className={`absolute w-3 h-3 bg-white border border-blue-600 rounded-full z-30 cursor-${dir}-resize hover:scale-125 transition-transform`}
+                                                    style={{
+                                                        top: dir.includes('n') ? '-6px' : 'auto',
+                                                        bottom: dir.includes('s') ? '-6px' : 'auto',
+                                                        left: dir.includes('w') ? '-6px' : 'auto',
+                                                        right: dir.includes('e') ? '-6px' : 'auto',
+                                                    }}
+                                                />
+                                            ))}
+                                            {/* Sides (Optional, lets stick to corners for now to keep it clean, or add E/W/N/S) */}
+                                            {['n', 's', 'e', 'w'].map((dir) => (
+                                                <div
+                                                    key={dir}
+                                                    onMouseDown={(e) => handleResizeStart(e, field.id, dir)}
+                                                    className={`absolute bg-transparent z-25 cursor-${dir === 'n' || dir === 's' ? 'ns' : 'ew'}-resize`}
+                                                    style={{
+                                                        top: dir === 'n' ? '-5px' : dir === 's' ? 'auto' : '10%',
+                                                        bottom: dir === 's' ? '-5px' : dir === 'n' ? 'auto' : '10%',
+                                                        left: dir === 'w' ? '-5px' : dir === 'e' ? 'auto' : '10%',
+                                                        right: dir === 'e' ? '-5px' : dir === 'w' ? 'auto' : '10%',
+                                                        width: dir === 'n' || dir === 's' ? '100%' : '10px',
+                                                        height: dir === 'e' || dir === 'w' ? '100%' : '10px',
+                                                    }}
+                                                />
+                                            ))}
+                                        </>
+                                    )}
+
+                                    <SmartText
+                                        text={field.value}
+                                        fontSize={field.fontSize}
+                                        color={field.color}
+                                        fontFamily={field.fontFamily}
+                                        maxWidthPercent={100}
+                                    />
+                                </div>
                             </div>
                         ))}
 
