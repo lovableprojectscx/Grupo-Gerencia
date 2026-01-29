@@ -43,33 +43,36 @@ interface CertificateBuilderProps {
     onTemplateChange?: (template: any) => void;
 }
 
-const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85 }: any) => {
+const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, boxWidth, boxHeight }: any) => {
     const textRef = useRef<HTMLDivElement>(null);
     const [currentFontSize, setCurrentFontSize] = useState(fontSize);
 
+    // Reset to MAX ("Slider Size") whenever content or BOX Constraints change.
+    // This allows the text to "grow back" if the user enlarges the box.
     useEffect(() => {
         setCurrentFontSize(fontSize);
-    }, [text, fontSize]);
+    }, [text, fontSize, fontFamily, boxWidth, boxHeight]);
 
     useEffect(() => {
         const el = textRef.current;
         if (!el || !el.parentElement) return;
 
-        // In the builder, the parent ID constrained by field.boxWidth/boxHeight
+        // In the builder, the parent IS the box (div with boxWidth/boxHeight).
         // We compare scrollWidth/Height vs clientWidth/Height
         const checkFit = () => {
+            // If content overflows the box, SHRINK.
             if ((el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) && currentFontSize > 6) {
                 setCurrentFontSize(prev => prev * 0.90);
             }
         };
 
-        // Run check
+        // Run check immediately
         checkFit();
 
-        // Double check for rapid changes?
-        // setTimeout(checkFit, 50);
+        // And a backup for layout shifts (optional but safe)
+        // setTimeout(checkFit, 10);
 
-    }, [text, currentFontSize, maxWidthPercent, fontSize]);
+    }, [text, currentFontSize, maxWidthPercent, fontSize, boxWidth, boxHeight]);
 
     return (
         <div
