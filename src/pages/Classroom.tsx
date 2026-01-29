@@ -138,10 +138,8 @@ export default function Classroom() {
                     <div className="flex flex-col">
                         <h1 className="font-bold text-sm md:text-base line-clamp-1">{course.title}</h1>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Progress value={course.enrollment_status === 'completed' ? 100 : progressPercentage} className="h-2 w-24" />
-                                <span>{course.enrollment_status === 'completed' ? 100 : progressPercentage}% completado</span>
-                            </div>
+                            <Progress value={certificate ? 100 : progressPercentage} className="h-2 w-24" />
+                            <span>{certificate ? 100 : progressPercentage}% completado</span>
                         </div>
                     </div>
 
