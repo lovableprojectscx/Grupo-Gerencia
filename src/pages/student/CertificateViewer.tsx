@@ -392,6 +392,8 @@ export default function CertificateViewer() {
                     const lineHeightMultiplier = 1.15; // Match CSS
 
                     // Fit Loop: Try to wrap text. If it overflows height, shrink font.
+                    const minimumLegibleSize = 14;
+
                     while (iterations < 50) {
                         lines = [];
 
@@ -415,12 +417,20 @@ export default function CertificateViewer() {
                             lines.push(currentLine);
                         }
 
-                        // Check Total Height vs Box Height and Max Line Width overflow (for single long words)
+                        // Check Dimensions
                         const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
                         const maxWordWidth = Math.max(...lines.map(l => font.widthOfTextAtSize(l, currentFontSize)));
 
-                        if (totalHeight <= maxBoxHeight && maxWordWidth <= maxBoxWidth) {
-                            break; // Fits!
+                        const fitsWidth = maxWordWidth <= maxBoxWidth;
+                        const fitsHeight = totalHeight <= maxBoxHeight;
+                        const isLegible = currentFontSize >= minimumLegibleSize;
+
+                        // STOP shrinking if:
+                        // 1. Fits everything perfectly.
+                        // 2. Fits Width, but Height fails... BUT we are already at minimum legibility.
+                        //    (Better to overflow height than be unreadable)
+                        if (fitsWidth && (fitsHeight || !isLegible)) {
+                            break;
                         }
 
                         currentFontSize *= 0.90;
