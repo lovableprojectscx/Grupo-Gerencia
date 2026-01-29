@@ -65,6 +65,22 @@ export default function Classroom() {
         enabled: !!userId && !!courseId
     });
 
+    // Fetch Enrollment Status (Separate from certificate to catch 'completed' but not generated cases)
+    const { data: enrollment } = useQuery({
+        queryKey: ["enrollment-status", userId, courseId],
+        queryFn: async () => {
+            if (!userId) return null;
+            const { data } = await supabase
+                .from('enrollments')
+                .select('status, progress')
+                .eq('user_id', userId)
+                .eq('course_id', courseId)
+                .maybeSingle();
+            return data;
+        },
+        enabled: !!userId && !!courseId
+    });
+
     // Fetch Certificate
     const { data: certificate } = useQuery({
         queryKey: ["my-certificate", userId, courseId],
@@ -138,8 +154,8 @@ export default function Classroom() {
                     <div className="flex flex-col">
                         <h1 className="font-bold text-sm md:text-base line-clamp-1">{course.title}</h1>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Progress value={certificate ? 100 : progressPercentage} className="h-2 w-24" />
-                            <span>{certificate ? 100 : progressPercentage}% completado</span>
+                            <Progress value={(certificate || enrollment?.status === 'completed') ? 100 : progressPercentage} className="h-2 w-24" />
+                            <span>{(certificate || enrollment?.status === 'completed') ? 100 : progressPercentage}% completado</span>
                         </div>
                     </div>
 

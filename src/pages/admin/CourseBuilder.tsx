@@ -354,6 +354,20 @@ export default function CourseBuilder() {
             setActiveTab("general");
             return false;
         }
+
+        // Safeguard: Recorded courses MUST have content
+        if (course.modality === 'async') {
+            const hasLessons = course.modules?.some((m: any) => m.lessons?.length > 0);
+            if (!hasLessons) {
+                toast.error("Un curso GRABADO requiere lecciones. Agrega contenido o cambia a 'En Vivo'.", {
+                    duration: 5000,
+                    icon: <AlertCircle className="w-5 h-5 text-destructive" />
+                });
+                setActiveTab("syllabus");
+                return false;
+            }
+        }
+
         return true;
     };
 
@@ -367,8 +381,9 @@ export default function CourseBuilder() {
             const { modules, instructor, enrollments, students, ...courseData } = course;
 
             // --- CRITICAL FIX: Clean Metadata based on Modality ---
-            // If switching away from 'live', remove live-specific metadata to prevent ghost data or logic errors.
-            if (courseData.modality !== 'live' && courseData.metadata) {
+            // If switching to 'async', remove live-specific metadata.
+            // KEEP it for 'live' AND 'hybrid'.
+            if (courseData.modality === 'async' && courseData.metadata) {
                 courseData.metadata = courseData.metadata.filter((m: any) =>
                     !['live_url', 'live_date', 'certificates_enabled'].includes(m.key)
                 );
