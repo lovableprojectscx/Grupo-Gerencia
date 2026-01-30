@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { CertificateBuilder } from "@/components/admin/CertificateBuilder";
+import { BrowserWindow } from "@/components/ui/BrowserWindow"; // Added import
 import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
@@ -944,33 +945,37 @@ export default function CourseBuilder() {
                                 </div>
 
                                 {/* Live Preview Card */}
-                                <div className="w-full md:w-80 shrink-0">
-                                    <Label className="mb-2 block text-center">Vista Previa (Ficha del Catálogo)</Label>
-                                    <div className="border rounded-xl overflow-hidden shadow-lg bg-card">
-                                        <div className="aspect-video bg-muted relative">
-                                            {course.image_url ? (
-                                                <img src={course.image_url} alt="Cover" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full text-muted-foreground">Sin Imagen</div>
-                                            )}
-                                            {course.original_price > Number(course.price) && (
-                                                <span className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
-                                                    -{Math.round(((course.original_price - course.price) / course.original_price) * 100)}%
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="p-4 space-y-2">
-                                            <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">{course.category || "Categoría"}</div>
-                                            <h3 className="font-bold leading-tight line-clamp-2">{course.title || "Título del Curso"}</h3>
-                                            <p className="text-sm text-muted-foreground line-clamp-2">{course.subtitle || "Subtítulo del curso..."}</p>
-                                            <div className="pt-2 flex items-baseline gap-2">
-                                                <span className="text-lg font-bold">S/ {course.price || "0.00"}</span>
-                                                {Number(course.original_price) > Number(course.price) && (
-                                                    <span className="text-sm text-muted-foreground line-through">S/ {course.original_price}</span>
-                                                )}
+                                <div className="w-full md:w-[400px] shrink-0">
+                                    <Label className="mb-3 block text-center font-medium">Vista Previa (Web)</Label>
+                                    <BrowserWindow url={`https://gerencia.global/cursos/${course.slug || '...'}`}>
+                                        <div className="p-4 bg-muted/10 min-h-[300px]">
+                                            <div className="border rounded-xl overflow-hidden shadow-lg bg-card max-w-[320px] mx-auto">
+                                                <div className="aspect-video bg-muted relative">
+                                                    {course.image_url ? (
+                                                        <img src={course.image_url} alt="Cover" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full text-muted-foreground">Sin Imagen</div>
+                                                    )}
+                                                    {course.original_price > Number(course.price) && (
+                                                        <span className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                                                            -{Math.round(((course.original_price - course.price) / course.original_price) * 100)}%
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="p-4 space-y-2">
+                                                    <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">{course.category || "Categoría"}</div>
+                                                    <h3 className="font-bold leading-tight line-clamp-2">{course.title || "Título del Curso"}</h3>
+                                                    <p className="text-sm text-muted-foreground line-clamp-2">{course.subtitle || "Subtítulo del curso..."}</p>
+                                                    <div className="pt-2 flex items-baseline gap-2">
+                                                        <span className="text-lg font-bold">S/ {course.price || "0.00"}</span>
+                                                        {Number(course.original_price) > Number(course.price) && (
+                                                            <span className="text-sm text-muted-foreground line-through">S/ {course.original_price}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </BrowserWindow>
                                 </div>
                             </div>
                         </CardContent>
