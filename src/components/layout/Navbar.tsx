@@ -22,7 +22,7 @@ const navLinks = [
     label: "Escuelas",
     href: "#",
     children: [
-      { label: "Escuela de Salud", href: "/catalogo?area=health" },
+      { label: "Salud", href: "/catalogo?area=health" },
       { label: "Ingeniería", href: "/catalogo?area=engineering" },
       { label: "Agronomía", href: "/catalogo?area=agronomy" },
       { label: "Veterinaria", href: "/catalogo?area=veterinary" },

@@ -96,7 +96,7 @@ const FAQContent = () => (
 
 const footerLinks = {
   escuelas: [
-    { label: "Escuela de Salud", href: "/catalogo?area=health", type: "link" },
+    { label: "Salud", href: "/catalogo?area=health", type: "link" },
     { label: "Escuela de Ingeniería", href: "/catalogo?area=engineering", type: "link" },
     { label: "Escuela de Agronomía", href: "/catalogo?area=agronomy", type: "link" },
     { label: "Gestión Pública y Empresarial", href: "/catalogo?area=management", type: "link" },
