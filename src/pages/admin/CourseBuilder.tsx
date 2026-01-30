@@ -397,7 +397,7 @@ export default function CourseBuilder() {
                 navigate(`/admin/courses/${newCourse.id}`);
                 // Ideally replace URL without reload
             }
-            toast.success("Curso guardado exitosamente");
+
         } catch (error) {
             console.error(error); // Error toast handled in hook
         }
