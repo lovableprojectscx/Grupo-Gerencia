@@ -356,10 +356,11 @@ export default function CourseBuilder() {
         }
 
         // Safeguard: Recorded courses MUST have content
-        if (course.modality === 'async') {
+        // Safeguard: Recorded courses MUST have content ONLY IF PUBLISHED
+        if (course.published && course.modality === 'async') {
             const hasLessons = course.modules?.some((m: any) => m.lessons?.length > 0);
             if (!hasLessons) {
-                toast.error("Un curso GRABADO requiere lecciones. Agrega contenido o cambia a 'En Vivo'.", {
+                toast.error("Para PUBLICAR un curso GRABADO se requieren lecciones. Agrega contenido o déjalo como borrador.", {
                     duration: 5000,
                     icon: <AlertCircle className="w-5 h-5 text-destructive" />
                 });
