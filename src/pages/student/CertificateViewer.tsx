@@ -65,8 +65,9 @@ const SmartText = ({
         const checkFit = () => {
             // We use a small tolerance or exact check
             // IMPORTANT: We must ensure currentFontSize shrinks if overflow occurs
-            if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 6) {
-                setCurrentFontSize(prev => Math.max(6, prev * 0.90));
+            // CHANGED: Minimum legibility size increased from 6px to 20px based on user feedback
+            if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 20) {
+                setCurrentFontSize(prev => Math.max(20, prev * 0.90));
             }
         };
 
@@ -101,18 +102,12 @@ const SmartText = ({
                 fontFamily: fontFamily,
                 textAlign: "center",
                 fontWeight: "bold",
-                lineHeight: 1.2,
-                whiteSpace: "nowrap", // FORCE SINGLE LINE for names/titles usually? Or allow wrap? User complaint implies single line overflowing.
-                // If we want wrap, remove this. But usually certificates are single line name.
-                // Let's assume wrap is allowed for long titles but name is usually single. 
-                // Creating a hybrid approach: "white-space: normal" but "overflow: hidden"
-                // Actually, if user resizes box, they might want wrapping?
-                // The screenshot showed "MAMANI..." very long.
-                // If I add whiteSpace: 'nowrap', it forces width check to trigger shrinking.
-                // If I allow wrapping, height check triggers shrinking.
-                // Best default for certificates is usually nowrap for Names.
-                // I will Add whiteSpace: nowrap to force font reduction instead of wrapping
-                whiteSpace: "nowrap",
+                lineHeight: 1.15, // Professional tight line height for multi-line
+
+                // UPDATED: User feedback indicates single line shrinks too much. 
+                // We enable wrapping and stop shrinking at a readable size.
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
 
                 transition: "font-size 0.1s ease-out"
             }}
