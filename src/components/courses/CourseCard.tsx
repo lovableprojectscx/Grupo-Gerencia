@@ -17,7 +17,7 @@ interface CourseCardProps {
   duration: string;
   category: string;
   specialty?: string;
-  level: string;
+  level?: string;
   programType?: string;
 }
 
