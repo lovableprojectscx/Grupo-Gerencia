@@ -346,7 +346,7 @@ const CursoDetalle = () => {
                   <div className="p-2 rounded-lg bg-accent/10">
                     <FileText className="w-6 h-6 text-accent" />
                   </div>
-                  <h2 className="text-2xl font-bold text-foreground">Lo que aprenderás</h2>
+                  <h2 className="text-2xl font-bold text-foreground">Descripción</h2>
                 </div>
                 <div className="prose prose-lg text-muted-foreground max-w-none whitespace-pre-line leading-relaxed">
                   {course.description}
