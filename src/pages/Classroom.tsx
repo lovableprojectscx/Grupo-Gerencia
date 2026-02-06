@@ -375,12 +375,9 @@ export default function Classroom() {
                                 </div>
 
                                 <Tabs defaultValue="overview" className="w-full">
-                                    <TabsList className="w-full justify-start border-b border-border bg-transparent p-0 h-auto rounded-none">
+                                    <TabsList className="hidden w-full justify-start border-b border-border bg-transparent p-0 h-auto rounded-none">
                                         <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
                                             Descripción
-                                        </TabsTrigger>
-                                        <TabsTrigger value="resources" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-                                            Recursos
                                         </TabsTrigger>
                                     </TabsList>
 
@@ -391,9 +388,7 @@ export default function Classroom() {
                                         </p>
                                     </TabsContent>
 
-                                    <TabsContent value="resources" className="py-6">
-                                        <div className="text-muted-foreground italic">No hay recursos adjuntos.</div>
-                                    </TabsContent>
+
                                 </Tabs>
                             </div>
                         </div>

@@ -248,8 +248,8 @@ export default function CertificateViewer() {
             case "code":
             case "code-back":
                 // Prioritize sequential registration number
-                if (certificate.registration_number) return `#${certificate.registration_number}`;
-                if (certificate.metadata?.registration_number) return `#${certificate.metadata.registration_number}`;
+                if (certificate.registration_number) return `${certificate.registration_number}`;
+                if (certificate.metadata?.registration_number) return `${certificate.metadata.registration_number}`;
                 return certificate.code || certificate.id;
             default:
                 if (field.id.startsWith('meta-')) {
