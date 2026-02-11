@@ -36,6 +36,14 @@ const defaultFields: FieldPosition[] = [
     { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "101", boxWidth: 30, boxHeight: 10 },
 ];
 
+const CORE_VARIABLES = [
+    { id: "studentName", label: "Nombre del Estudiante", value: "Maria Elena Torres" },
+    { id: "studentDni", label: "DNI del Estudiante", value: "DNI: 12345678" },
+    { id: "courseName", label: "Nombre del Curso", value: "Diplomado en Cuidados Intensivos" },
+    { id: "date", label: "Fecha de Emisión", value: "15 de Enero, 2026" },
+    { id: "code", label: "Número de Registro", value: "101" },
+];
+
 interface CertificateBuilderProps {
     courseId?: string;
     defaultMetadata?: { key: string, value: string }[];
@@ -360,10 +368,21 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
     };
 
-    const addCustomField = (key?: string, value?: string) => {
+    const addCustomField = (keyOrId?: string, value?: string, isCore = false) => {
+        let fieldId = "";
+        let fieldLabel = "";
+
+        if (isCore && keyOrId) {
+            fieldId = activePage === 'back' ? `${keyOrId}-back` : keyOrId;
+            fieldLabel = CORE_VARIABLES.find(v => v.id === keyOrId)?.label || keyOrId;
+        } else {
+            fieldId = keyOrId ? `meta-${keyOrId}-${Math.random().toString(36).substr(2, 5)}` : `custom-${Math.random().toString(36).substr(2, 5)}`;
+            fieldLabel = keyOrId || "Nuevo Campo";
+        }
+
         const newField: FieldPosition = {
-            id: key ? `meta-${key}-${Math.random().toString(36).substr(2, 5)}` : `custom-${Math.random().toString(36).substr(2, 5)}`,
-            label: key || "Nuevo Campo",
+            id: fieldId,
+            label: fieldLabel,
             x: 50,
             y: 50,
             fontSize: 16, // Default
@@ -637,6 +656,21 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                             <div className="space-y-2 mb-4">
                                 <Label className="text-xs text-muted-foreground">Variables Disponibles</Label>
                                 <div className="flex flex-wrap gap-2">
+                                    {/* Core Variables */}
+                                    {CORE_VARIABLES.map((v) => (
+                                        <Button
+                                            key={v.id}
+                                            variant="secondary"
+                                            size="sm"
+                                            className="text-xs h-7 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+                                            onClick={() => addCustomField(v.id, v.value, true)}
+                                        >
+                                            <Plus className="w-3 h-3 mr-1" />
+                                            {v.label}
+                                        </Button>
+                                    ))}
+
+                                    {/* Course Metadata Variables */}
                                     {fetchedMetadata.map((meta) => (
                                         <Button
                                             key={meta.key}
