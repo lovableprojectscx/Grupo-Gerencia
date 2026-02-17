@@ -23,7 +23,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { BookOpen, Sparkles, BadgeDollarSign, Layers, Settings2, Globe } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -32,6 +39,7 @@ const areas = [
   { id: "health", label: "Salud" },
   { id: "veterinary", label: "Veterinaria" },
   { id: "engineering", label: "Ingeniería" },
+  { id: "environmental", label: "Ingeniería Ambiental" },
   { id: "agronomy", label: "Agronomía" },
   { id: "management", label: "Gestión Pública y Empresarial" },
 ];
@@ -166,6 +174,13 @@ const Catalogo = () => {
     setCurrentPage(1);
   };
 
+  const toggleModality = (modalityId: string) => {
+    setSelectedModalities((prev) =>
+      prev.includes(modalityId) ? prev.filter((m) => m !== modalityId) : [...prev, modalityId]
+    );
+    setCurrentPage(1);
+  };
+
   const clearFilters = () => {
     setSelectedAreas([]);
     setSelectedProgramTypes([]);
@@ -179,92 +194,144 @@ const Catalogo = () => {
     (maxPrice < 10000 ? 1 : 0);
 
   const FilterContent = () => (
-    <div className="space-y-8">
-      {/* Areas */}
-      <div>
-        <h3 className="font-semibold text-foreground mb-4">Área de Estudio</h3>
-        <div className="space-y-3">
-          {areas.map((area) => (
-            <label
-              key={area.id}
-              className="flex items-center gap-3 cursor-pointer group"
-            >
-              <Checkbox
-                checked={selectedAreas.includes(area.id)}
-                onCheckedChange={() => toggleArea(area.id)}
-              />
-              <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
-                {area.label}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-2">
+      <Accordion type="multiple" defaultValue={["area"]} className="w-full">
+        {/* Areas */}
+        <AccordionItem value="area" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-3 px-1">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-accent" />
+              <span className="font-semibold text-foreground">Área de Estudio</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-2 pb-4 px-1">
+            <div className="space-y-3">
+              {areas.map((area) => (
+                <label
+                  key={area.id}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <Checkbox
+                    checked={selectedAreas.includes(area.id)}
+                    onCheckedChange={() => toggleArea(area.id)}
+                  />
+                  <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
+                    {area.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Program Type */}
-      <div>
-        <h3 className="font-semibold text-foreground mb-4">Tipo de Programa</h3>
-        <div className="space-y-3">
-          {programTypes.map((type) => (
-            <label
-              key={type.id}
-              className="flex items-center gap-3 cursor-pointer group"
-            >
-              <Checkbox
-                checked={selectedProgramTypes.includes(type.id)}
-                onCheckedChange={() => toggleProgramType(type.id)}
-              />
-              <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
-                {type.label}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
+        {/* Grouped Secondary Filters */}
+        <AccordionItem value="advanced" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-3 px-1">
+            <div className="flex items-center gap-2">
+              <Settings2 className="w-4 h-4 text-muted-foreground" />
+              <span className="font-semibold text-foreground">Refinar Búsqueda</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-2 pb-4 px-1 space-y-6">
+            {/* Program Type */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tipo</h4>
+              </div>
+              <div className="space-y-3">
+                {programTypes.map((type) => (
+                  <label
+                    key={type.id}
+                    className="flex items-center gap-3 cursor-pointer group"
+                  >
+                    <Checkbox
+                      checked={selectedProgramTypes.includes(type.id)}
+                      onCheckedChange={() => toggleProgramType(type.id)}
+                    />
+                    <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
+                      {type.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-      {/* Price Range */}
-      <div>
-        <h3 className="font-semibold text-foreground mb-4">Precio</h3>
-        <RadioGroup
-          value={maxPrice.toString()}
-          onValueChange={(val) => {
-            setMaxPrice(Number(val));
-            setCurrentPage(1);
-          }}
-          className="space-y-3"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="10000" id="price-all" />
-            <label htmlFor="price-all" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-              Todos los precios
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="100" id="price-100" />
-            <label htmlFor="price-100" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-              Menos de S/100
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="300" id="price-300" />
-            <label htmlFor="price-300" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-              Menos de S/300
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="500" id="price-500" />
-            <label htmlFor="price-500" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-              Menos de S/500
-            </label>
-          </div>
-        </RadioGroup>
-      </div>
+            {/* Modality */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Modalidad</h4>
+              </div>
+              <div className="space-y-3">
+                {modalities.map((modality) => (
+                  <label
+                    key={modality.id}
+                    className="flex items-center gap-2 cursor-pointer group"
+                  >
+                    <Checkbox
+                      checked={selectedModalities.includes(modality.id)}
+                      onCheckedChange={() => toggleModality(modality.id)}
+                    />
+                    <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
+                      {modality.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Range */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <BadgeDollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Inversión</h4>
+              </div>
+              <RadioGroup
+                value={maxPrice.toString()}
+                onValueChange={(val) => {
+                  setMaxPrice(Number(val));
+                  setCurrentPage(1);
+                }}
+                className="space-y-2.5"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="10000" id="price-all" />
+                  <label htmlFor="price-all" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                    Todos
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="100" id="price-100" />
+                  <label htmlFor="price-100" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                    Menos de S/100
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="300" id="price-300" />
+                  <label htmlFor="price-300" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                    Menos de S/300
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="500" id="price-500" />
+                  <label htmlFor="price-500" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                    Menos de S/500
+                  </label>
+                </div>
+              </RadioGroup>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Clear Filters */}
       {activeFiltersCount > 0 && (
-        <Button variant="outline" onClick={clearFilters} className="w-full">
-          Limpiar filtros ({activeFiltersCount})
-        </Button>
+        <div className="pt-4 border-t border-border mt-4">
+          <Button variant="ghost" onClick={clearFilters} className="w-full text-xs text-muted-foreground hover:text-destructive h-8">
+            Limpiar todos los filtros ({activeFiltersCount})
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -340,11 +407,15 @@ const Catalogo = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-72 shrink-0">
-              <div className="sticky top-24 bg-card rounded-2xl p-6 shadow-card border border-border">
-                <h2 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-                  <SlidersHorizontal className="w-5 h-5" />
-                  Filtros
-                </h2>
+              <div className="sticky top-24 bg-card rounded-2xl p-5 shadow-sm border border-border/50">
+                <div className="flex items-center gap-2 mb-6 border-b border-border/50 pb-4">
+                  <div className="p-1.5 bg-accent/10 rounded-lg">
+                    <SlidersHorizontal className="w-4 h-4 text-accent" />
+                  </div>
+                  <h2 className="text-base font-bold text-foreground">
+                    Filtros de búsqueda
+                  </h2>
+                </div>
                 <FilterContent />
               </div>
             </aside>
@@ -388,7 +459,12 @@ const Catalogo = () => {
                     <SelectValue placeholder="Ordenar por" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">Más recientes</SelectItem>
+                    <SelectItem value="newest">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-accent" />
+                        <span>Novedades</span>
+                      </div>
+                    </SelectItem>
                     <SelectItem value="price-low">Precio: menor a mayor</SelectItem>
                     <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
                   </SelectContent>
@@ -423,6 +499,21 @@ const Catalogo = () => {
                         onClick={() => toggleProgramType(typeId)}
                       >
                         {type?.label}
+                        <X className="w-3 h-3" />
+                      </Badge>
+                    );
+                  })}
+                  {/* Modality Tags */}
+                  {selectedModalities.map((modalityId) => {
+                    const modality = modalities.find((m) => m.id === modalityId);
+                    return (
+                      <Badge
+                        key={modalityId}
+                        variant="secondary"
+                        className="pl-3 pr-2 py-1.5 gap-1 cursor-pointer hover:bg-destructive/10"
+                        onClick={() => toggleModality(modalityId)}
+                      >
+                        {modality?.label}
                         <X className="w-3 h-3" />
                       </Badge>
                     );

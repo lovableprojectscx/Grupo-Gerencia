@@ -40,6 +40,15 @@ export const COURSE_CATEGORIES = [
         ]
     },
     {
+        id: "environmental",
+        label: "Ingeniería Ambiental",
+        specialties: [
+            { id: "waste_management", label: "Gestión de Residuos" },
+            { id: "eia", label: "Estudio de Impacto Ambiental" },
+            { id: "water_treatment", label: "Tratamiento de Aguas" }
+        ]
+    },
+    {
         id: "management",
         label: "Gestión Pública y Empresarial",
         specialties: [
