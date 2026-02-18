@@ -10,7 +10,7 @@ El catálogo organiza los cursos en **Áreas de Estudio** principales. Cada áre
 - **Salud**: Medicina, Enfermería, Psicología, etc.
 - **Veterinaria**: Animales menores, mayores, exóticos.
 - **Ingeniería**: Civil, Sistemas, Industrial.
-- **Ingeniería Ambiental** (Nueva): Gestión de residuos, EIA, Tratamiento de aguas.
+- **Ingeniería Ambiental** (Nueva): Gestión de residuos, EIA, Tratamiento de aguas, Monitoreo Ambiental y Biodiversidad.
 - **Agronomía**: Agropecuaria, Zootecnia, Agroindustrial.
 - **Gestión Pública y Empresarial**: Administración, Contabilidad, Derecho.
 
