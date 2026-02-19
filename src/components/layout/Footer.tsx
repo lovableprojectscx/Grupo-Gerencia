@@ -99,7 +99,7 @@ const footerLinks = {
     { label: "Salud", href: "/catalogo?area=health", type: "link" },
     { label: "Ingeniería Civil", href: "/catalogo?area=engineering", type: "link" },
     { label: "Ingeniería Ambiental", href: "/catalogo?area=environmental", type: "link" },
-    { label: "Escuela de Agronomía", href: "/catalogo?area=agronomy", type: "link" },
+    { label: "Agronomía", href: "/catalogo?area=agronomy", type: "link" },
     { label: "Gestión Pública y Empresarial", href: "/catalogo?area=management", type: "link" },
   ],
   recursos: [
