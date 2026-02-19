@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Clock, Users, Star, Play, Calendar } from "lucide-react";
+import { Clock, Users, Star, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,14 +32,6 @@ const categoryColors: Record<string, string> = {
   default: "bg-secondary"
 };
 
-const categoryNames: Record<string, string> = {
-  health: "Salud",
-  engineering: "Ingeniería",
-  agronomy: "Agronomía",
-  management: "Gestión",
-  law: "Derecho",
-};
-
 export const CourseCard = ({
   id,
   title,
@@ -55,6 +47,9 @@ export const CourseCard = ({
   level,
 }: CourseCardProps) => {
   const discount = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+
+  // Students count is now provided by the service
+  const displayStudents = students;
 
   return (
     <motion.div
@@ -128,7 +123,7 @@ export const CourseCard = ({
               </span>
               <span className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
-                {students}
+                {displayStudents}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />

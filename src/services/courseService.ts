@@ -1,5 +1,6 @@
 
 import { supabase } from "@/lib/supabase";
+import { getStudentCount } from "@/utils/courseUtils";
 
 
 export interface Course {
@@ -472,8 +473,12 @@ const mapCourseWithStudentCount = (course: any): Course & { students: number } =
 
     // Remove enrollments from the object to clean it up, and add students count
     const { enrollments: _, ...rest } = course;
+
+    // Apply deterministic realistic student count
+    const displayStudents = getStudentCount(course.id, uniqueStudents);
+
     return {
         ...rest,
-        students: uniqueStudents
+        students: displayStudents
     } as Course & { students: number };
 };

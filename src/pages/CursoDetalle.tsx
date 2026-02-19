@@ -73,8 +73,6 @@ const CursoDetalle = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('course_id', id)
-        .eq('user_id', user.id)
-        .eq('course_id', id)
         .maybeSingle();
 
       if (error) {
@@ -120,9 +118,6 @@ const CursoDetalle = () => {
     toggleFavorite();
   };
 
-  // Helper for syllabus processing (if JSON)
-  // Assuming Supabase returns correct structure, but we might need to parse simple JSON
-
   if (isLoading || !course) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -133,13 +128,10 @@ const CursoDetalle = () => {
 
   const duration = course.duration || course.metadata?.find((m: any) => m.key.match(/duraci[oó]n/i))?.value || "A tu ritmo";
 
-
-
-
-  // Transform course data if needed (e.g. if modules are not joined correctly yet, but service handles checks)
-  // For now assuming service returns standard structure.
-
   const totalLessons = course.modules?.reduce((acc: number, module: any) => acc + (module.lessons?.length || 0), 0) || 0;
+
+  // Display count is now provided by the service
+  const displayStudents = course.students || 0;
 
   const handleEnrollClick = () => {
     if (!user) {
@@ -242,7 +234,7 @@ const CursoDetalle = () => {
                       <Users className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
                     </div>
                     <div>
-                      <div className="text-white font-bold text-sm lg:text-base">{course.students || 0}</div>
+                      <div className="text-white font-bold text-sm lg:text-base">{displayStudents}</div>
                       <div className="text-[10px] lg:text-xs text-slate-400">Estudiantes</div>
                     </div>
                   </div>
@@ -557,9 +549,8 @@ const CursoDetalle = () => {
       }
 
       <Footer />
-    </div >
+    </div>
   );
-
 };
 
 export default CursoDetalle;
