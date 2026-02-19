@@ -13,8 +13,9 @@ const Index = () => {
   const { settings } = useSiteSettings();
 
   // Format phone number for WhatsApp
-  const whatsappNumber = settings?.payment_number
-    ? (settings.payment_number.startsWith("51") ? settings.payment_number : `51${settings.payment_number}`)
+  const rawPhone = settings?.contact_phone || settings?.payment_number;
+  const whatsappNumber = rawPhone
+    ? rawPhone.replace(/\D/g, '').startsWith("51") ? rawPhone.replace(/\D/g, '') : `51${rawPhone.replace(/\D/g, '')}`
     : undefined;
 
   return (

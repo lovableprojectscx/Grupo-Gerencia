@@ -22,7 +22,7 @@ export const COURSE_CATEGORIES = [
     },
     {
         id: "engineering",
-        label: "Ingeniería",
+        label: "Ingeniería Civil",
         specialties: [
             { id: "civil_engineering", label: "Ingeniería Civil" },
             { id: "systems_engineering", label: "Ingeniería de Sistemas" },

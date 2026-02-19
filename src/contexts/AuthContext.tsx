@@ -7,6 +7,7 @@ interface UserProfile {
     id: string;
     full_name: string | null;
     dni: string | null;
+    phone: string | null;
     role: string;
     avatar_url: string | null;
     email: string | null;
@@ -91,7 +92,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setProfile({
                     id: currentUser.id,
                     full_name: currentUser.user_metadata?.full_name || "Usuario",
-                    dni: null,
+                    dni: currentUser.user_metadata?.dni || null,
+                    phone: currentUser.user_metadata?.phone || null,
                     role: isAdminEmail ? 'admin' : (currentUser.user_metadata?.role || 'student'),
                     avatar_url: currentUser.user_metadata?.avatar_url || null,
                     email: currentUser.email || null

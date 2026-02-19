@@ -20,6 +20,7 @@ export default function EditProfile() {
         id: "",
         full_name: "",
         dni: "",
+        phone: "",
         email: "",
         avatar_url: ""
     });
@@ -50,6 +51,7 @@ export default function EditProfile() {
                     id: user.id,
                     full_name: data.full_name || "",
                     dni: data.dni || "",
+                    phone: data.phone || "",
                     email: user.email || "",
                     avatar_url: data.avatar_url || ""
                 });
@@ -59,6 +61,7 @@ export default function EditProfile() {
                     id: user.id,
                     full_name: "",
                     dni: "",
+                    phone: "",
                     email: user.email || "",
                     avatar_url: ""
                 });
@@ -81,6 +84,7 @@ export default function EditProfile() {
                 .update({
                     full_name: formData.full_name,
                     dni: formData.dni,
+                    phone: formData.phone,
                     // avatar_url would go here
                 })
                 .eq('id', formData.id);
@@ -148,6 +152,18 @@ export default function EditProfile() {
                                     <p className="text-xs text-yellow-600 font-medium">
                                         ⚠️ Importante: Este número aparecerá en tus certificados.
                                     </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Número de Celular</Label>
+                                    <Input
+                                        id="phone"
+                                        type="tel"
+                                        placeholder="900 000 000"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Para coordinar entregas o dudas sobre el curso.</p>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex justify-between">

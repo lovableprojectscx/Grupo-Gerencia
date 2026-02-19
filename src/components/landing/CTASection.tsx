@@ -6,7 +6,8 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const CTASection = () => {
   const { settings } = useSiteSettings();
-  const whatsappNumber = settings?.payment_number ? settings.payment_number.replace(/\D/g, '') : "51972787508";
+  const rawPhone = settings?.contact_phone || settings?.payment_number || "51972787508";
+  const whatsappNumber = rawPhone.replace(/\D/g, '');
 
   return (
     <section className="section-padding bg-background relative overflow-hidden">

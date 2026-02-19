@@ -14,6 +14,7 @@ export default function Register() {
     const [formData, setFormData] = useState({
         fullName: "",
         dni: "",
+        phone: "",
         email: "",
         password: "",
     });
@@ -31,6 +32,7 @@ export default function Register() {
                     data: {
                         full_name: formData.fullName,
                         dni: formData.dni,
+                        phone: formData.phone,
                         role: "student",
                     }
                 }
@@ -79,6 +81,17 @@ export default function Register() {
                         required
                         value={formData.dni}
                         onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="phone">Número de Celular</Label>
+                    <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="900 000 000"
+                        required
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
                 </div>
                 <div className="space-y-2">

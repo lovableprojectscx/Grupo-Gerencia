@@ -7,6 +7,7 @@ export interface SiteSettings {
     site_name: string;
     site_description: string | null;
     contact_email: string | null;
+    contact_phone: string | null;
     payment_number: string | null;
     payment_qr_url: string | null;
     logo_url: string | null;

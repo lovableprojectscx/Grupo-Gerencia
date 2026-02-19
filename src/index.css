@@ -52,6 +52,7 @@
     --school-management: 271 65% 45%;
     --school-veterinary: 180 70% 40%;
     --school-agronomy: 120 40% 40%;
+    --school-environmental: 160 70% 35%;
 
     /* Destructive */
     --destructive: 0 84% 60%;
@@ -185,6 +186,11 @@
 
   .badge-management {
     background: hsl(var(--school-management));
+    color: white;
+  }
+
+  .badge-environmental {
+    background: hsl(var(--school-environmental));
     color: white;
   }
 

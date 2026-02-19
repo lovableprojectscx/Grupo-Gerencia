@@ -23,7 +23,8 @@ const navLinks = [
     href: "#",
     children: [
       { label: "Salud", href: "/catalogo?area=health" },
-      { label: "Ingeniería", href: "/catalogo?area=engineering" },
+      { label: "Ingeniería Civil", href: "/catalogo?area=engineering" },
+      { label: "Ingeniería Ambiental", href: "/catalogo?area=environmental" },
       { label: "Agronomía", href: "/catalogo?area=agronomy" },
       { label: "Veterinaria", href: "/catalogo?area=veterinary" },
       { label: "Gestión Pública y Empresarial", href: "/catalogo?area=management" },

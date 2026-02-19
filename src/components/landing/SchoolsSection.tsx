@@ -28,12 +28,22 @@ const schoolsConfig = [
   {
     id: "ingenieria",
     categoryKey: "engineering",
-    name: "Ingeniería",
+    name: "Ingeniería Civil",
     description: "Construcción, sistemas y tecnología aplicada",
     image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=800",
     color: "school-engineering",
     borderColor: "border-school-engineering/20",
     href: "/catalogo?area=engineering",
+  },
+  {
+    id: "ambiental",
+    categoryKey: "environmental",
+    name: "Ingeniería Ambiental",
+    description: "Gestión de residuos, impacto ambiental y tratamiento de aguas",
+    image: "https://images.unsplash.com/photo-1542601906-93a47f7d22c1?q=80&w=800&auto=format&fit=crop",
+    color: "school-environmental",
+    borderColor: "border-school-environmental/20",
+    href: "/catalogo?area=environmental",
   },
   {
     id: "agronomia",

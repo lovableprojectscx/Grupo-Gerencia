@@ -20,6 +20,7 @@ export default function AdminSettings() {
         site_name: "",
         site_description: "",
         contact_email: "",
+        contact_phone: "",
         payment_number: "",
         payment_qr_url: "",
         logo_url: ""
@@ -31,6 +32,7 @@ export default function AdminSettings() {
                 site_name: settings.site_name || "",
                 site_description: settings.site_description || "",
                 contact_email: settings.contact_email || "",
+                contact_phone: settings.contact_phone || "",
                 payment_number: settings.payment_number || "",
                 payment_qr_url: settings.payment_qr_url || "",
                 logo_url: settings.logo_url || ""
@@ -47,6 +49,7 @@ export default function AdminSettings() {
                     site_name: formData.site_name,
                     site_description: formData.site_description,
                     contact_email: formData.contact_email,
+                    contact_phone: formData.contact_phone,
                     payment_number: formData.payment_number,
                     payment_qr_url: formData.payment_qr_url
                 })
@@ -118,12 +121,16 @@ export default function AdminSettings() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Correo de Contacto</Label>
-                                    <Input
-                                        placeholder="contacto@miempresa.com"
-                                        value={formData.contact_email}
-                                        onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                                    />
+                                    <Label>Teléfono de Contacto</Label>
+                                    <div className="relative">
+                                        <Smartphone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            className="pl-9"
+                                            placeholder="+51 900 000 000"
+                                            value={formData.contact_phone}
+                                            onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-2">

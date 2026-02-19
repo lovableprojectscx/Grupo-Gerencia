@@ -168,7 +168,7 @@ const CursoDetalle = () => {
       <Navbar />
 
       {/* --- Premium Hero Section --- */}
-      <section className="relative pt-32 pb-20 overflow-hidden bg-slate-900">
+      <section className="relative pt-20 pb-10 lg:pt-32 lg:pb-20 overflow-hidden bg-slate-900">
         {/* Dynamic Background (Blurred) */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/90 to-slate-900/60 z-10" />
@@ -182,14 +182,14 @@ const CursoDetalle = () => {
         <div className="container-custom relative z-20">
           <div className="grid lg:grid-cols-3 gap-12 items-center">
             {/* Left Content */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-6 lg:space-y-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                {/* Breadcrumb */}
-                <div className="flex items-center gap-2 text-slate-300 text-sm mb-6 font-medium">
+                {/* Breadcrumb - Hidden on mobile */}
+                <div className="hidden sm:flex items-center gap-2 text-slate-300 text-sm mb-6 font-medium">
                   <Link to="/" className="hover:text-white transition-colors">Inicio</Link>
                   <span>/</span>
                   <Link to="/catalogo" className="hover:text-white transition-colors">Catálogo</Link>
@@ -197,84 +197,71 @@ const CursoDetalle = () => {
                   <span className="text-accent">{course.category || "General"}</span>
                 </div>
 
-                {/* Badges */}
-                <div className="flex flex-wrap gap-3 mb-6">
+                {/* Badges - Reduced margin on mobile */}
+                <div className="flex flex-wrap gap-2 mb-4 lg:mb-6">
                   {course.modality === 'live' && (
-                    <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 px-3 py-1 text-sm">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse mr-2" />
+                    <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 px-2 py-0.5 text-xs lg:text-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mr-2" />
                       En Vivo
                     </Badge>
                   )}
                   {course.modality !== 'live' && (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1 text-sm">
+                    <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20 px-2 py-0.5 text-xs lg:text-sm">
                       <MonitorPlay className="w-3 h-3 mr-2" />
                       100% Online
                     </Badge>
                   )}
-                  <Badge variant="outline" className="text-white border-white/20 bg-white/5 backdrop-blur-md px-3 py-1 text-sm">
+                  <Badge variant="outline" className="text-white border-white/20 bg-white/5 backdrop-blur-md px-2 py-0.5 text-xs lg:text-sm">
                     <Award className="w-3 h-3 mr-2" />
-                    Certificado Incluido
+                    Certificado
                   </Badge>
                 </div>
 
                 {/* Mobile Image - Premium & Glare Effect */}
-                <div className="block lg:hidden mb-8 relative group">
+                <div className="block lg:hidden mb-6 relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-accent via-purple-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000" />
-                  <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video">
+                  <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video">
                     <img
                       src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
                       alt={course.title}
                       className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-
-                    {/* Floating Mobile Badge */}
-                    <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-md text-white text-[10px] font-medium px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1">
-                      <Award className="w-3 h-3 text-accent" />
-                      <span>Certificado</span>
-                    </div>
                   </div>
                 </div>
 
-                {/* Title */}
-                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                {/* Title - Reduced on mobile */}
+                <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-6 lg:mb-8 leading-tight">
                   {course.title}
                 </h1>
 
-
-
-                {/* Subtitle */}
-                <p className="text-lg md:text-xl text-slate-300 mb-8 max-w-2xl leading-relaxed">
-                  {course.subtitle || course.description?.substring(0, 150) + "..."}
-                </p>
-
-                {/* Meta Info Bar */}
-                <div className="flex flex-wrap items-center gap-6 md:gap-10 pb-8 border-b border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-white/5 border border-white/10">
-                      <Users className="w-5 h-5 text-accent" />
+                {/* Meta Info Bar - More compact on mobile */}
+                <div className="flex flex-wrap items-center gap-4 lg:gap-10 pb-6 lg:pb-8 border-b border-white/10">
+                  <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="p-1.5 lg:p-2 rounded-full bg-white/5 border border-white/10">
+                      <Users className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
                     </div>
                     <div>
-                      <div className="text-white font-bold">{course.students || 0}</div>
-                      <div className="text-xs text-slate-400">Estudiantes</div>
+                      <div className="text-white font-bold text-sm lg:text-base">{course.students || 0}</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400">Estudiantes</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-white/5 border border-white/10">
-                      <Clock className="w-5 h-5 text-accent" />
+                  <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="p-1.5 lg:p-2 rounded-full bg-white/5 border border-white/10">
+                      <Clock className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
                     </div>
                     <div>
-                      <div className="text-white font-bold">{duration}</div>
-                      <div className="text-xs text-slate-400">Duración</div>
+                      <div className="text-white font-bold text-sm lg:text-base">{duration}</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400">Duración</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-white/5 border border-white/10">
-                      <Star className="w-5 h-5 text-gold fill-gold" />
+                  <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="p-1.5 lg:p-2 rounded-full bg-white/5 border border-white/10">
+                      <Star className="w-4 h-4 lg:w-5 lg:h-5 text-gold fill-gold" />
                     </div>
                     <div>
-                      <div className="text-white font-bold">4.9</div>
-                      <div className="text-xs text-slate-400">Valoración</div>
+                      <div className="text-white font-bold text-sm lg:text-base">4.9</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400">Valoración</div>
                     </div>
                   </div>
                 </div>
@@ -332,98 +319,8 @@ const CursoDetalle = () => {
       <section className="py-12 lg:py-16 -mt-12 relative z-30">
         <div className="container-custom">
           <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
-            {/* Content Column */}
-            <div className="lg:col-span-2 space-y-12">
-
-              {/* Description */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="bg-card rounded-2xl p-8 border border-border shadow-sm"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-lg bg-accent/10">
-                    <FileText className="w-6 h-6 text-accent" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-foreground">Descripción</h2>
-                </div>
-                <div className="prose prose-lg text-muted-foreground max-w-none whitespace-pre-line leading-relaxed">
-                  {course.description}
-                </div>
-              </motion.div>
-
-              {/* Syllabus */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="space-y-6"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-accent/10">
-                      <CheckCircle className="w-6 h-6 text-accent" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-foreground">Contenido del Curso</h2>
-                  </div>
-                  <span className="text-sm px-3 py-1 rounded-full bg-secondary text-muted-foreground font-medium">
-                    {course.modules?.length || 0} módulos
-                  </span>
-                </div>
-
-                <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-                  <Accordion type="multiple" className="w-full">
-                    {course.modules?.map((module: any, moduleIndex: number) => (
-                      <AccordionItem
-                        key={module.id}
-                        value={`module-${moduleIndex}`}
-                        className="px-6 border-b border-border/50 last:border-0 hover:bg-secondary/20 transition-colors"
-                      >
-                        <AccordionTrigger className="hover:no-underline py-5 group">
-                          <div className="flex items-center gap-4 text-left w-full">
-                            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground group-hover:bg-accent group-hover:text-white transition-colors">
-                              {moduleIndex + 1}
-                            </span>
-                            <div className="flex-1">
-                              <div className="font-semibold text-foreground group-hover:text-accent transition-colors">
-                                {module.title}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {module.lessons?.length || 0} clases
-                              </div>
-                            </div>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="pl-12 pb-5 space-y-2">
-                            {module.lessons?.map((lesson: any) => (
-                              <div
-                                key={lesson.id}
-                                className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-secondary/30 hover:bg-secondary/60 transition-colors group/lesson cursor-default"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="text-muted-foreground group-hover/lesson:text-accent transition-colors">
-                                    {getLessonIcon(lesson.type)}
-                                  </div>
-                                  <span className="text-foreground/90 text-sm font-medium">{lesson.title}</span>
-                                </div>
-                                {lesson.type === 'video' && <div className="p-1.5 rounded-full bg-background shadow-sm"><Play className="w-3 h-3 text-accent fill-accent" /></div>}
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                    {!course.modules?.length && <div className="p-8 text-center text-muted-foreground italic">El contenido se está actualizando.</div>}
-                  </Accordion>
-                </div>
-              </motion.div>
-            </div>
-
-
-            {/* Sticky Sidebar */}
-            <div className="lg:col-span-1">
+            {/* Sticky Sidebar (First in JSX for Mobile) */}
+            <div className="lg:col-span-1 lg:order-2">
               <div className="sticky top-24 space-y-6">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -528,6 +425,95 @@ const CursoDetalle = () => {
                   </ul>
                 </div>
               </div>
+            </div>
+
+            {/* Content Column (Second in JSX for Mobile) */}
+            <div className="lg:col-span-2 lg:order-1 space-y-12">
+
+              {/* Description */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-card rounded-2xl p-8 border border-border shadow-sm"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <FileText className="w-6 h-6 text-accent" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">Descripción</h2>
+                </div>
+                <div className="prose prose-lg text-muted-foreground max-w-none whitespace-pre-line leading-relaxed">
+                  {course.description}
+                </div>
+              </motion.div>
+
+              {/* Syllabus */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-accent/10">
+                      <CheckCircle className="w-6 h-6 text-accent" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-foreground">Contenido del Curso</h2>
+                  </div>
+                  <span className="text-sm px-3 py-1 rounded-full bg-secondary text-muted-foreground font-medium">
+                    {course.modules?.length || 0} módulos
+                  </span>
+                </div>
+
+                <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+                  <Accordion type="multiple" className="w-full">
+                    {course.modules?.map((module: any, moduleIndex: number) => (
+                      <AccordionItem
+                        key={module.id}
+                        value={`module-${moduleIndex}`}
+                        className="px-6 border-b border-border/50 last:border-0 hover:bg-secondary/20 transition-colors"
+                      >
+                        <AccordionTrigger className="hover:no-underline py-5 group">
+                          <div className="flex items-center gap-4 text-left w-full">
+                            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground group-hover:bg-accent group-hover:text-white transition-colors">
+                              {moduleIndex + 1}
+                            </span>
+                            <div className="flex-1">
+                              <div className="font-semibold text-foreground group-hover:text-accent transition-colors">
+                                {module.title}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {module.lessons?.length || 0} clases
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pl-12 pb-5 space-y-2">
+                            {module.lessons?.map((lesson: any) => (
+                              <div
+                                key={lesson.id}
+                                className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-secondary/30 hover:bg-secondary/60 transition-colors group/lesson cursor-default"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="text-muted-foreground group-hover/lesson:text-accent transition-colors">
+                                    {getLessonIcon(lesson.type)}
+                                  </div>
+                                  <span className="text-foreground/90 text-sm font-medium">{lesson.title}</span>
+                                </div>
+                                {lesson.type === 'video' && <div className="p-1.5 rounded-full bg-background shadow-sm"><Play className="w-3 h-3 text-accent fill-accent" /></div>}
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                    {!course.modules?.length && <div className="p-8 text-center text-muted-foreground italic">El contenido se está actualizando.</div>}
+                  </Accordion>
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>

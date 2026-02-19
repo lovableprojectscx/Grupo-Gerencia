@@ -97,7 +97,8 @@ const FAQContent = () => (
 const footerLinks = {
   escuelas: [
     { label: "Salud", href: "/catalogo?area=health", type: "link" },
-    { label: "Escuela de Ingeniería", href: "/catalogo?area=engineering", type: "link" },
+    { label: "Ingeniería Civil", href: "/catalogo?area=engineering", type: "link" },
+    { label: "Ingeniería Ambiental", href: "/catalogo?area=environmental", type: "link" },
     { label: "Escuela de Agronomía", href: "/catalogo?area=agronomy", type: "link" },
     { label: "Gestión Pública y Empresarial", href: "/catalogo?area=management", type: "link" },
   ],
@@ -176,9 +177,9 @@ export const Footer = () => {
                 <Mail className="w-4 h-4" />
                 {settings?.contact_email || "info@gerenciaglobal.edu.pe"}
               </a>
-              <a href={`tel:${settings?.payment_number || "+51972787508"}`} className="flex items-center gap-3 text-white/70 hover:text-accent transition-colors">
+              <a href={`tel:${settings?.contact_phone || settings?.payment_number || "+51972787508"}`} className="flex items-center gap-3 text-white/70 hover:text-accent transition-colors">
                 <Phone className="w-4 h-4" />
-                {settings?.payment_number || "+51 972 787 508"}
+                {settings?.contact_phone || settings?.payment_number || "+51 972 787 508"}
               </a>
               <div className="flex items-center gap-3 text-white/70">
                 <MapPin className="w-4 h-4" />

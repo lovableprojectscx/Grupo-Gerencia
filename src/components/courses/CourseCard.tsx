@@ -24,6 +24,7 @@ interface CourseCardProps {
 const categoryColors: Record<string, string> = {
   health: "badge-health",
   engineering: "badge-engineering",
+  environmental: "badge-environmental",
   agronomy: "badge-agronomy",
   management: "badge-management",
   law: "badge-law",
