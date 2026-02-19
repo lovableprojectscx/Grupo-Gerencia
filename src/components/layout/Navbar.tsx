@@ -17,18 +17,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const areas = [
+  { id: "health", label: "Salud" },
+  { id: "veterinary", label: "Veterinaria" },
+  { id: "engineering", label: "Ingeniería Civil" },
+  { id: "environmental", label: "Ingeniería Ambiental" },
+  { id: "agronomy", label: "Agronomía" },
+  { id: "management", label: "Gestión Pública y Empresarial" },
+];
+// Force sync categories: 2026-02-19 15:40
+
 const navLinks = [
   {
     label: "Escuelas",
     href: "#",
-    children: [
-      { label: "Salud", href: "/catalogo?area=health" },
-      { label: "Ingeniería Civil", href: "/catalogo?area=engineering" },
-      { label: "Ingeniería Ambiental", href: "/catalogo?area=environmental" },
-      { label: "Agronomía", href: "/catalogo?area=agronomy" },
-      { label: "Veterinaria", href: "/catalogo?area=veterinary" },
-      { label: "Gestión Pública y Empresarial", href: "/catalogo?area=management" },
-    ],
+    children: areas.map(area => ({
+      label: area.label,
+      href: `/catalogo?area=${area.id}`
+    })),
+    // Force refresh: 2026-02-19 15:40
   },
   { label: "Catálogo", href: "/catalogo" },
   { label: "Nosotros", href: "/nosotros" },

@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 
+// Force sync schools: 2026-02-19 15:40
+
 const schoolsConfig = [
   {
     id: "salud",

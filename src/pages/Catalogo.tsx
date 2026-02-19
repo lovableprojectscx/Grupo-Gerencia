@@ -43,6 +43,7 @@ const areas = [
   { id: "agronomy", label: "Agronomía" },
   { id: "management", label: "Gestión Pública y Empresarial" },
 ];
+// Force sync categories: 2026-02-19 15:40
 
 const modalities = [
   { id: "live", label: "En Vivo" },
