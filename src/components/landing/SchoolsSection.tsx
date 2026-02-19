@@ -42,7 +42,7 @@ const schoolsConfig = [
     categoryKey: "environmental",
     name: "Ingeniería Ambiental",
     description: "Gestión de residuos, impacto ambiental y tratamiento de aguas",
-    image: "https://images.unsplash.com/photo-1542601906-93a47f7d22c1?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?q=80&w=800&auto=format&fit=crop",
     color: "school-environmental",
     borderColor: "border-school-environmental/20",
     href: "/catalogo?area=environmental",
