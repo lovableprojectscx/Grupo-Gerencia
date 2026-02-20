@@ -20,7 +20,9 @@ Para garantizar que el precio y el llamado a la acción (CTA) se vean irrechazab
 
 Para evitar la redundancia y facilitar el cierre de compra en celulares:
 - **Mobile Sticky CTA:** Se añadió una barra oscura estática fijada a la parte inferior de la pantalla. Siempre está visible.
-- **Elementos de la Barra:** Muestra de forma concisa la palabra "Oferta", el precio rebajado, el **botón rojo de inscripción**, y un botón de **Favoritos** al alcance del pulgar.
+- **Botones de Conversión Rápida:** Además del precio y el botón rojo, la barra incorpora dos botones secundarios "Ghost": 
+    - **Favoritos (Corazón):** Para guardar el curso para después.
+    - **Compartir (Share/Share2):** Imprime un menú nativo (usando la API Web Share `navigator.share` del dispositivo móvil como iOS/Android) lo cual permite enviarlo a WhatsApp, Instagram, Mensajes u otro en un toque de manera 100% nativa. Ante falta de soporte, copia el link al portapapeles informando con un Toast (`sonner`). 
 - **Eliminación de Redundancia:** El recuadro fijo del "Sticky Sidebar" que duplicaba información visible se ocultó completamente en vistas móviles (`hidden lg:block`), limpiando la pantalla para que el usuario pueda leer la descripción del curso sin distracciones.
 
 ## 4. Temario y Acordeones
