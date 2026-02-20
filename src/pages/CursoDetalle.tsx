@@ -23,7 +23,8 @@ import {
   Globe,
   MonitorPlay,
   ArrowRight,
-  Zap
+  Zap,
+  BookOpen
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -159,16 +160,24 @@ const CursoDetalle = () => {
     <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
       <Navbar />
 
-      {/* --- Premium Hero Section --- */}
-      <section className="relative pt-20 pb-10 lg:pt-32 lg:pb-20 overflow-hidden bg-slate-900">
-        {/* Dynamic Background (Blurred) */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/90 to-slate-900/60 z-10" />
+      {/* --- Ultra-Premium Hero Section --- */}
+      <section className="relative pt-24 pb-20 lg:pt-36 lg:pb-32 overflow-hidden bg-[#0A0F1C]">
+        {/* Modern Mesh Gradient Background */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute inset-0 bg-[#0A0F1C] z-0" />
+          {/* Animated Glow Orbs */}
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] bg-accent/20 rounded-full blur-[100px] mix-blend-screen" />
+
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0A0F1C]/80 to-[#0A0F1C] z-10" />
           <img
             src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
             alt="Background"
-            className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
+            className="w-full h-full object-cover blur-3xl opacity-20 scale-125 saturate-150"
           />
+          {/* Overlay grid pattern for texture */}
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay z-10" />
         </div>
 
         <div className="container-custom relative z-20">
@@ -189,23 +198,23 @@ const CursoDetalle = () => {
                   <span className="text-accent">{course.category || "General"}</span>
                 </div>
 
-                {/* Badges - Reduced margin on mobile */}
-                <div className="flex flex-wrap gap-2 mb-4 lg:mb-6">
+                {/* Badges - Glassmorphism */}
+                <div className="flex flex-wrap gap-3 mb-4 lg:mb-8">
                   {course.modality === 'live' && (
-                    <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 px-2 py-0.5 text-xs lg:text-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mr-2" />
+                    <Badge className="bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-xl px-3 py-1 text-xs lg:text-sm shadow-xl font-medium">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse mr-2 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                       En Vivo
                     </Badge>
                   )}
                   {course.modality !== 'live' && (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20 px-2 py-0.5 text-xs lg:text-sm">
-                      <MonitorPlay className="w-3 h-3 mr-2" />
+                    <Badge className="bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-xl px-3 py-1 text-xs lg:text-sm shadow-xl font-medium">
+                      <MonitorPlay className="w-3.5 h-3.5 mr-2 text-emerald-400" />
                       100% Online
                     </Badge>
                   )}
-                  <Badge variant="outline" className="text-white border-white/20 bg-white/5 backdrop-blur-md px-2 py-0.5 text-xs lg:text-sm">
-                    <Award className="w-3 h-3 mr-2" />
-                    Certificado
+                  <Badge className="bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-xl px-3 py-1 text-xs lg:text-sm shadow-xl font-medium">
+                    <Award className="w-3.5 h-3.5 mr-2 text-gold" />
+                    Certificado Incluido
                   </Badge>
                 </div>
 
@@ -222,38 +231,40 @@ const CursoDetalle = () => {
                   </div>
                 </div>
 
-                {/* Title - Reduced on mobile */}
-                <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-6 lg:mb-8 leading-tight">
+                {/* Title - Premium Layout */}
+                <h1 className="text-3xl md:text-5xl lg:text-[4rem] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70 tracking-tight leading-[1.1] mb-8 lg:mb-10">
                   {course.title}
                 </h1>
 
-                {/* Meta Info Bar - More compact on mobile */}
-                <div className="flex flex-wrap items-center gap-4 lg:gap-10 pb-6 lg:pb-8 border-b border-white/10">
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    <div className="p-1.5 lg:p-2 rounded-full bg-white/5 border border-white/10">
-                      <Users className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
+                {/* Modern Glassy Stats */}
+                <div className="flex flex-wrap items-center gap-3 lg:gap-5 pb-6 lg:pb-8 border-b border-white/10">
+                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 lg:p-3 shadow-xl hover:bg-white/10 transition-colors cursor-default">
+                    <div className="p-2 rounded-xl bg-accent/20 border border-accent/20 shadow-[0_0_15px_rgba(var(--accent),0.3)]">
+                      <Users className="w-4 h-4 text-accent" />
                     </div>
-                    <div>
-                      <div className="text-white font-bold text-sm lg:text-base">{displayStudents}</div>
-                      <div className="text-[10px] lg:text-xs text-slate-400">Estudiantes</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    <div className="p-1.5 lg:p-2 rounded-full bg-white/5 border border-white/10">
-                      <Clock className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
-                    </div>
-                    <div>
-                      <div className="text-white font-bold text-sm lg:text-base">{duration}</div>
-                      <div className="text-[10px] lg:text-xs text-slate-400">Duración</div>
+                    <div className="pr-2">
+                      <div className="text-white font-bold text-sm leading-tight">{displayStudents}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Alumnos</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    <div className="p-1.5 lg:p-2 rounded-full bg-white/5 border border-white/10">
-                      <Star className="w-4 h-4 lg:w-5 lg:h-5 text-gold fill-gold" />
+
+                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 lg:p-3 shadow-xl hover:bg-white/10 transition-colors cursor-default">
+                    <div className="p-2 rounded-xl bg-purple-500/20 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                      <Clock className="w-4 h-4 text-purple-400" />
                     </div>
-                    <div>
-                      <div className="text-white font-bold text-sm lg:text-base">4.9</div>
-                      <div className="text-[10px] lg:text-xs text-slate-400">Valoración</div>
+                    <div className="pr-2">
+                      <div className="text-white font-bold text-sm leading-tight">{duration}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Duración</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 lg:p-3 shadow-xl hover:bg-white/10 transition-colors cursor-default">
+                    <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    </div>
+                    <div className="pr-2">
+                      <div className="text-white font-bold text-sm leading-tight">4.9 / 5.0</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Valoración</div>
                     </div>
                   </div>
                 </div>
@@ -274,31 +285,41 @@ const CursoDetalle = () => {
               </motion.div>
             </div>
 
-            {/* Right Column (Course Image) */}
-            <div className="hidden lg:block relative perspective-1000">
+            {/* Right Column (Course Image) - 3D Tilt Effect */}
+            <div className="hidden lg:block relative perspective-1000 group/image">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, rotateY: -10 }}
-                animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.8, type: "spring" }}
-                className="relative z-10 transform-gpu"
+                className="relative z-10 transform-gpu transition-all duration-500 group-hover/image:rotate-y-[2deg] group-hover/image:rotate-x-[-2deg] group-hover/image:scale-[1.02]"
+                style={{ transformStyle: 'preserve-3d' }}
               >
                 {/* Glow alignment */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-accent to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
+                <div className="absolute -inset-4 bg-gradient-to-tr from-accent via-purple-600 to-blue-500 rounded-[2rem] blur-2xl opacity-40 group-hover/image:opacity-70 transition duration-700 animate-pulse-slow" />
 
-                <img
-                  src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
-                  alt={course.title}
-                  className="relative w-full aspect-video object-cover rounded-2xl shadow-2xl border border-white/10"
-                />
-
-                {/* Floating Badge on Image */}
-                <div className="absolute -bottom-6 -right-6 bg-card/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-float delay-700">
-                  <div className="bg-accent/20 p-2 rounded-full">
-                    <Award className="w-6 h-6 text-accent" />
+                {/* Glass Border Container */}
+                <div className="relative rounded-2xl p-2.5 bg-white/5 backdrop-blur-sm border border-white/10 shadow-2xl">
+                  <div className="relative rounded-xl overflow-hidden border border-white/10 ring-1 ring-black/20 shadow-inner">
+                    <img
+                      src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
+                      alt={course.title}
+                      className="relative w-full aspect-video object-cover transform transition-transform duration-1000 group-hover/image:scale-105"
+                    />
+                    {/* Inner shadow overlay for depth */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                   </div>
-                  <div>
-                    <div className="text-white font-bold text-sm">Certificado Verificado</div>
-                    <div className="text-white/60 text-xs">Incluido con tu matrícula</div>
+                </div>
+
+                {/* Floating Badge on Image - Enhanced */}
+                <div
+                  className="absolute -bottom-8 -right-8 bg-[#0A0F1C]/80 backdrop-blur-2xl border border-white/10 p-4.5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] flex items-center gap-4 animate-float transform-gpu transition-transform group-hover/image:translate-x-2 group-hover/image:-translate-y-2"
+                >
+                  <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-3 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                    <Award className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="pr-4">
+                    <div className="text-white font-extrabold text-sm tracking-wide">Certificación<br />Verificada</div>
+                    <div className="text-emerald-400 text-xs font-medium uppercase tracking-wider mt-0.5">Incluida</div>
                   </div>
                 </div>
               </motion.div>
@@ -307,13 +328,17 @@ const CursoDetalle = () => {
         </div>
       </section>
 
-      {/* Main Content & Sticky Sidebar */}
-      <section className="py-12 lg:py-16 -mt-12 relative z-30">
+      {/* Main Content & Sticky Sidebar - Overlapping Layout */}
+      <section className="relative z-30 pb-20">
+        {/* Decorative Transition Background */}
+        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-[#0A0F1C] to-transparent pointer-events-none" />
+
         <div className="container-custom">
-          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 -mt-10 lg:-mt-24 relative z-40">
+
             {/* Sticky Sidebar (First in JSX for Mobile) */}
             <div className="lg:col-span-1 lg:order-2">
-              <div className="sticky top-24 space-y-6">
+              <div className="sticky top-28 space-y-6">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -323,25 +348,26 @@ const CursoDetalle = () => {
                   {/* Top Highlight Strip */}
                   <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accent via-purple-500 to-accent" />
 
-                  <div className="mb-6">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold uppercase tracking-wider mb-3">
-                      <Zap className="w-3.5 h-3.5 fill-current" />
+                  <div className="mb-8">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest mb-4 ring-1 ring-red-500/20">
+                      <Zap className="w-3.5 h-3.5 fill-current animate-pulse" />
                       Oferta Limitada
-                    </span>
-                    <div className="flex items-end gap-3 mb-2">
-                      <span className="text-5xl font-bold text-foreground tracking-tight">
+                    </div>
+                    <div className="flex items-baseline gap-3 mb-1">
+                      <span className="text-5xl md:text-6xl font-extrabold text-foreground tracking-tighter">
                         S/{course.price}
                       </span>
                       {course.original_price && (
-                        <span className="text-xl text-muted-foreground line-through mb-1.5">
+                        <span className="text-2xl text-muted-foreground/60 line-through decoration-2 decoration-red-500/30">
                           S/{course.original_price}
                         </span>
                       )}
                     </div>
                     {course.original_price && (
-                      <p className="text-sm text-green-600 font-medium">
-                        ¡Ahorras S/{course.original_price - course.price} hoy!
-                      </p>
+                      <div className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-md mt-2">
+                        <Check className="w-4 h-4" />
+                        Ahorras S/{course.original_price - course.price} hoy
+                      </div>
                     )}
                   </div>
 
@@ -362,9 +388,8 @@ const CursoDetalle = () => {
                       )
                     ) : (
                       <Button
-                        variant="hero"
                         size="xl"
-                        className="w-full h-14 text-lg font-bold shadow-lg shadow-accent/25 hover:shadow-accent/40 hover:scale-[1.02] transition-all"
+                        className="w-full h-14 text-lg font-extrabold shadow-[0_0_40px_rgba(var(--accent-rgb),0.3)] hover:shadow-[0_0_60px_rgba(var(--accent-rgb),0.5)] bg-gradient-to-r from-accent via-[#6d4aff] to-accent bg-[length:200%_auto] animate-[gradient_3s_linear_infinite] hover:scale-[1.02] transition-all text-white border-0"
                         onClick={handleEnrollClick}
                       >
                         <Sparkles className="w-5 h-5 mr-2 animate-pulse" />
@@ -392,27 +417,35 @@ const CursoDetalle = () => {
                 </motion.div>
 
                 {/* Includes Card */}
-                <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border">
-                  <h4 className="font-bold text-foreground mb-4 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-accent" />
-                    Tu inscripción incluye
+                <div className="bg-card/40 backdrop-blur-md rounded-2xl p-6 border border-border mt-6">
+                  <h4 className="font-bold text-foreground mb-5 flex items-center gap-2 text-lg">
+                    <Sparkles className="w-5 h-5 text-accent" />
+                    Tu inversión incluye:
                   </h4>
-                  <ul className="space-y-3 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                      <Check className="w-4 h-4 text-green-500 mt-0.5" />
-                      <span>Acceso ilimitado al contenido</span>
+                  <ul className="space-y-4 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-3 group">
+                      <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                        <Check className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="leading-tight pt-1">Acceso <strong className="text-foreground font-semibold">ilimitado e inmediato</strong> al contenido</span>
                     </li>
-                    <li className="flex items-start gap-3">
-                      <Check className="w-4 h-4 text-green-500 mt-0.5" />
-                      <span>Certificado digital verificado</span>
+                    <li className="flex items-start gap-3 group">
+                      <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                        <Check className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="leading-tight pt-1"><strong className="text-foreground font-semibold">Certificado verificado</strong> con código QR único</span>
                     </li>
-                    <li className="flex items-start gap-3">
-                      <Check className="w-4 h-4 text-green-500 mt-0.5" />
-                      <span>Recursos descargables (PDFs)</span>
+                    <li className="flex items-start gap-3 group">
+                      <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                        <Check className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="leading-tight pt-1">Recursos, plantillas y <strong className="text-foreground font-semibold">material descargable</strong></span>
                     </li>
-                    <li className="flex items-start gap-3">
-                      <Check className="w-4 h-4 text-green-500 mt-0.5" />
-                      <span>Soporte directo del instructor</span>
+                    <li className="flex items-start gap-3 group">
+                      <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                        <Check className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="leading-tight pt-1">Soporte y <strong className="text-foreground font-semibold">resolución de dudas</strong> continuo</span>
                     </li>
                   </ul>
                 </div>
@@ -459,50 +492,50 @@ const CursoDetalle = () => {
                   </span>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-                  <Accordion type="multiple" className="w-full">
+                <div className="w-full space-y-4">
+                  <Accordion type="multiple" className="w-full space-y-4">
                     {course.modules?.map((module: any, moduleIndex: number) => (
                       <AccordionItem
                         key={module.id}
                         value={`module-${moduleIndex}`}
-                        className="px-6 border-b border-border/50 last:border-0 hover:bg-secondary/20 transition-colors"
+                        className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-accent/30 transition-all px-2 md:px-4"
                       >
-                        <AccordionTrigger className="hover:no-underline py-5 group">
+                        <AccordionTrigger className="hover:no-underline py-5 group px-4">
                           <div className="flex items-center gap-4 text-left w-full">
-                            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground group-hover:bg-accent group-hover:text-white transition-colors">
+                            <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-sm font-black text-muted-foreground group-hover:bg-accent group-hover:text-white group-hover:scale-110 transition-all shadow-inner">
                               {moduleIndex + 1}
                             </span>
                             <div className="flex-1">
-                              <div className="font-semibold text-foreground group-hover:text-accent transition-colors">
+                              <div className="font-bold text-lg text-foreground group-hover:text-accent transition-colors leading-tight">
                                 {module.title}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {module.lessons?.length || 0} clases
+                              <div className="text-xs text-muted-foreground mt-1.5 font-medium flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5" /> {module.lessons?.length || 0} clases incluidas
                               </div>
                             </div>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent>
-                          <div className="pl-12 pb-5 space-y-2">
+                          <div className="pl-[4.5rem] pr-4 pb-6 space-y-2.5">
                             {module.lessons?.map((lesson: any) => (
                               <div
                                 key={lesson.id}
-                                className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-secondary/30 hover:bg-secondary/60 transition-colors group/lesson cursor-default"
+                                className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary/20 hover:bg-secondary/60 border border-transparent hover:border-border/50 transition-all group/lesson cursor-default"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="text-muted-foreground group-hover/lesson:text-accent transition-colors">
+                                  <div className="text-muted-foreground/60 group-hover/lesson:text-accent group-hover/lesson:scale-110 transition-all">
                                     {getLessonIcon(lesson.type)}
                                   </div>
                                   <span className="text-foreground/90 text-sm font-medium">{lesson.title}</span>
                                 </div>
-                                {lesson.type === 'video' && <div className="p-1.5 rounded-full bg-background shadow-sm"><Play className="w-3 h-3 text-accent fill-accent" /></div>}
+                                {lesson.type === 'video' && <div className="p-1.5 rounded-full bg-background shadow-sm border border-border/50"><Play className="w-3 h-3 text-accent fill-accent" /></div>}
                               </div>
                             ))}
                           </div>
                         </AccordionContent>
                       </AccordionItem>
                     ))}
-                    {!course.modules?.length && <div className="p-8 text-center text-muted-foreground italic">El contenido se está actualizando.</div>}
+                    {!course.modules?.length && <div className="p-10 text-center text-muted-foreground italic bg-card rounded-2xl border border-dashed">El contenido metodológico se está actualizando para brindarte la mejor experiencia.</div>}
                   </Accordion>
                 </div>
               </motion.div>
