@@ -581,7 +581,64 @@ const CursoDetalle = () => {
         )
       }
 
-      <Footer />
+      {/* Mobile Sticky CTA */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-[#0A0F1C]/95 backdrop-blur-2xl border-t border-white/10 shadow-[0_-20px_40px_rgba(0,0,0,0.5)] pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col flex-shrink-0">
+            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+              <Zap className="w-3 h-3 fill-current" /> Oferta
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black text-white">S/{course.price}</span>
+              {course.original_price && (
+                <span className="text-xs text-white/40 line-through">S/{course.original_price}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 flex gap-2 items-center justify-end">
+            <Button
+              variant="outline"
+              size="icon"
+              className={`h-11 w-11 flex-shrink-0 rounded-xl border-white/10 ${isFavorite ? "text-red-400 border-red-500/30 bg-red-500/10" : "text-white/70 bg-white/5"} hover:bg-white/10 transition-colors`}
+              onClick={handleToggleFavorite}
+              disabled={isTogglingFavorite}
+            >
+              <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+            </Button>
+
+            <div className="w-full max-w-[160px]">
+              {enrollment ? (
+                enrollment.status === 'active' ? (
+                  <Button variant="default" className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 rounded-xl" onClick={() => navigate(`/classroom/${id}`)}>
+                    <Play className="w-4 h-4 mr-2 text-white" /> Aula
+                  </Button>
+                ) : enrollment.status === 'rejected' ? (
+                  <div className="bg-destructive/10 text-destructive h-11 flex items-center justify-center rounded-xl text-sm font-bold">
+                    Rechazada
+                  </div>
+                ) : (
+                  <Button variant="outline" className="w-full h-11 cursor-default border-yellow-500 text-yellow-600 bg-yellow-50 rounded-xl font-bold">
+                    <Clock className="w-4 h-4 mr-2" /> Pendiente
+                  </Button>
+                )
+              ) : (
+                <Button
+                  className="w-full h-11 text-[15px] font-extrabold shadow-[0_0_20px_rgba(var(--accent-rgb),0.5)] bg-gradient-to-r from-accent to-[#6d4aff] text-white border-0 hover:scale-[1.02] transition-all rounded-xl"
+                  onClick={handleEnrollClick}
+                >
+                  <Sparkles className="w-4 h-4 mr-1.5 animate-pulse" />
+                  Inscribirse
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="pb-24 lg:pb-0">
+        <Footer />
+      </div>
     </div>
   );
 };
