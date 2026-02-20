@@ -343,7 +343,7 @@ const CursoDetalle = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="bg-card rounded-3xl p-6 shadow-xl shadow-slate-900/5 border border-border relative overflow-hidden"
+                  className="hidden lg:block bg-card rounded-3xl p-6 shadow-xl shadow-slate-900/5 border border-border relative overflow-hidden"
                 >
                   {/* Top Highlight Strip */}
                   <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accent via-purple-500 to-accent" />
