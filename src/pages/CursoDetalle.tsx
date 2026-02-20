@@ -461,7 +461,7 @@ const CursoDetalle = () => {
                       <Button
                         variant="outline"
                         size="lg"
-                        className={`flex-1 h-12 font-medium border-border hover:bg-secondary/50 ${isFavorite ? "text-red-500 hover:text-red-600 border-red-200 bg-red-50" : "text-muted-foreground"}`}
+                        className={`flex-1 h-12 font-medium border-border hover:bg-secondary/80 hover:text-foreground transition-colors ${isFavorite ? "text-red-500 hover:text-red-600 border-red-200 bg-red-50" : "text-muted-foreground"}`}
                         onClick={handleToggleFavorite}
                         disabled={isTogglingFavorite}
                       >
@@ -474,7 +474,7 @@ const CursoDetalle = () => {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-12 h-12 flex-shrink-0 border-border hover:bg-secondary/50 text-muted-foreground"
+                            className="w-12 h-12 flex-shrink-0 border-border hover:bg-secondary/80 hover:text-foreground text-muted-foreground transition-colors"
                             title="Compartir curso"
                           >
                             <Share2 className="w-5 h-5" />
