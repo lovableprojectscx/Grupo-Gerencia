@@ -581,52 +581,7 @@ const CursoDetalle = () => {
         )
       }
 
-      {/* Mobile Sticky CTA */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-[#0A0F1C]/95 backdrop-blur-2xl border-t border-white/10 shadow-[0_-20px_40px_rgba(0,0,0,0.5)] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-              <Zap className="w-3 h-3 fill-current" /> Oferta
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">S/{course.price}</span>
-              {course.original_price && (
-                <span className="text-xs text-white/40 line-through">S/{course.original_price}</span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex-1">
-            {enrollment ? (
-              enrollment.status === 'active' ? (
-                <Button variant="default" className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20" onClick={() => navigate(`/classroom/${id}`)}>
-                  <Play className="w-4 h-4 mr-2" /> Aula Virtual
-                </Button>
-              ) : enrollment.status === 'rejected' ? (
-                <div className="bg-destructive/10 text-destructive p-2 rounded-lg text-center text-sm font-medium">
-                  Rechazada
-                </div>
-              ) : (
-                <Button variant="outline" className="w-full h-12 cursor-default border-yellow-500 text-yellow-600 bg-yellow-50 hover:bg-yellow-50 font-bold">
-                  <Clock className="w-4 h-4 mr-2" /> Pendiente
-                </Button>
-              )
-            ) : (
-              <Button
-                className="w-full h-12 text-base font-extrabold shadow-[0_0_20px_rgba(var(--accent-rgb),0.5)] bg-gradient-to-r from-accent to-[#6d4aff] text-white border-0 hover:scale-[1.02] transition-all"
-                onClick={handleEnrollClick}
-              >
-                <Sparkles className="w-4 h-4 mr-1.5 animate-pulse" />
-                Inscribirse
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="pb-24 lg:pb-0">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 };
