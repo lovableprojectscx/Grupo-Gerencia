@@ -135,19 +135,11 @@ export default function CertificateViewer() {
         queryKey: ["certificate", id],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from("certificates")
-                .select(`
-                    *,
-                    enrollment:enrollments(
-                        student:profiles(full_name, dni),
-                        course:courses(title, certificate_template, metadata)
-                    )
-                `)
-                .eq("id", id)
-                .maybeSingle();
+                .rpc('get_certificate_details', { cert_id: id });
 
             if (error) throw error;
-            if (error) throw error;
+            if (!data) throw new Error("Certificate not found");
+
             // Ensure fields have boxWidth defaults if missing (migration on read)
             if (data.enrollment?.course?.certificate_template?.fields) {
                 data.enrollment.course.certificate_template.fields = data.enrollment.course.certificate_template.fields.map((f: any) => ({

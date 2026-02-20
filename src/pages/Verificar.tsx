@@ -29,25 +29,9 @@ const Verificar = () => {
 
     try {
       const code = searchCode.trim();
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code);
-
-      let query = supabase
-        .from("certificates")
-        .select(`
-                *,
-                enrollment:enrollments(
-                    student:profiles(full_name, dni),
-                    course:courses(title, metadata)
-                )
-            `);
-
-      if (isUUID) {
-        query = query.eq("id", code);
-      } else {
-        query = query.or(`code.eq.${code},metadata->>student_dni.eq.${code}`);
-      }
-
-      const { data, error } = await query.order('issued_at', { ascending: false });
+      const { data, error } = await supabase.rpc('verify_certificate_search', {
+        search_code: code
+      });
 
       if (error || !data || data.length === 0) {
         setSearchResult({ searched: true, certificates: [], error: true });
@@ -55,12 +39,12 @@ const Verificar = () => {
         // Transform data
         const certificates = data.map((d: any) => ({
           valid: true,
-          studentName: d.enrollment.student.full_name,
-          courseTitle: d.enrollment.course.title,
+          studentName: d.student_name,
+          courseTitle: d.course_title,
           issueDate: new Date(d.issued_at).toLocaleDateString("es-ES", { day: 'numeric', month: 'long', year: 'numeric' }),
-          hours: d.enrollment.course.metadata?.find((m: any) => m.key.toLowerCase().includes("horas"))?.value || "N/A",
-          credentialId: d.id,
-          grade: "Aprobado"
+          hours: d.hours,
+          credentialId: d.credential_id,
+          grade: d.grade
         }));
         setSearchResult({ searched: true, certificates, error: false });
       }
