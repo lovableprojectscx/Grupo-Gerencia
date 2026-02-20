@@ -20,9 +20,9 @@ Para garantizar que el precio y el llamado a la acción (CTA) se vean irrechazab
 
 Para evitar la redundancia y facilitar el cierre de compra en celulares:
 - **Mobile Sticky CTA:** Se añadió una barra oscura estática fijada a la parte inferior de la pantalla. Siempre está visible.
-- **Botones de Conversión Rápida:** Además del precio y el botón rojo, la barra incorpora dos botones secundarios "Ghost": 
+- **Botones de Conversión Rápida:** Además del precio y el botón rojo, la barra (y la tarjeta de Desktop) incorpora dos botones secundarios "Ghost": 
     - **Favoritos (Corazón):** Para guardar el curso para después.
-    - **Compartir (Share/Share2):** Imprime un menú nativo (usando la API Web Share `navigator.share` del dispositivo móvil como iOS/Android) lo cual permite enviarlo a WhatsApp, Instagram, Mensajes u otro en un toque de manera 100% nativa. Ante falta de soporte, copia el link al portapapeles informando con un Toast (`sonner`). 
+    - **Compartir (Share2 - DropdownMenu Pop-up):** Abre un menú desplegable interactivo y elegante (construido con `shadcn/ui DropdownMenu`) que ofrece opciones directas e iconos reconocibles para compartir por **WhatsApp, Facebook Messenger, y Twitter**. También mantiene la opción nativa (`navigator.share`) para celulares y un botón explícito de "Copiar Enlace".
 - **Eliminación de Redundancia:** El recuadro fijo del "Sticky Sidebar" que duplicaba información visible se ocultó completamente en vistas móviles (`hidden lg:block`), limpiando la pantalla para que el usuario pueda leer la descripción del curso sin distracciones.
 
 ## 4. Temario y Acordeones
