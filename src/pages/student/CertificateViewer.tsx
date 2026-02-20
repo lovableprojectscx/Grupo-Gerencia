@@ -41,7 +41,8 @@ const SmartText = ({
     color,
     fontFamily,
     boxWidthPercent,
-    boxHeightPercent
+    boxHeightPercent,
+    fieldId
 }: any) => {
     const textRef = useRef<HTMLDivElement>(null);
     const [currentFontSize, setCurrentFontSize] = useState(fontSize);
@@ -62,12 +63,18 @@ const SmartText = ({
         const boxW_px = (boxWidthPercent / 100) * container.clientWidth;
         const boxH_px = (boxHeightPercent / 100) * container.clientHeight;
 
+        const isMultiLine = fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"));
+
         const checkFit = () => {
-            // We use a small tolerance or exact check
-            // IMPORTANT: We must ensure currentFontSize shrinks if overflow occurs
-            // CHANGED: Minimum legibility size increased from 6px to 20px based on user feedback
-            if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 20) {
-                setCurrentFontSize(prev => Math.max(20, prev * 0.90));
+            if (isMultiLine) {
+                if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 20) {
+                    setCurrentFontSize(prev => Math.max(20, prev * 0.90));
+                }
+            } else {
+                // Strict single line shrink to fit width
+                if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 8) {
+                    setCurrentFontSize(prev => Math.max(8, prev * 0.95));
+                }
             }
         };
 
@@ -104,10 +111,9 @@ const SmartText = ({
                 fontWeight: "bold",
                 lineHeight: 1.15, // Professional tight line height for multi-line
 
-                // UPDATED: User feedback indicates single line shrinks too much. 
-                // We enable wrapping and stop shrinking at a readable size.
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
+                // UPDATED: Single line constraint for names, multi-line for course
+                whiteSpace: (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"))) ? "pre-wrap" : "nowrap",
+                wordBreak: (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"))) ? "break-word" : "normal",
 
                 transition: "font-size 0.1s ease-out"
             }}
@@ -402,63 +408,67 @@ export default function CertificateViewer() {
                     const fontSize = field.fontSize * pdfScale;
                     const font = await getFont(field.fontFamily);
 
-                    // --- PROFESSIONAL MULTI-LINE TEXT FITTING ---
+                    // --- PROFESSIONAL TEXT FITTING ---
                     const boxW_percent = field.boxWidth || field.maxWidth || 30;
                     const boxH_percent = field.boxHeight || 10;
                     const maxBoxWidth = page.getWidth() * (boxW_percent / 100);
                     const maxBoxHeight = page.getHeight() * (boxH_percent / 100);
 
-                    const minFontSize = 6;
+                    const isMultiLine = field.id.includes("courseName") || field.id.includes("curso");
+                    const minFontSize = isMultiLine ? 20 : 6;
                     let currentFontSize = fontSize;
                     let lines: string[] = [];
                     let iterations = 0;
                     const lineHeightMultiplier = 1.15; // Match CSS
 
                     // Fit Loop: Try to wrap text. If it overflows height, shrink font.
-                    // NEW PRIORITY: Legibility > Strict Box Height.
-                    // User requested MINIMUM 30px. If it doesn't fit height at 30px, allow overflow.
-                    const minimumLegibleSize = 30;
+                    const minimumLegibleSize = isMultiLine ? 20 : 6;
 
                     while (iterations < 50) {
                         lines = [];
 
-                        // Respect manual newlines first
-                        const paragraphs = text.split('\n');
-
-                        for (const paragraph of paragraphs) {
-                            const words = paragraph.split(' ');
-                            let currentLine = words[0];
-
-                            for (let i = 1; i < words.length; i++) {
-                                const word = words[i];
-                                const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
-                                if (width < maxBoxWidth) {
-                                    currentLine += " " + word;
-                                } else {
-                                    lines.push(currentLine);
-                                    currentLine = word;
-                                }
+                        if (!isMultiLine) {
+                            // Strict Single Line
+                            lines.push(text);
+                            const textWidth = font.widthOfTextAtSize(text, currentFontSize);
+                            if (textWidth <= maxBoxWidth) {
+                                break;
                             }
-                            lines.push(currentLine);
+                        } else {
+                            // Respect manual newlines first
+                            const paragraphs = text.split('\n');
+
+                            for (const paragraph of paragraphs) {
+                                const words = paragraph.split(' ');
+                                let currentLine = words[0];
+
+                                for (let i = 1; i < words.length; i++) {
+                                    const word = words[i];
+                                    const width = font.widthOfTextAtSize(currentLine + " " + word, currentFontSize);
+                                    if (width < maxBoxWidth) {
+                                        currentLine += " " + word;
+                                    } else {
+                                        lines.push(currentLine);
+                                        currentLine = word;
+                                    }
+                                }
+                                lines.push(currentLine);
+                            }
+
+                            // Check Dimensions
+                            const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
+                            const maxWordWidth = Math.max(...lines.map((l: string) => font.widthOfTextAtSize(l, currentFontSize)));
+
+                            const fitsWidth = maxWordWidth <= maxBoxWidth;
+                            const fitsHeight = totalHeight <= maxBoxHeight;
+                            const isLegible = currentFontSize >= minimumLegibleSize;
+
+                            if (fitsWidth && (fitsHeight || !isLegible)) {
+                                break;
+                            }
                         }
 
-                        // Check Dimensions
-                        const totalHeight = lines.length * (font.heightAtSize(currentFontSize) * lineHeightMultiplier);
-                        const maxWordWidth = Math.max(...lines.map(l => font.widthOfTextAtSize(l, currentFontSize)));
-
-                        const fitsWidth = maxWordWidth <= maxBoxWidth;
-                        const fitsHeight = totalHeight <= maxBoxHeight;
-                        const isLegible = currentFontSize >= minimumLegibleSize;
-
-                        // STOP shrinking if:
-                        // 1. Fits everything perfectly.
-                        // 2. Fits Width, but Height fails... BUT we are already at minimum legibility. 
-                        //    (Better to overflow height than be unreadable)
-                        if (fitsWidth && (fitsHeight || !isLegible)) {
-                            break;
-                        }
-
-                        currentFontSize *= 0.90;
+                        currentFontSize *= 0.95;
                         if (currentFontSize < minFontSize) {
                             currentFontSize = minFontSize;
                             break;
@@ -757,7 +767,7 @@ export default function CertificateViewer() {
                                                         fontFamily={field.fontFamily}
                                                         boxWidthPercent={field.boxWidth || field.maxWidth || 30}
                                                         boxHeightPercent={field.boxHeight || 10}
-                                                    // maxWidthPercent removed
+                                                        fieldId={field.id}
                                                     />
                                                 );
                                             })}
@@ -796,6 +806,7 @@ export default function CertificateViewer() {
                                                         fontFamily={field.fontFamily}
                                                         boxWidthPercent={field.boxWidth || field.maxWidth || 30}
                                                         boxHeightPercent={field.boxHeight || 10}
+                                                        fieldId={field.id}
                                                     />
                                                 )
                                             })}
