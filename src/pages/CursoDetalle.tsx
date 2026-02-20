@@ -389,7 +389,7 @@ const CursoDetalle = () => {
                     ) : (
                       <Button
                         size="xl"
-                        className="w-full h-14 text-lg font-extrabold shadow-[0_0_40px_rgba(var(--accent-rgb),0.3)] hover:shadow-[0_0_60px_rgba(var(--accent-rgb),0.5)] bg-gradient-to-r from-accent via-[#6d4aff] to-accent bg-[length:200%_auto] animate-[gradient_3s_linear_infinite] hover:scale-[1.02] transition-all text-white border-0"
+                        className="w-full h-14 text-lg font-extrabold shadow-[0_0_40px_rgba(220,38,38,0.4)] hover:shadow-[0_0_60px_rgba(220,38,38,0.6)] bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 hover:scale-[1.02] transition-all text-white border-0"
                         onClick={handleEnrollClick}
                       >
                         <Sparkles className="w-5 h-5 mr-2 animate-pulse" />
@@ -624,7 +624,7 @@ const CursoDetalle = () => {
                 )
               ) : (
                 <Button
-                  className="w-full h-11 text-[15px] font-extrabold shadow-[0_0_20px_rgba(var(--accent-rgb),0.5)] bg-gradient-to-r from-accent to-[#6d4aff] text-white border-0 hover:scale-[1.02] transition-all rounded-xl"
+                  className="w-full h-11 text-[15px] font-extrabold shadow-[0_0_20px_rgba(220,38,38,0.4)] bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white border-0 hover:scale-[1.02] transition-all rounded-xl"
                   onClick={handleEnrollClick}
                 >
                   <Sparkles className="w-4 h-4 mr-1.5 animate-pulse" />
