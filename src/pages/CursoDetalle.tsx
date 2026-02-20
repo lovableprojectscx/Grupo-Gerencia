@@ -24,7 +24,12 @@ import {
   MonitorPlay,
   ArrowRight,
   Zap,
-  BookOpen
+  BookOpen,
+  MessageCircle,
+  MessageSquare,
+  Link as LinkIcon,
+  Facebook,
+  Twitter,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -41,6 +46,14 @@ import { courseService } from "@/services/courseService";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CourseCard } from "@/components/courses/CourseCard";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const CursoDetalle = () => {
   const { id } = useParams();
@@ -163,6 +176,30 @@ const CursoDetalle = () => {
         toast.error("Error al compartir el enlace");
         console.error("Error sharing:", err);
       }
+    }
+  };
+
+  const getShareUrl = () => window.location.href;
+  const getShareText = () => `¡Descubre este increíble curso en Gerencia y Desarrollo Global!\n\n${course?.title}\n\n`;
+
+  const shareViaWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(getShareText() + getShareUrl())}`, '_blank');
+  };
+
+  const shareViaFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`, '_blank');
+  };
+
+  const shareViaTwitter = () => {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(getShareText())}&url=${encodeURIComponent(getShareUrl())}`, '_blank');
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl());
+      toast.success("¡Enlace copiado al portapapeles!");
+    } catch (err) {
+      toast.error("Error al copiar el enlace");
     }
   };
 
@@ -420,7 +457,7 @@ const CursoDetalle = () => {
                       </Button>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 relative z-50">
                       <Button
                         variant="outline"
                         size="lg"
@@ -432,15 +469,45 @@ const CursoDetalle = () => {
                         {isFavorite ? "En favoritos" : "Guardar"}
                       </Button>
 
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="w-12 h-12 flex-shrink-0 border-border hover:bg-secondary/50 text-muted-foreground"
-                        onClick={handleShare}
-                        title="Compartir curso"
-                      >
-                        <Share2 className="w-5 h-5" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="w-12 h-12 flex-shrink-0 border-border hover:bg-secondary/50 text-muted-foreground"
+                            title="Compartir curso"
+                          >
+                            <Share2 className="w-5 h-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-xl data-[side=bottom]:animate-slide-up-fade">
+                          <DropdownMenuLabel className="font-bold text-foreground opacity-70">Compartir por...</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={shareViaWhatsApp} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-emerald-50 focus:text-emerald-700 dark:focus:bg-emerald-950/50">
+                            <MessageCircle className="w-5 h-5 text-emerald-500" />
+                            <span className="font-medium">WhatsApp</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={shareViaFacebook} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-blue-50 focus:text-blue-700 dark:focus:bg-blue-950/50">
+                            <Facebook className="w-5 h-5 text-blue-600" />
+                            <span className="font-medium">Messenger</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={shareViaTwitter} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-black/5 dark:focus:bg-white/10">
+                            <Twitter className="w-5 h-5 text-sky-500" />
+                            <span className="font-medium">Twitter / X</span>
+                          </DropdownMenuItem>
+                          {navigator.share && (
+                            <DropdownMenuItem onClick={handleShare} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-accent/10">
+                              <Share2 className="w-5 h-5 text-accent" />
+                              <span className="font-medium">Más opciones...</span>
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={copyLink} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-muted">
+                            <LinkIcon className="w-5 h-5 text-muted-foreground" />
+                            <span className="font-medium">Copiar enlace</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
@@ -632,14 +699,44 @@ const CursoDetalle = () => {
           </div>
 
           <div className="flex-1 flex gap-2 items-center justify-end">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-11 w-11 flex-shrink-0 rounded-xl border-white/10 text-white/70 bg-white/5 hover:bg-white/10 transition-colors"
-              onClick={handleShare}
-            >
-              <Share2 className="w-5 h-5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 flex-shrink-0 rounded-xl border-white/10 text-white/70 bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <Share2 className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" sideOffset={12} className="w-56 p-2 rounded-2xl shadow-2xl relative z-[100] border-white/10 bg-[#0A0F1C]/95 backdrop-blur-2xl text-white data-[side=top]:animate-slide-down-fade">
+                <DropdownMenuLabel className="font-bold text-white/70">Compartir por...</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem onClick={shareViaWhatsApp} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-emerald-500/20 focus:text-white">
+                  <MessageCircle className="w-5 h-5 text-emerald-400" />
+                  <span className="font-medium">WhatsApp</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={shareViaFacebook} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-blue-500/20 focus:text-white">
+                  <Facebook className="w-5 h-5 text-blue-400" />
+                  <span className="font-medium">Messenger</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={shareViaTwitter} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-white/10 focus:text-white">
+                  <Twitter className="w-5 h-5 text-sky-400" />
+                  <span className="font-medium">Twitter / X</span>
+                </DropdownMenuItem>
+                {navigator.share && (
+                  <DropdownMenuItem onClick={handleShare} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-accent/20 focus:text-white">
+                    <Share2 className="w-5 h-5 text-accent" />
+                    <span className="font-medium">Menú nativo</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem onClick={copyLink} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-white/10 focus:text-white">
+                  <LinkIcon className="w-5 h-5 text-white/60" />
+                  <span className="font-medium">Copiar enlace</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               variant="outline"
