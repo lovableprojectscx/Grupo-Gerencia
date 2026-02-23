@@ -105,6 +105,12 @@ export default function Checkout() {
 
     const handleSubmit = async () => {
         if (!user) return;
+        // course.id es el UUID real — courseId del URL puede ser un slug
+        const realCourseId = course?.id;
+        if (!realCourseId) {
+            toast.error("No se pudo identificar el curso. Intenta de nuevo.");
+            return;
+        }
 
         setLoading(true);
         try {
@@ -113,7 +119,7 @@ export default function Checkout() {
                 .from('enrollments')
                 .select('id')
                 .eq('user_id', user.id)
-                .eq('course_id', courseId)
+                .eq('course_id', realCourseId)
                 .maybeSingle();
 
             if (existing) {
@@ -148,7 +154,7 @@ export default function Checkout() {
                 .from('enrollments')
                 .insert([{
                     user_id: user.id,
-                    course_id: courseId,
+                    course_id: realCourseId,
                     status: 'pending',
                     progress: 0,
                     voucher_url: voucherUrl
