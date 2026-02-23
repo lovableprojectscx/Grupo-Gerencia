@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/accordion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
+import { getCategoryLabel } from "@/constants/categories";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CourseCard } from "@/components/courses/CourseCard";
@@ -292,7 +293,7 @@ const CursoDetalle = () => {
                   <span>/</span>
                   <Link to="/catalogo" className="hover:text-white transition-colors">Catálogo</Link>
                   <span>/</span>
-                  <span className="text-accent">{course.category || "General"}</span>
+                  <span className="text-accent">{getCategoryLabel(course.category) || "General"}</span>
                 </div>
 
                 {/* Badges - Glassmorphism */}
