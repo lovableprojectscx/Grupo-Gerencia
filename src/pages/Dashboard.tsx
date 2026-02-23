@@ -390,7 +390,7 @@ const Dashboard = () => {
                           <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{course.description}</p>
                           <div className="flex items-center justify-between mt-auto">
                             <span className="font-bold text-lg text-primary">S/{course.price}</span>
-                            <Button size="sm" onClick={() => navigate(`/curso/${course.id}`)}>
+                            <Button size="sm" onClick={() => navigate(`/curso/${course.slug || course.id}`)}>
                               Ver Detalles
                             </Button>
                           </div>

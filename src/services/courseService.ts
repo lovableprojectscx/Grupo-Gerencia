@@ -95,7 +95,9 @@ export const courseService = {
         return (data as unknown as Course[]).map(mapCourseWithStudentCount);
     },
 
-    async getById(id: string) {
+    async getById(idOrSlug: string) {
+        // Acepta tanto UUID como slug — los links viejos siguen funcionando
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
         const { data, error } = await supabase
             .from('courses')
             .select(`
@@ -107,7 +109,7 @@ export const courseService = {
             ),
             enrollments(user_id)
         `)
-            .eq('id', id)
+            .eq(isUUID ? 'id' : 'slug', idOrSlug)
             .maybeSingle();
 
         if (error) throw error;
@@ -128,8 +130,19 @@ export const courseService = {
     },
 
     async create(course: Partial<Course>) {
-        // Generate slug from title if not provided
-        const slug = course.slug || course.title?.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        // Generate slug from title if not provided (con manejo correcto de tildes y ñ)
+        const generateSlug = (title: string) =>
+            title
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')   // eliminar tildes
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9 -]/g, '')        // solo letras, números, espacios y guiones
+                .replace(/ +/g, '-')                 // espacios → guiones
+                .replace(/-+/g, '-')                 // múltiples guiones → uno
+                .replace(/^-+|-+$/g, '');            // limpiar extremos
+
+        const slug = course.slug || (course.title ? generateSlug(course.title) : undefined);
 
         // Sanitize payload: remove derived/joined fields that don't exist in 'courses' table
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

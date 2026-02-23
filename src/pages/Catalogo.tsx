@@ -530,7 +530,7 @@ const Catalogo = () => {
                   {paginatedCourses.map((course: any) => (
                     <CourseCard
                       key={course.id}
-                      id={course.id}
+                      id={course.slug || course.id}
                       title={course.title}
                       instructor={course.instructor?.name || "Gerencia Educativa"}
                       image={course.image_url}

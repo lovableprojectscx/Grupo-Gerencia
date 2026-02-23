@@ -52,13 +52,18 @@ export const FeaturedCourses = () => {
             featuredCourses.map((course) => (
               <CourseCard
                 key={course.id}
+                id={course.slug || course.id}
                 image={course.image_url || "/placeholder-course.jpg"}
-                {...course}
+                title={course.title}
                 instructor={course.instructor?.name || "Instructor"}
+                price={course.price}
                 originalPrice={course.original_price}
-                rating={5.0} // Default for now
+                rating={5.0}
                 students={course.students || 0}
                 duration="Flexible"
+                category={course.category}
+                specialty={course.specialty}
+                level={course.level}
               />
             ))
           ) : (
