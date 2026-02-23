@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, GraduationCap, Clock, Award, PlayCircle, CheckCircle, Download, ExternalLink, LogOut, Loader2, Heart } from "lucide-react";
+import { BookOpen, GraduationCap, Clock, Award, PlayCircle, CheckCircle, Download, ExternalLink, LogOut, Loader2, Heart, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -76,22 +76,30 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-8 mt-20">
+      <main className="container mx-auto px-4 pt-5 pb-10 mt-16 md:mt-20 md:pt-8">
         <div className="grid gap-8 md:grid-cols-[300px_1fr]">
           {/* Sidebar Profile */}
           <div className="space-y-6">
             <Card className="border-border">
-              <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={profile?.avatar_url || "https://github.com/shadcn.png"} />
-                  <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="text-xl font-bold">{profile?.full_name}</h2>
-                  <p className="text-sm text-muted-foreground">{profile?.email}</p>
-                  {profile?.dni && <Badge variant="outline" className="mt-2">DNI: {profile.dni}</Badge>}
+              <CardContent className="p-4 md:p-6">
+                {/* Mobile: horizontal compacto | Desktop: centrado vertical */}
+                <div className="flex flex-row md:flex-col items-center gap-3 md:gap-0 md:space-y-4 md:text-center">
+                  <Avatar className="w-14 h-14 md:w-24 md:h-24 shrink-0">
+                    <AvatarImage src={profile?.avatar_url || "https://github.com/shadcn.png"} />
+                    <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 md:text-center">
+                    <h2 className="text-base md:text-xl font-bold truncate">{profile?.full_name}</h2>
+                    <p className="text-xs md:text-sm text-muted-foreground truncate">{profile?.email}</p>
+                    {profile?.dni && <Badge variant="outline" className="mt-1 text-xs">DNI: {profile.dni}</Badge>}
+                  </div>
+                  {/* Logout icono solo en mobile */}
+                  <Button variant="ghost" size="icon" className="shrink-0 md:hidden text-muted-foreground" onClick={handleLogout}>
+                    <LogOut className="w-4 h-4" />
+                  </Button>
                 </div>
-                <div className="w-full pt-4 border-t border-border flex flex-col gap-2">
+                {/* Logout completo solo en desktop */}
+                <div className="hidden md:flex w-full pt-4 border-t border-border mt-4 flex-col gap-2">
                   <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Cerrar Sesión
@@ -143,23 +151,34 @@ const Dashboard = () => {
 
           {/* Main Content */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl sm:text-3xl font-bold">Mi Aprendizaje</h1>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="text-xl sm:text-3xl font-bold">Mi Aprendizaje</h1>
+              <Button
+                variant="accent"
+                size="sm"
+                onClick={() => navigate('/catalogo')}
+                className="shrink-0 gap-1.5 shadow-sm"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden xs:inline">Explorar </span>Catálogo
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="w-full bg-secondary/50 p-1 rounded-xl flex h-auto overflow-x-auto snap-x scrollbar-hide gap-1">
-                <TabsTrigger value="courses" className="flex-1 rounded-lg px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm min-w-[100px] snap-center">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Mis Cursos
+              <TabsList className="w-full bg-secondary/50 p-1 rounded-xl flex h-auto gap-1">
+                <TabsTrigger value="courses" className="flex-1 rounded-lg px-2 sm:px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <BookOpen className="w-4 h-4 sm:mr-2 shrink-0" />
+                  <span className="hidden sm:inline">Mis </span>Cursos
                 </TabsTrigger>
-                <TabsTrigger value="certificates" className="flex-1 rounded-lg px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm min-w-[100px] snap-center">
-                  <Award className="w-4 h-4 mr-2" />
-                  Certificados
+                <TabsTrigger value="certificates" className="flex-1 rounded-lg px-2 sm:px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Award className="w-4 h-4 sm:mr-2 shrink-0" />
+                  <span className="hidden xs:inline">Certificados</span>
+                  <span className="xs:hidden">Certs.</span>
                 </TabsTrigger>
-                <TabsTrigger value="favorites" className="flex-1 rounded-lg px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm min-w-[100px] snap-center">
-                  <Heart className="w-4 h-4 mr-2" />
-                  Favoritos
+                <TabsTrigger value="favorites" className="flex-1 rounded-lg px-2 sm:px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Heart className="w-4 h-4 sm:mr-2 shrink-0" />
+                  <span className="hidden sm:inline">Favoritos</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -187,7 +206,7 @@ const Dashboard = () => {
                           </Button>
                         </div>
                       )}
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid md:grid-cols-2 gap-4 md:gap-6">
                         {activeCourses.map((enrollment: any) => (
                           <Card key={enrollment.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border group">
                             <div className="aspect-video relative overflow-hidden">
@@ -239,7 +258,7 @@ const Dashboard = () => {
                       {!completedCourses.length && (
                         <p className="text-muted-foreground text-sm pl-2">No has completado ningún curso aún.</p>
                       )}
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid md:grid-cols-2 gap-4 md:gap-6">
                         {completedCourses.map((enrollment: any) => (
                           <Card key={enrollment.id} className="flex flex-col sm:flex-row overflow-hidden border-border transition-shadow hover:shadow-md">
                             <div className="w-full sm:w-32 h-32 sm:h-auto relative shrink-0">
