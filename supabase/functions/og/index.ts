@@ -11,6 +11,32 @@ Deno.serve(async (req: Request) => {
   }
 
   const url = new URL(req.url);
+
+  // ── Image proxy mode ──────────────────────────────────────────────────────
+  // og:image apunta aquí en vez de directamente a Supabase Storage para
+  // eliminar el header "x-robots-tag: none" que bloquea WhatsApp/Facebook.
+  const imgPath = url.searchParams.get("img");
+  if (imgPath) {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    try {
+      const imageRes = await fetch(
+        `${SUPABASE_URL}/storage/v1/render/image/public/${imgPath}?width=1200&height=630&resize=cover&quality=80`
+      );
+      if (!imageRes.ok) return new Response("Not found", { status: 404 });
+
+      const headers = new Headers();
+      headers.set("content-type", imageRes.headers.get("content-type") || "image/jpeg");
+      headers.set("cache-control", "public, max-age=86400, s-maxage=86400");
+      headers.set("Access-Control-Allow-Origin", "*");
+      // ⚠️ No reenviar x-robots-tag: none — ese header viene de Supabase Storage
+      //    y haría que WhatsApp ignore la imagen.
+      return new Response(imageRes.body, { headers });
+    } catch (_) {
+      return new Response("Error", { status: 500 });
+    }
+  }
+
+  // ── OG HTML mode ──────────────────────────────────────────────────────────
   const slug = url.searchParams.get("slug") || "";
   const redirect = url.searchParams.get("redirect") || `${SITE_URL}/curso/${slug}`;
 
@@ -45,7 +71,11 @@ Deno.serve(async (req: Request) => {
         (course.description || "").slice(0, 200) ||
         "Potencia tu perfil profesional con educación de calidad."
     );
-    const image = optimizeImage(course.image_url || DEFAULT_IMAGE, SUPABASE_URL);
+
+    // Construir la URL de la imagen proxeada (sin x-robots-tag: none).
+    // Usamos SUPABASE_URL para garantizar https y la ruta pública correcta.
+    const selfBase = `${SUPABASE_URL}/functions/v1/og`;
+    const image = buildProxiedImageUrl(course.image_url, SUPABASE_URL, selfBase);
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -96,16 +126,17 @@ function esc(str: string): string {
     .replace(/>/g, "&gt;");
 }
 
-/** Convierte URL de Supabase Storage al endpoint de transformación de imágenes.
- *  WhatsApp rechaza imágenes >300 KB; la transformación las sirve ~60–100 KB. */
-function optimizeImage(imageUrl: string, supabaseUrl: string): string {
-  if (!imageUrl) return imageUrl;
-  // Detectar si es una URL de Supabase Storage
+/**
+ * Si la imagen está en Supabase Storage, devuelve la URL del proxy interno
+ * (la misma edge function con ?img=<path>) para evitar el header x-robots-tag: none.
+ * Si no, devuelve la URL original.
+ */
+function buildProxiedImageUrl(imageUrl: string, supabaseUrl: string, selfBase: string): string {
+  if (!imageUrl) return DEFAULT_IMAGE;
   const storagePublic = `${supabaseUrl}/storage/v1/object/public/`;
-  const renderPublic  = `${supabaseUrl}/storage/v1/render/image/public/`;
   if (imageUrl.startsWith(storagePublic)) {
     const path = imageUrl.slice(storagePublic.length);
-    return `${renderPublic}${path}?width=1200&height=630&resize=cover&quality=80`;
+    return `${selfBase}?img=${encodeURIComponent(path)}`;
   }
   return imageUrl;
 }
