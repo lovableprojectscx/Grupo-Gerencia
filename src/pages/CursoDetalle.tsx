@@ -220,12 +220,20 @@ const CursoDetalle = () => {
   const getShareUrl = () => window.location.href;
   const getShareText = () => `¡Descubre este increíble curso en Gerencia y Desarrollo Global!\n\n${course?.title}\n\n`;
 
+  // URL que apunta a la Edge Function para que WhatsApp/Facebook lean los OG tags correctos
+  const buildOgUrl = () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const slug = course?.slug || id || "";
+    if (!supabaseUrl || !slug) return window.location.href;
+    return `${supabaseUrl}/functions/v1/og?slug=${encodeURIComponent(slug)}&redirect=${encodeURIComponent(window.location.href)}`;
+  };
+
   const shareViaWhatsApp = () => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(getShareText() + getShareUrl())}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(getShareText() + buildOgUrl())}`, '_blank');
   };
 
   const shareViaFacebook = () => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(buildOgUrl())}`, '_blank');
   };
 
   const shareViaTwitter = () => {

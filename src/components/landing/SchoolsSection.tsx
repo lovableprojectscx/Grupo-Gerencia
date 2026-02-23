@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
+import { useRef, useEffect, useState } from "react";
 
 // Force sync schools: 2026-02-19 15:40
 
@@ -69,28 +70,11 @@ const schoolsConfig = [
   },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-    },
-  },
-};
 
 export const SchoolsSection = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const { data: courses } = useQuery({
     queryKey: ["courses"],
     queryFn: courseService.getPublished,
@@ -99,6 +83,62 @@ export const SchoolsSection = () => {
   const getCourseCount = (categoryKey: string) => {
     if (!courses) return 0;
     return courses.filter((c: any) => c.category === categoryKey).length;
+  };
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let isPaused = false;
+    let resumeTimeout: ReturnType<typeof setTimeout>;
+
+    const scrollNext = () => {
+      if (isPaused || container.scrollWidth <= container.clientWidth + 10) return;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll - 5) {
+        container.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        const firstCard = container.firstElementChild as HTMLElement;
+        const step = firstCard ? firstCard.offsetWidth + 16 : container.clientWidth * 0.82;
+        container.scrollTo({ left: container.scrollLeft + step, behavior: "smooth" });
+      }
+    };
+
+    const pause = () => { isPaused = true; clearTimeout(resumeTimeout); };
+    const resume = () => { isPaused = false; };
+    const resumeDelayed = () => { resumeTimeout = setTimeout(resume, 2000); };
+
+    container.addEventListener("mouseenter", pause);
+    container.addEventListener("mouseleave", resume);
+    container.addEventListener("touchstart", pause, { passive: true });
+    container.addEventListener("touchend", resumeDelayed, { passive: true });
+
+    const interval = setInterval(scrollNext, 3500);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(resumeTimeout);
+      container.removeEventListener("mouseenter", pause);
+      container.removeEventListener("mouseleave", resume);
+      container.removeEventListener("touchstart", pause);
+      container.removeEventListener("touchend", resumeDelayed);
+    };
+  }, []);
+
+  const scrollToIndex = (index: number) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const firstCard = container.firstElementChild as HTMLElement;
+    if (!firstCard) return;
+    container.scrollTo({ left: index * (firstCard.offsetWidth + 16), behavior: "smooth" });
+  };
+
+  const handleScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const firstCard = container.firstElementChild as HTMLElement;
+    if (!firstCard) return;
+    setCurrentIndex(Math.round(container.scrollLeft / (firstCard.offsetWidth + 16)));
   };
 
   return (
@@ -121,19 +161,21 @@ export const SchoolsSection = () => {
           </p>
         </motion.div>
 
-        {/* Schools Grid */}
+        {/* Schools — horizontal scroll on mobile, grid on desktop */}
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
+          ref={scrollRef}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
+          transition={{ duration: 0.6 }}
+          className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:grid md:grid-cols-2 md:overflow-visible md:snap-none md:pb-0 md:mx-0 md:px-0 lg:grid-cols-3 md:gap-6 lg:gap-8"
+          onScroll={handleScroll}
         >
           {schoolsConfig.map((school) => {
             const count = getCourseCount(school.categoryKey);
 
             return (
-              <motion.div key={school.id} variants={itemVariants}>
+              <div key={school.id} className="snap-start shrink-0 w-[78vw] md:w-auto md:shrink">
                 <Link
                   to={school.href}
                   className="group block h-full"
@@ -172,10 +214,31 @@ export const SchoolsSection = () => {
                     </div>
                   </div>
                 </Link>
-              </motion.div>
+              </div>
             );
           })}
         </motion.div>
+
+        {/* Flechas de navegación — solo mobile */}
+        <div className="flex items-center justify-center gap-3 mt-5 md:hidden">
+          <button
+            onClick={() => scrollToIndex(Math.max(0, currentIndex - 1))}
+            disabled={currentIndex === 0}
+            className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center disabled:opacity-25 active:scale-95 transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {currentIndex + 1} / {schoolsConfig.length}
+          </span>
+          <button
+            onClick={() => scrollToIndex(Math.min(schoolsConfig.length - 1, currentIndex + 1))}
+            disabled={currentIndex === schoolsConfig.length - 1}
+            className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center disabled:opacity-25 active:scale-95 transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </section>
   );
