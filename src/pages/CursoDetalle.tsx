@@ -444,32 +444,31 @@ const CursoDetalle = () => {
                   className="hidden lg:block bg-card rounded-3xl p-6 shadow-xl shadow-slate-900/5 border border-border relative overflow-hidden"
                 >
                   {/* Top Highlight Strip */}
-                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accent via-purple-500 to-accent" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-amber-400 to-accent" />
 
-                  <div className="mb-8">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest mb-4 ring-1 ring-red-500/20">
-                      <Zap className="w-3.5 h-3.5 fill-current animate-pulse" />
-                      Oferta Limitada
-                    </div>
-                    <div className="flex items-baseline gap-3 mb-1">
-                      <span className="text-5xl md:text-6xl font-extrabold text-foreground tracking-tighter">
-                        S/{course.price}
-                      </span>
-                      {course.original_price && (
-                        <span className="text-2xl text-muted-foreground/60 line-through decoration-2 decoration-red-500/30">
-                          S/{course.original_price}
+                  {/* Precio */}
+                  <div className="mb-6 pt-2">
+                    {course.original_price && (
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-sm text-muted-foreground line-through">S/{course.original_price}</span>
+                        <span className="text-xs font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-500/20">
+                          -{Math.round(((course.original_price - course.price) / course.original_price) * 100)}% OFF
                         </span>
-                      )}
+                      </div>
+                    )}
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold text-muted-foreground">S/</span>
+                      <span className="text-5xl font-black text-foreground tracking-tight">{course.price}</span>
                     </div>
                     {course.original_price && (
-                      <div className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-md mt-2">
-                        <Check className="w-4 h-4" />
-                        Ahorras S/{course.original_price - course.price} hoy
-                      </div>
+                      <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold mt-2 flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        Ahorras S/{course.original_price - course.price} en tu inversión
+                      </p>
                     )}
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {enrollment ? (
                       enrollment.status === 'active' ? (
                         <Button variant="default" size="xl" className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-lg shadow-emerald-600/20" onClick={() => navigate(`/classroom/${id}`)}>
@@ -481,17 +480,18 @@ const CursoDetalle = () => {
                         </div>
                       ) : (
                         <Button variant="outline" size="xl" className="w-full h-14 cursor-default border-yellow-500 text-yellow-600 bg-yellow-50 hover:bg-yellow-50 text-lg font-bold">
-                          <Clock className="w-5 h-5 mr-2" /> Pendiente
+                          <Clock className="w-5 h-5 mr-2" /> Pendiente de aprobación
                         </Button>
                       )
                     ) : (
                       <Button
                         size="xl"
-                        className="w-full h-14 text-lg font-extrabold shadow-[0_0_40px_rgba(220,38,38,0.4)] hover:shadow-[0_0_60px_rgba(220,38,38,0.6)] bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 hover:scale-[1.02] transition-all text-white border-0"
+                        className="w-full h-14 text-base font-bold relative overflow-hidden group bg-accent hover:bg-accent/90 text-accent-foreground border-0 shadow-lg shadow-accent/30 hover:shadow-accent/50 hover:scale-[1.015] transition-all duration-300"
                         onClick={handleEnrollClick}
                       >
-                        <Sparkles className="w-5 h-5 mr-2 animate-pulse" />
-                        Inscribirse Ahora
+                        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
+                        <ArrowRight className="w-5 h-5 mr-2 group-hover:translate-x-0.5 transition-transform" />
+                        Inscribirme en este curso
                       </Button>
                     )}
 
@@ -499,12 +499,12 @@ const CursoDetalle = () => {
                       <Button
                         variant="ghost"
                         size="lg"
-                        className={`flex-1 h-12 font-medium border border-border hover:bg-secondary hover:text-foreground transition-colors ${isFavorite ? "text-red-500 hover:text-red-600 border-red-200 bg-red-50" : "text-muted-foreground"}`}
+                        className={`flex-1 h-11 font-medium border transition-colors ${isFavorite ? "border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-400" : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
                         onClick={handleToggleFavorite}
                         disabled={isTogglingFavorite}
                       >
-                        <Heart className={`w-5 h-5 mr-2 ${isFavorite ? "fill-current" : ""}`} />
-                        {isFavorite ? "En favoritos" : "Guardar"}
+                        <Heart className={`w-4 h-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
+                        {isFavorite ? "Guardado" : "Guardar"}
                       </Button>
 
                       <DropdownMenu>
@@ -512,13 +512,13 @@ const CursoDetalle = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="w-12 h-12 flex-shrink-0 border border-border hover:bg-secondary hover:text-foreground text-muted-foreground transition-colors"
+                            className="w-11 h-11 flex-shrink-0 border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                             title="Compartir curso"
                           >
-                            <Share2 className="w-5 h-5" />
+                            <Share2 className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-xl data-[side=bottom]:animate-slide-up-fade">
+                        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-xl">
                           <DropdownMenuLabel className="font-bold text-foreground opacity-70">Compartir por...</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={shareViaWhatsApp} className="gap-3 cursor-pointer py-3 rounded-xl focus:bg-emerald-50 focus:text-emerald-700 dark:focus:bg-emerald-950/50">
@@ -549,10 +549,26 @@ const CursoDetalle = () => {
                     </div>
                   </div>
 
-                  {/* Guarantee */}
-                  <div className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <Shield className="w-4 h-4 text-emerald-500" />
-                    <span>Garantía de satisfacción y soporte</span>
+                  {/* Trust badges */}
+                  <div className="mt-6 pt-5 border-t border-border grid grid-cols-3 gap-2 text-center">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <span className="text-[10px] font-medium text-muted-foreground leading-tight">Pago<br />seguro</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                        <Award className="w-4 h-4 text-accent" />
+                      </div>
+                      <span className="text-[10px] font-medium text-muted-foreground leading-tight">Certificado<br />incluido</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Globe className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <span className="text-[10px] font-medium text-muted-foreground leading-tight">Acceso<br />ilimitado</span>
+                    </div>
                   </div>
                 </motion.div>
 
@@ -702,7 +718,7 @@ const CursoDetalle = () => {
                 {relatedCourses.map((relatedCourse: any) => (
                   <CourseCard
                     key={relatedCourse.id}
-                    id={relatedCourse.id}
+                    id={relatedCourse.slug || relatedCourse.id}
                     title={relatedCourse.title}
                     image={relatedCourse.image_url}
                     price={relatedCourse.price}
@@ -803,11 +819,12 @@ const CursoDetalle = () => {
                 )
               ) : (
                 <Button
-                  className="w-full h-11 text-[15px] font-extrabold shadow-[0_0_20px_rgba(220,38,38,0.4)] bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white border-0 hover:scale-[1.02] transition-all rounded-xl"
+                  className="w-full h-11 text-[14px] font-bold relative overflow-hidden group bg-accent hover:bg-accent/90 text-accent-foreground border-0 shadow-lg shadow-accent/30 hover:scale-[1.02] transition-all duration-300 rounded-xl"
                   onClick={handleEnrollClick}
                 >
-                  <Sparkles className="w-4 h-4 mr-1.5 animate-pulse" />
-                  Inscribirse
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
+                  <ArrowRight className="w-4 h-4 mr-1.5 group-hover:translate-x-0.5 transition-transform" />
+                  Inscribirme
                 </Button>
               )}
             </div>
