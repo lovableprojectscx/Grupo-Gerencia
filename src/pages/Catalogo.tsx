@@ -342,7 +342,7 @@ const Catalogo = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-hero-gradient pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
+      <section className="relative bg-hero-gradient pt-24 pb-10 md:pt-32 md:pb-24 overflow-hidden">
         {/* Background Pattern - Glowing Orbs */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-72 h-72 md:w-96 md:h-96 bg-accent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -368,8 +368,11 @@ const Catalogo = () => {
               Explora Nuestro <br />
               <span className="font-display italic text-accent">Catálogo Académico</span>
             </h1>
-            <p className="text-base md:text-xl text-white/80 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
+            <p className="hidden sm:block text-base md:text-xl text-white/80 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
               Encuentra el programa perfecto para potenciar tus habilidades y alcanzar nuevas metas profesionales.
+            </p>
+            <p className="sm:hidden text-sm text-white/70 mb-6 mx-auto leading-relaxed">
+              Cursos especializados con certificado verificable.
             </p>
 
             {/* Premium Search Bar */}
@@ -423,40 +426,34 @@ const Catalogo = () => {
 
             {/* Main Content Area */}
             <div className="flex-1">
-              {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-3 justify-between sm:justify-start w-full sm:w-auto">
-                  {/* Mobile Filter Button */}
-                  <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden relative flex-1 sm:flex-none">
-                        <SlidersHorizontal className="w-4 h-4 mr-2" />
-                        Filtros
-                        {activeFiltersCount > 0 && (
-                          <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-accent text-accent-foreground text-xs">
-                            {activeFiltersCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-80 overflow-y-auto">
-                      <SheetHeader>
-                        <SheetTitle>Filtros</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-6">
-                        <FilterContent />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
+              {/* Toolbar — fila única compacta en mobile */}
+              <div className="flex items-center gap-2 mb-6">
+                {/* Botón filtros mobile */}
+                <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="lg:hidden relative shrink-0 px-3">
+                      <SlidersHorizontal className="w-4 h-4" />
+                      <span className="ml-1.5 hidden xs:inline">Filtros</span>
+                      {activeFiltersCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-accent text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                          {activeFiltersCount}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[min(320px,90vw)] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filtros</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-6">
+                      <FilterContent />
+                    </div>
+                  </SheetContent>
+                </Sheet>
 
-                  <p className="text-sm text-muted-foreground whitespace-nowrap">
-                    <span className="font-semibold text-foreground">{filteredCourses.length}</span> cursos
-                  </p>
-                </div>
-
-                {/* Sort */}
+                {/* Sort — flex-1 en mobile, fijo en desktop */}
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="flex-1 sm:flex-none sm:w-[180px] text-sm">
                     <SelectValue placeholder="Ordenar por" />
                   </SelectTrigger>
                   <SelectContent>
@@ -470,11 +467,16 @@ const Catalogo = () => {
                     <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Contador */}
+                <p className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                  <span className="font-semibold text-foreground">{filteredCourses.length}</span> cursos
+                </p>
               </div>
 
-              {/* Active Filters Tags */}
+              {/* Active Filters Tags — scroll horizontal en mobile */}
               {activeFiltersCount > 0 && (
-                <div className="flex flex-wrap items-center gap-2 mb-6">
+                <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
                   {selectedAreas.map((areaId) => {
                     const area = areas.find((a) => a.id === areaId);
                     return (
@@ -526,7 +528,7 @@ const Catalogo = () => {
               {isLoading ? (
                 <div className="flex justify-center py-20"><Loader2 className="animate-spin w-10 h-10 text-primary" /></div>
               ) : paginatedCourses.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                   {paginatedCourses.map((course: any) => (
                     <CourseCard
                       key={course.id}
@@ -583,35 +585,56 @@ const Catalogo = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-12">
+                <div className="flex items-center justify-center gap-1.5 mt-10">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
+                    className="px-3"
                   >
-                    Anterior
+                    ←
                   </Button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "accent" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className="w-10"
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {/* Números de página: máx 5 visibles con ellipsis */}
+                  {(() => {
+                    const pages: (number | "...")[] = [];
+                    if (totalPages <= 5) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (currentPage > 3) pages.push("...");
+                      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                        pages.push(i);
+                      }
+                      if (currentPage < totalPages - 2) pages.push("...");
+                      pages.push(totalPages);
+                    }
+                    return pages.map((page, idx) =>
+                      page === "..." ? (
+                        <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-sm">…</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "accent" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-9 h-9 p-0"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    );
+                  })()}
 
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
+                    className="px-3"
                   >
-                    Siguiente
+                    →
                   </Button>
                 </div>
               )}
