@@ -258,181 +258,126 @@ const CursoDetalle = () => {
     <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
       <Navbar />
 
-      {/* --- Ultra-Premium Hero Section --- */}
-      <section className="relative pt-24 pb-20 lg:pt-36 lg:pb-32 overflow-hidden bg-[#0A0F1C]">
-        {/* Modern Mesh Gradient Background */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[#0A0F1C] z-0" />
-          {/* Animated Glow Orbs */}
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] bg-accent/20 rounded-full blur-[100px] mix-blend-screen" />
+      {/* Hero Section */}
+      <section className="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden bg-slate-900">
+        {/* Fondo: gradiente limpio sin imágenes difuminadas */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800" />
+        {/* Línea de acento sutil */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
 
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0A0F1C]/80 to-[#0A0F1C] z-10" />
-          <img
-            src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
-            alt="Background"
-            className="w-full h-full object-cover blur-3xl opacity-20 scale-125 saturate-150"
-          />
-          {/* Overlay grid pattern for texture */}
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay z-10" />
-        </div>
+        <div className="container-custom relative z-10">
+          <div className="grid lg:grid-cols-5 gap-10 lg:gap-14 items-start">
 
-        <div className="container-custom relative z-20">
-          <div className="grid lg:grid-cols-3 gap-12 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-2 space-y-6 lg:space-y-8">
+            {/* Columna izquierda: textos */}
+            <div className="lg:col-span-3 space-y-5">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-5"
               >
-                {/* Breadcrumb - Hidden on mobile */}
-                <div className="hidden sm:flex items-center gap-2 text-slate-300 text-sm mb-6 font-medium">
+                {/* Breadcrumb */}
+                <div className="flex items-center gap-1.5 text-slate-400 text-sm flex-wrap">
                   <Link to="/" className="hover:text-white transition-colors">Inicio</Link>
-                  <span>/</span>
+                  <span className="text-slate-600">/</span>
                   <Link to="/catalogo" className="hover:text-white transition-colors">Catálogo</Link>
-                  <span>/</span>
-                  <span className="text-accent">{getCategoryLabel(course.category) || "General"}</span>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-accent font-medium">{getCategoryLabel(course.category) || "General"}</span>
                 </div>
 
-                {/* Badges - Glassmorphism */}
-                <div className="flex flex-wrap gap-3 mb-4 lg:mb-8">
-                  {course.modality === 'live' && (
-                    <Badge className="bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-xl px-3 py-1 text-xs lg:text-sm shadow-xl font-medium">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse mr-2 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                {/* Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {course.modality === 'live' ? (
+                    <span className="inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-3 py-1 text-xs font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                       En Vivo
-                    </Badge>
-                  )}
-                  {course.modality !== 'live' && (
-                    <Badge className="bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-xl px-3 py-1 text-xs lg:text-sm shadow-xl font-medium">
-                      <MonitorPlay className="w-3.5 h-3.5 mr-2 text-emerald-400" />
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-semibold">
+                      <MonitorPlay className="w-3 h-3" />
                       100% Online
-                    </Badge>
+                    </span>
                   )}
-                  <Badge className="bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-xl px-3 py-1 text-xs lg:text-sm shadow-xl font-medium">
-                    <Award className="w-3.5 h-3.5 mr-2 text-gold" />
+                  <span className="inline-flex items-center gap-1.5 bg-accent/10 text-accent border border-accent/20 rounded-full px-3 py-1 text-xs font-semibold">
+                    <Award className="w-3 h-3" />
                     Certificado Incluido
-                  </Badge>
+                  </span>
                 </div>
 
-                {/* Mobile Image - Premium & Glare Effect */}
-                <div className="block lg:hidden mb-6 relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-accent via-purple-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000" />
-                  <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video">
-                    <img
-                      src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
-                      alt={course.title}
-                      className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-                  </div>
+                {/* Imagen (solo mobile) */}
+                <div className="block lg:hidden rounded-xl overflow-hidden shadow-xl border border-white/10 aspect-video">
+                  <img
+                    src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                {/* Title - Premium Layout */}
-                <h1 className="text-3xl md:text-5xl lg:text-[4rem] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70 tracking-tight leading-[1.1] mb-8 lg:mb-10">
+                {/* Título */}
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-snug">
                   {course.title}
                 </h1>
 
-                {/* Modern Glassy Stats */}
-                <div className="flex flex-wrap items-center gap-3 lg:gap-5 pb-6 lg:pb-8 border-b border-white/10">
-                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 lg:p-3 shadow-xl hover:bg-white/10 transition-colors cursor-default">
-                    <div className="p-2 rounded-xl bg-accent/20 border border-accent/20 shadow-[0_0_15px_rgba(var(--accent),0.3)]">
-                      <Users className="w-4 h-4 text-accent" />
-                    </div>
-                    <div className="pr-2">
-                      <div className="text-white font-bold text-sm leading-tight">{displayStudents}</div>
-                      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Alumnos</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 lg:p-3 shadow-xl hover:bg-white/10 transition-colors cursor-default">
-                    <div className="p-2 rounded-xl bg-purple-500/20 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                      <Clock className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div className="pr-2">
-                      <div className="text-white font-bold text-sm leading-tight">{duration}</div>
-                      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Duración</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 lg:p-3 shadow-xl hover:bg-white/10 transition-colors cursor-default">
-                    <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    </div>
-                    <div className="pr-2">
-                      <div className="text-white font-bold text-sm leading-tight">4.9 / 5.0</div>
-                      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Valoración</div>
-                    </div>
-                  </div>
+                {/* Stats en línea */}
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300 border-t border-white/10 pt-5">
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span className="font-semibold text-white">4.9</span>
+                    <span className="text-slate-500">valoración</span>
+                  </span>
+                  <span className="text-slate-600">|</span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-accent" />
+                    <span className="font-semibold text-white">{displayStudents}</span>
+                    <span className="text-slate-500">alumnos</span>
+                  </span>
+                  <span className="text-slate-600">|</span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <span className="font-semibold text-white">{duration}</span>
+                  </span>
                 </div>
 
-                {/* Instructor (In Hero for Desktop) */}
-                <div className="pt-8 flex items-center gap-4">
+                {/* Instructor */}
+                <div className="flex items-center gap-3 pt-1">
                   <img
-                    src={course.instructor?.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop"}
+                    src={course.instructor?.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
                     alt={course.instructor?.name || "Instructor"}
-                    className="w-14 h-14 rounded-full object-cover ring-2 ring-accent/50 bg-slate-800"
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-accent/40 bg-slate-700 flex-shrink-0"
                   />
                   <div>
-                    <div className="text-slate-400 text-sm mb-1">Impartido por</div>
-                    <div className="text-white font-bold text-lg">{course.instructor?.name || "Docente Especialista"}</div>
-                    <div className="text-accent text-sm">{course.instructor?.title || "Experto en la materia"}</div>
+                    <div className="text-xs text-slate-500 leading-none mb-0.5">Impartido por</div>
+                    <div className="text-white font-semibold text-sm">{course.instructor?.name || "Docente Especialista"}</div>
+                    <div className="text-accent text-xs">{course.instructor?.title || "Experto en la materia"}</div>
                   </div>
                 </div>
               </motion.div>
             </div>
 
-            {/* Right Column (Course Image) - 3D Tilt Effect */}
-            <div className="hidden lg:block relative perspective-1000 group/image">
+            {/* Columna derecha: imagen del curso (desktop) */}
+            <div className="hidden lg:block lg:col-span-2">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.8, type: "spring" }}
-                className="relative z-10 transform-gpu transition-all duration-500 group-hover/image:rotate-y-[2deg] group-hover/image:rotate-x-[-2deg] group-hover/image:scale-[1.02]"
-                style={{ transformStyle: 'preserve-3d' }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video"
               >
-                {/* Glow alignment */}
-                <div className="absolute -inset-4 bg-gradient-to-tr from-accent via-purple-600 to-blue-500 rounded-[2rem] blur-2xl opacity-40 group-hover/image:opacity-70 transition duration-700 animate-pulse-slow" />
-
-                {/* Glass Border Container */}
-                <div className="relative rounded-2xl p-2.5 bg-white/5 backdrop-blur-sm border border-white/10 shadow-2xl">
-                  <div className="relative rounded-xl overflow-hidden border border-white/10 ring-1 ring-black/20 shadow-inner">
-                    <img
-                      src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&h=600&fit=crop"}
-                      alt={course.title}
-                      className="relative w-full aspect-video object-cover transform transition-transform duration-1000 group-hover/image:scale-105"
-                    />
-                    {/* Inner shadow overlay for depth */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-                  </div>
-                </div>
-
-                {/* Floating Badge on Image - Enhanced */}
-                <div
-                  className="absolute -bottom-8 -right-8 bg-[#0A0F1C]/80 backdrop-blur-2xl border border-white/10 p-4.5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] flex items-center gap-4 animate-float transform-gpu transition-transform group-hover/image:translate-x-2 group-hover/image:-translate-y-2"
-                >
-                  <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-3 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-                    <Award className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="pr-4">
-                    <div className="text-white font-extrabold text-sm tracking-wide">Certificación<br />Verificada</div>
-                    <div className="text-emerald-400 text-xs font-medium uppercase tracking-wider mt-0.5">Incluida</div>
-                  </div>
-                </div>
+                <img
+                  src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
               </motion.div>
             </div>
+
           </div>
         </div>
       </section>
 
-      {/* Main Content & Sticky Sidebar - Overlapping Layout */}
+      {/* Main Content & Sticky Sidebar */}
       <section className="relative z-30 pb-20">
-        {/* Decorative Transition Background */}
-        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-[#0A0F1C] to-transparent pointer-events-none" />
-
         <div className="container-custom">
-          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 -mt-10 lg:-mt-24 relative z-40">
+          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 pt-10 relative z-40">
 
             {/* Sticky Sidebar (First in JSX for Mobile) */}
             <div className="lg:col-span-1 lg:order-2">
@@ -458,7 +403,7 @@ const CursoDetalle = () => {
                     )}
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-bold text-muted-foreground">S/</span>
-                      <span className="text-5xl font-black text-foreground tracking-tight">{course.price}</span>
+                      <span className="text-4xl font-black text-foreground tracking-tight">{course.price}</span>
                     </div>
                     {course.original_price && (
                       <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold mt-2 flex items-center gap-1.5">
