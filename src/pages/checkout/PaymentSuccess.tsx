@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, ShieldCheck, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, ShieldCheck, Loader2, MessageCircle } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -7,16 +7,27 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export default function PaymentSuccess() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const enrollmentId = searchParams.get("enrollmentId");
+    const { settings } = useSiteSettings();
 
     // Status state
     const [status, setStatus] = useState<"pending" | "active" | "rejected" | "loading">("loading");
     const [courseId, setCourseId] = useState<string | null>(null);
+    const [courseTitle, setCourseTitle] = useState<string | null>(null);
+    const [userName, setUserName] = useState<string | null>(null);
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes visual countdown
+
+    // Get user name
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            setUserName(data.user?.user_metadata?.full_name || null);
+        });
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -41,8 +52,7 @@ export default function PaymentSuccess() {
 
             const { data, error } = await supabase
                 .from("enrollments")
-                .select("status, course_id")
-                .eq("id", enrollmentId)
+                .select("status, course_id, courses(title)")
                 .eq("id", enrollmentId)
                 .maybeSingle();
 
@@ -52,6 +62,7 @@ export default function PaymentSuccess() {
             } else if (data) {
                 setStatus(data.status as any);
                 setCourseId(data.course_id);
+                setCourseTitle((data.courses as any)?.title || null);
             }
         };
 
@@ -118,6 +129,26 @@ export default function PaymentSuccess() {
     // Derived UI state
     const isApproved = status === 'active';
     const isRejected = status === 'rejected';
+
+    // WhatsApp link con mensaje pre-armado
+    const buildWhatsAppUrl = () => {
+        const rawPhone = settings?.payment_number || settings?.contact_phone || "";
+        const phone = rawPhone.replace(/\D/g, "").startsWith("51")
+            ? rawPhone.replace(/\D/g, "")
+            : `51${rawPhone.replace(/\D/g, "")}`;
+
+        const message = [
+            `Hola! 👋 Acabo de enviar mi comprobante de pago y quisiera activar mi curso lo antes posible.`,
+            ``,
+            `📚 *Curso:* ${courseTitle || "Pendiente"}`,
+            userName ? `👤 *Nombre:* ${userName}` : "",
+            `🔖 *N° de solicitud:* ${enrollmentId || "—"}`,
+            ``,
+            `¿Podrían verificar mi pago? ¡Gracias!`,
+        ].filter(Boolean).join("\n");
+
+        return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    };
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
@@ -190,9 +221,20 @@ export default function PaymentSuccess() {
                                 </p>
                             </div>
                             <div className="flex flex-col gap-3 max-w-sm mx-auto">
+                                {/* WhatsApp para activación rápida */}
+                                <a
+                                    href={buildWhatsAppUrl()}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-3 w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#20b558] text-white font-semibold text-sm transition-all hover:scale-[1.02] shadow-lg shadow-green-500/25"
+                                >
+                                    <MessageCircle className="w-5 h-5 fill-white" />
+                                    ¿Quieres activación rápida? Escríbenos por WhatsApp
+                                </a>
+
                                 <Button asChild variant="outline" className="w-full">
                                     <Link to="/dashboard">
-                                        Ir a mi Dashboard (Verificar luego)
+                                        Verificar luego desde mi Dashboard
                                     </Link>
                                 </Button>
                             </div>
