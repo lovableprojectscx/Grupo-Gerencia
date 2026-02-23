@@ -1,0 +1,7 @@
+name = "og-bot"
+main = "og-bot.js"
+compatibility_date = "2024-01-01"
+
+routes = [
+  { pattern = "grupogerenciaglobal.com/curso/*", zone_name = "grupogerenciaglobal.com" }
+]
