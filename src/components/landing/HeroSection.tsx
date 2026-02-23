@@ -17,7 +17,7 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen bg-hero-gradient overflow-hidden flex items-center">
+    <section className="relative min-h-[100svh] md:min-h-screen bg-hero-gradient overflow-hidden flex items-center">
       {/* Background glows */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -32,7 +32,7 @@ export const HeroSection = () => {
         }}
       />
 
-      <div className="container-custom relative z-10 py-28 md:py-0">
+      <div className="container-custom relative z-10 pt-28 pb-14 md:py-0">
         <div className="max-w-3xl mx-auto text-center">
 
           {/* Badge */}
@@ -40,7 +40,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-xs md:text-sm mb-8 md:mb-10"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-xs md:text-sm mb-5 md:mb-10"
           >
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             Certificaciones válidas para el sector público y privado
@@ -51,7 +51,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5 md:mb-7"
+            className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-3 md:mb-7"
           >
             Potencia tu{" "}
             <span className="font-display italic text-accent">perfil profesional</span>
@@ -64,7 +64,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-sm md:text-base text-white/55 mb-14 md:mb-16 max-w-lg mx-auto tracking-wide px-4 md:px-0"
+            className="text-sm md:text-base text-white/55 mb-6 md:mb-16 max-w-lg mx-auto tracking-wide px-4 md:px-0"
           >
             Certificados verificables en Salud, Ingeniería y Gestión. A tu ritmo o en vivo.
           </motion.p>
@@ -74,7 +74,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="max-w-2xl mx-auto mb-16 md:mb-20 px-4 md:px-0"
+            className="max-w-2xl mx-auto mb-8 md:mb-20 px-4 md:px-0"
           >
             <div className="relative group">
               <div className="absolute inset-0 bg-accent/25 rounded-2xl blur-xl group-hover:bg-accent/35 transition-all duration-300" />
@@ -86,7 +86,7 @@ export const HeroSection = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="flex-1 px-3 py-4 text-foreground placeholder:text-muted-foreground/70 focus:outline-none text-base bg-transparent min-w-0"
+                  className="flex-1 px-3 py-3 md:py-4 text-foreground placeholder:text-muted-foreground/70 focus:outline-none text-sm md:text-base bg-transparent min-w-0"
                 />
                 <Button
                   variant="hero"
@@ -106,21 +106,21 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="flex items-center justify-center gap-6 md:gap-10 mb-10 md:mb-12"
+            className="flex items-center justify-center gap-5 md:gap-10 mb-7 md:mb-12"
           >
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white">5,000+</div>
-              <div className="text-[11px] md:text-xs text-white/50 mt-0.5 uppercase tracking-wider">Estudiantes</div>
+              <div className="text-xl md:text-3xl font-bold text-white">5,000+</div>
+              <div className="text-[10px] md:text-xs text-white/50 mt-0.5 uppercase tracking-wider">Estudiantes</div>
             </div>
-            <div className="w-px h-10 bg-white/15" />
+            <div className="w-px h-8 bg-white/15" />
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white">120+</div>
-              <div className="text-[11px] md:text-xs text-white/50 mt-0.5 uppercase tracking-wider">Cursos</div>
+              <div className="text-xl md:text-3xl font-bold text-white">120+</div>
+              <div className="text-[10px] md:text-xs text-white/50 mt-0.5 uppercase tracking-wider">Cursos</div>
             </div>
-            <div className="w-px h-10 bg-white/15" />
+            <div className="w-px h-8 bg-white/15" />
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white">98%</div>
-              <div className="text-[11px] md:text-xs text-white/50 mt-0.5 uppercase tracking-wider">Satisfacción</div>
+              <div className="text-xl md:text-3xl font-bold text-white">98%</div>
+              <div className="text-[10px] md:text-xs text-white/50 mt-0.5 uppercase tracking-wider">Satisfacción</div>
             </div>
           </motion.div>
 
