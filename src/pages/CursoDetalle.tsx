@@ -258,126 +258,122 @@ const CursoDetalle = () => {
     <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden bg-slate-900">
-        {/* Fondo: gradiente limpio sin imágenes difuminadas */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800" />
-        {/* Línea de acento sutil */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
+      {/* Hero Section — imagen del curso como fondo con gradiente */}
+      <section className="relative overflow-hidden min-h-[500px] lg:min-h-[540px] flex items-end">
 
-        <div className="container-custom relative z-10">
-          <div className="grid lg:grid-cols-5 gap-10 lg:gap-14 items-start">
+        {/* Fondo: imagen del curso a pantalla completa */}
+        <div className="absolute inset-0">
+          <img
+            src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1600&h=900&fit=crop"}
+            alt={course.title}
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Gradiente izquierda → derecha: oscuro donde está el texto */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/97 via-slate-950/80 to-slate-950/30 lg:to-slate-950/10" />
+          {/* Gradiente superior para la navbar */}
+          <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-slate-950/70 to-transparent" />
+          {/* Gradiente inferior — se funde con el fondo de la página */}
+          <div className="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-background to-transparent" />
+        </div>
 
-            {/* Columna izquierda: textos */}
-            <div className="lg:col-span-3 space-y-5">
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="space-y-5"
-              >
-                {/* Breadcrumb */}
-                <div className="flex items-center gap-1.5 text-slate-400 text-sm flex-wrap">
-                  <Link to="/" className="hover:text-white transition-colors">Inicio</Link>
-                  <span className="text-slate-600">/</span>
-                  <Link to="/catalogo" className="hover:text-white transition-colors">Catálogo</Link>
-                  <span className="text-slate-600">/</span>
-                  <span className="text-accent font-medium">{getCategoryLabel(course.category) || "General"}</span>
-                </div>
+        {/* Línea de acento superior */}
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-accent/70 to-transparent" />
 
-                {/* Badges */}
-                <div className="flex flex-wrap gap-2">
-                  {course.modality === 'live' ? (
-                    <span className="inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-3 py-1 text-xs font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                      En Vivo
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-semibold">
-                      <MonitorPlay className="w-3 h-3" />
-                      100% Online
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1.5 bg-accent/10 text-accent border border-accent/20 rounded-full px-3 py-1 text-xs font-semibold">
-                    <Award className="w-3 h-3" />
-                    Certificado Incluido
-                  </span>
-                </div>
-
-                {/* Imagen (solo mobile) */}
-                <div className="block lg:hidden rounded-xl overflow-hidden shadow-xl border border-white/10 aspect-video">
-                  <img
-                    src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
-                    alt={course.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                {/* Título */}
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-snug">
-                  {course.title}
-                </h1>
-
-                {/* Stats en línea */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300 border-t border-white/10 pt-5">
-                  <span className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="font-semibold text-white">4.9</span>
-                    <span className="text-slate-500">valoración</span>
-                  </span>
-                  <span className="text-slate-600">|</span>
-                  <span className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-accent" />
-                    <span className="font-semibold text-white">{displayStudents}</span>
-                    <span className="text-slate-500">alumnos</span>
-                  </span>
-                  <span className="text-slate-600">|</span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <span className="font-semibold text-white">{duration}</span>
-                  </span>
-                </div>
-
-                {/* Instructor */}
-                <div className="flex items-center gap-3 pt-1">
-                  <img
-                    src={course.instructor?.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
-                    alt={course.instructor?.name || "Instructor"}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-accent/40 bg-slate-700 flex-shrink-0"
-                  />
-                  <div>
-                    <div className="text-xs text-slate-500 leading-none mb-0.5">Impartido por</div>
-                    <div className="text-white font-semibold text-sm">{course.instructor?.name || "Docente Especialista"}</div>
-                    <div className="text-accent text-xs">{course.instructor?.title || "Experto en la materia"}</div>
-                  </div>
-                </div>
-              </motion.div>
+        <div className="container-custom relative z-10 pt-24 lg:pt-32 pb-20 lg:pb-24 w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+            className="max-w-2xl lg:max-w-[58%] space-y-4 lg:space-y-5"
+          >
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-1.5 text-slate-400 text-sm flex-wrap">
+              <Link to="/" className="hover:text-white transition-colors">Inicio</Link>
+              <span className="text-slate-600">/</span>
+              <Link to="/catalogo" className="hover:text-white transition-colors">Catálogo</Link>
+              <span className="text-slate-600">/</span>
+              <span className="text-accent font-medium">{getCategoryLabel(course.category) || "General"}</span>
             </div>
 
-            {/* Columna derecha: imagen del curso (desktop) */}
-            <div className="hidden lg:block lg:col-span-2">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video"
-              >
-                <img
-                  src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                />
-              </motion.div>
+            {/* Badges */}
+            <div className="flex flex-wrap gap-2">
+              {course.modality === 'live' ? (
+                <span className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-300 border border-red-500/25 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                  En Vivo
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+                  <MonitorPlay className="w-3 h-3" />
+                  100% Online
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 bg-accent/15 text-accent border border-accent/25 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+                <Award className="w-3 h-3" />
+                Certificado Incluido
+              </span>
             </div>
 
-          </div>
+            {/* Imagen del curso solo en mobile (encima del título) */}
+            <div className="block lg:hidden rounded-xl overflow-hidden aspect-video border border-white/10 shadow-xl">
+              <img
+                src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
+                alt={course.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Título */}
+            <h1 className="text-2xl sm:text-3xl lg:text-[2.4rem] font-bold text-white leading-tight tracking-tight">
+              {course.title}
+            </h1>
+
+            {/* Subtítulo si existe */}
+            {course.subtitle && (
+              <p className="text-slate-300 text-base lg:text-lg leading-relaxed">
+                {course.subtitle}
+              </p>
+            )}
+
+            {/* Stats como chips */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                <span className="text-white font-semibold text-xs">4.9</span>
+                <span className="text-slate-400 text-xs">valoración</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                <Users className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                <span className="text-white font-semibold text-xs">{displayStudents}</span>
+                <span className="text-slate-400 text-xs">alumnos</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                <Clock className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+                <span className="text-white font-semibold text-xs">{duration}</span>
+              </div>
+            </div>
+
+            {/* Instructor */}
+            <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+              <img
+                src={course.instructor?.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
+                alt={course.instructor?.name || "Instructor"}
+                className="w-11 h-11 rounded-full object-cover ring-2 ring-accent/50 bg-slate-800 flex-shrink-0"
+              />
+              <div>
+                <div className="text-xs text-slate-500 leading-none mb-0.5">Impartido por</div>
+                <div className="text-white font-semibold text-sm leading-snug">{course.instructor?.name || "Docente Especialista"}</div>
+                <div className="text-accent text-xs">{course.instructor?.title || "Experto en la materia"}</div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Main Content & Sticky Sidebar */}
-      <section className="relative z-30 pb-20">
+      <section className="relative z-30 pb-20 bg-background">
         <div className="container-custom">
-          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 pt-10 relative z-40">
+          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 pt-8 relative z-40">
 
             {/* Sticky Sidebar (First in JSX for Mobile) */}
             <div className="lg:col-span-1 lg:order-2">
