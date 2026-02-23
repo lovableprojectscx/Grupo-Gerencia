@@ -50,7 +50,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 md:mb-6"
+            className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6 md:mb-10"
           >
             Potencia tu{" "}
             <span className="font-display italic text-accent">perfil profesional</span>
@@ -63,7 +63,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base md:text-lg text-white/75 mb-8 md:mb-10 max-w-xl mx-auto px-4 md:px-0"
+            className="text-base md:text-lg text-white/75 mb-10 md:mb-14 max-w-xl mx-auto px-4 md:px-0"
           >
             Certificados verificables en Salud, Ingeniería y Gestión. A tu ritmo o en vivo.
           </motion.p>
