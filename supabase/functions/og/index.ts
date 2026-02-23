@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
         (course.description || "").slice(0, 200) ||
         "Potencia tu perfil profesional con educación de calidad."
     );
-    const image = course.image_url || DEFAULT_IMAGE;
+    const image = optimizeImage(course.image_url || DEFAULT_IMAGE, SUPABASE_URL);
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -76,13 +76,13 @@ Deno.serve(async (req: Request) => {
 </body>
 </html>`;
 
-    return new Response(html, {
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "cache-control": "public, max-age=3600, s-maxage=3600",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    const headers = new Headers();
+    headers.set("content-type", "text/html; charset=utf-8");
+    headers.set("x-content-type-options", "nosniff");
+    headers.set("cache-control", "public, max-age=3600, s-maxage=3600");
+    headers.set("Access-Control-Allow-Origin", "*");
+
+    return new Response(html, { status: 200, headers });
   } catch (_e) {
     return Response.redirect(redirect);
   }
@@ -94,4 +94,18 @@ function esc(str: string): string {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** Convierte URL de Supabase Storage al endpoint de transformación de imágenes.
+ *  WhatsApp rechaza imágenes >300 KB; la transformación las sirve ~60–100 KB. */
+function optimizeImage(imageUrl: string, supabaseUrl: string): string {
+  if (!imageUrl) return imageUrl;
+  // Detectar si es una URL de Supabase Storage
+  const storagePublic = `${supabaseUrl}/storage/v1/object/public/`;
+  const renderPublic  = `${supabaseUrl}/storage/v1/render/image/public/`;
+  if (imageUrl.startsWith(storagePublic)) {
+    const path = imageUrl.slice(storagePublic.length);
+    return `${renderPublic}${path}?width=1200&height=630&resize=cover&quality=80`;
+  }
+  return imageUrl;
 }
