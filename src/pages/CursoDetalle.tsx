@@ -188,7 +188,7 @@ const CursoDetalle = () => {
   const handleEnrollClick = () => {
     if (!user) {
       toast.error("Inicia sesión para inscribirte");
-      navigate("/login");
+      navigate("/login", { state: { from: `/checkout/${id}` } });
       return;
     }
     navigate(`/checkout/${id}`);

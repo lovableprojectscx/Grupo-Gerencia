@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import AuthLayout from "@/components/auth/AuthLayout";
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = (location.state as any)?.from || "/dashboard";
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -30,7 +32,7 @@ export default function Login() {
             if (error) throw error;
 
             toast.success("Bienvenido de nuevo");
-            navigate("/dashboard");
+            navigate(from, { replace: true });
         } catch (error: any) {
             toast.error(error.message || "Error al iniciar sesión");
         } finally {
@@ -81,7 +83,7 @@ export default function Login() {
             </form>
             <div className="mt-4 text-center text-sm">
                 <span className="text-muted-foreground">¿No tienes cuenta? </span>
-                <Link to="/register" className="text-primary hover:underline font-medium">
+                <Link to="/register" state={{ from }} className="text-primary hover:underline font-medium">
                     Regístrate aquí
                 </Link>
             </div>

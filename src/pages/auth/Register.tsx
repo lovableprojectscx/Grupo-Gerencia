@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import AuthLayout from "@/components/auth/AuthLayout";
 
 export default function Register() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = (location.state as any)?.from || "/dashboard";
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         fullName: "",
@@ -43,7 +45,7 @@ export default function Register() {
             if (authData.user) {
                 // Profile is now created automatically by DB Trigger
                 toast.success("Cuenta creada exitosamente");
-                navigate("/dashboard");
+                navigate(from, { replace: true });
             }
         } catch (error: any) {
             console.error(error);
@@ -126,7 +128,7 @@ export default function Register() {
             </form>
             <div className="mt-4 text-center text-sm">
                 <span className="text-muted-foreground">¿Ya tienes cuenta? </span>
-                <Link to="/login" className="text-primary hover:underline font-medium">
+                <Link to="/login" state={{ from }} className="text-primary hover:underline font-medium">
                     Iniciar sesión
                 </Link>
             </div>
