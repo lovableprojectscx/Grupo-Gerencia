@@ -58,17 +58,6 @@ export const HeroSection = () => {
             {" "}con educación de calidad
           </motion.h1>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base md:text-xl text-white/80 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4 md:px-0"
-          >
-            Cursos especializados en Salud, Ingeniería y Gestión con certificados
-            digitales verificables. Aprende a tu ritmo o en vivo con expertos.
-          </motion.p>
-
           {/* Search Bar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
