@@ -77,6 +77,43 @@ const CursoDetalle = () => {
     enabled: !!id
   });
 
+  // Actualizar título y meta tags de Open Graph dinámicamente
+  useEffect(() => {
+    if (!course) return;
+
+    const siteName = "Gerencia y Desarrollo Global";
+    const pageTitle = `${course.title} | ${siteName}`;
+    const description = course.subtitle || course.description?.slice(0, 160) || "Curso especializado con certificado verificable.";
+    const image = course.image_url || "https://grupogerenciaglobal.com/og-default.jpg";
+    const url = window.location.href;
+
+    document.title = pageTitle;
+
+    const setMeta = (selector: string, attr: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr === "content" ? "property" : "name", selector.match(/\[(?:property|name)="([^"]+)"\]/)?.[1] ?? "");
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta('meta[property="og:title"]',       "content", pageTitle);
+    setMeta('meta[property="og:description"]', "content", description);
+    setMeta('meta[property="og:image"]',        "content", image);
+    setMeta('meta[property="og:url"]',          "content", url);
+    setMeta('meta[property="og:type"]',         "content", "product");
+    setMeta('meta[name="description"]',         "content", description);
+    setMeta('meta[name="twitter:title"]',       "content", pageTitle);
+    setMeta('meta[name="twitter:description"]', "content", description);
+    setMeta('meta[name="twitter:image"]',       "content", image);
+
+    return () => {
+      document.title = `${siteName} - Cursos Especializados y Certificaciones`;
+    };
+  }, [course]);
+
   // Check enrollment status
   const { data: enrollment, isLoading: loadingEnrollment } = useQuery({
     queryKey: ["enrollment", id, user?.id],
