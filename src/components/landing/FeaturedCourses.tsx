@@ -108,40 +108,42 @@ export const FeaturedCourses = () => {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : featuredCourses.length > 0 ? (
-          <div ref={scrollRef} onScroll={handleScroll} className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:pb-0 sm:mx-0 sm:px-0 lg:grid-cols-4 sm:gap-6">
-            {featuredCourses.map((course) => (
-              <div key={course.id} className="snap-start shrink-0 w-[80vw] sm:w-auto">
-                <CourseCard
-                  id={course.slug || course.id}
-                  image={course.image_url || "/placeholder-course.jpg"}
-                  title={course.title}
-                  instructor={course.instructor?.name || "Instructor"}
-                  price={course.price}
-                  originalPrice={course.original_price}
-                  rating={5.0}
-                  students={course.students || 0}
-                  duration="Flexible"
-                  category={course.category}
-                  specialty={course.specialty}
-                  level={course.level}
+          <>
+            <div ref={scrollRef} onScroll={handleScroll} className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:pb-0 sm:mx-0 sm:px-0 lg:grid-cols-4 sm:gap-6">
+              {featuredCourses.map((course) => (
+                <div key={course.id} className="snap-start shrink-0 w-[80vw] sm:w-auto">
+                  <CourseCard
+                    id={course.slug || course.id}
+                    image={course.image_url || "/placeholder-course.jpg"}
+                    title={course.title}
+                    instructor={course.instructor?.name || "Instructor"}
+                    price={course.price}
+                    originalPrice={course.original_price}
+                    rating={5.0}
+                    students={course.students || 0}
+                    duration="Flexible"
+                    category={course.category}
+                    specialty={course.specialty}
+                    level={course.level}
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Dots indicadores — solo mobile */}
+            <div className="flex items-center justify-center gap-2 mt-5 sm:hidden">
+              {featuredCourses.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => scrollToIndex(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    i === currentIndex
+                      ? "w-5 h-2 bg-primary"
+                      : "w-2 h-2 bg-border hover:bg-muted-foreground"
+                  }`}
                 />
-              </div>
-            ))}
-          </div>
-          {/* Dots indicadores — solo mobile */}
-          <div className="flex items-center justify-center gap-2 mt-5 sm:hidden">
-            {featuredCourses.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => scrollToIndex(i)}
-                className={`rounded-full transition-all duration-300 ${
-                  i === currentIndex
-                    ? "w-5 h-2 bg-primary"
-                    : "w-2 h-2 bg-border hover:bg-muted-foreground"
-                }`}
-              />
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
             No hay cursos destacados disponibles en este momento.
