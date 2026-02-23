@@ -70,7 +70,8 @@ export const Navbar = () => {
     location.pathname === "/" ||
     location.pathname === "/catalogo" ||
     location.pathname === "/nosotros" ||
-    location.pathname === "/verificar";
+    location.pathname === "/verificar" ||
+    location.pathname.startsWith("/curso/");
 
   return (
     <>
