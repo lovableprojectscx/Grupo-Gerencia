@@ -20,6 +20,63 @@ import fontkit from '@pdf-lib/fontkit';
 
 // ... (imports)
 
+interface CertificateDetails {
+    id: string;
+    code: string;
+    registration_number?: number;
+    issued_at: string;
+    metadata?: {
+        student_name?: string;
+        student_dni?: string;
+        registration_number?: number;
+        generated_at?: string;
+        template_snapshot?: any;
+        [key: string]: any;
+    };
+    enrollment?: {
+        student?: {
+            full_name?: string;
+            dni?: string;
+        };
+        course?: {
+            title?: string;
+            certificate_template?: any;
+            metadata?: { key: string; value: string }[];
+        };
+    };
+}
+
+// Función pura para resolver visibilidad y valor de campos de horas.
+// Centraliza la lógica usada tanto en el render JSX como en drawFields.
+function resolveHoursField(
+    field: any,
+    allFields: any[],
+    mode: 'academic' | 'lecture',
+    certMeta: any,
+    courseMeta: { key: string; value: string }[]
+): { visible: boolean; value?: string } {
+    const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
+    const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
+
+    if (!isAcademicField && !isLectureField) return { visible: true };
+
+    if (mode === 'academic' && isLectureField) {
+        const templateHasAcademic = allFields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
+        if (templateHasAcademic) return { visible: false };
+        const value = certMeta?.["Horas Académicas"] || courseMeta?.find((m) => m.key === "Horas Académicas")?.value || "";
+        return { visible: true, value };
+    }
+
+    if (mode === 'lecture' && isAcademicField) {
+        const templateHasLecture = allFields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
+        if (templateHasLecture) return { visible: false };
+        const value = certMeta?.["Horas Lectivas"] || courseMeta?.find((m) => m.key === "Horas Lectivas")?.value || "";
+        return { visible: true, value };
+    }
+
+    return { visible: true };
+}
+
 // Font URL Mapping (using Google Fonts GitHub Raw -> Static TTF for maximum compatibility)
 // pdf-lib/fontkit has trouble with Variable Fonts (Var) and WOFF2 sometimes. Static TTFs are safest.
 const FONT_URLS: Record<string, string> = {
@@ -42,10 +99,16 @@ const SmartText = ({
     fontFamily,
     boxWidthPercent,
     boxHeightPercent,
-    fieldId
+    fieldId,
+    isMultiLine: isMultiLineProp
 }: any) => {
     const textRef = useRef<HTMLDivElement>(null);
     const [currentFontSize, setCurrentFontSize] = useState(fontSize);
+
+    // Prop explícita tiene prioridad; fallback a detección por ID solo si no está definida
+    const isMultiLine = isMultiLineProp !== undefined
+        ? isMultiLineProp
+        : (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso")));
 
     // Reset when text or base fontSize changes
     useEffect(() => {
@@ -57,13 +120,10 @@ const SmartText = ({
         if (!el || !el.parentElement) return;
 
         const container = el.parentElement;
-        if (!container) return; // Should not happen if mounted
+        if (!container) return;
 
-        // Dimensions of the "Box" in pixels
         const boxW_px = (boxWidthPercent / 100) * container.clientWidth;
         const boxH_px = (boxHeightPercent / 100) * container.clientHeight;
-
-        const isMultiLine = fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"));
 
         const checkFit = () => {
             if (isMultiLine) {
@@ -71,21 +131,18 @@ const SmartText = ({
                     setCurrentFontSize(prev => Math.max(20, prev * 0.90));
                 }
             } else {
-                // Strict single line shrink to fit width
                 if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 8) {
                     setCurrentFontSize(prev => Math.max(8, prev * 0.95));
                 }
             }
         };
 
-        // Run immediately
         checkFit();
 
-        // And retry briefly to catch layout shifts/font loading
         const timer = setTimeout(checkFit, 50);
         return () => clearTimeout(timer);
 
-    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize]); // Dependencies trigger re-run until fit
+    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize, isMultiLine]);
 
     return (
         <div
@@ -96,24 +153,22 @@ const SmartText = ({
                 top: `${y}%`,
                 transform: "translate(-50%, -50%)",
 
-                // Box Model Props
                 width: `${boxWidthPercent}%`,
                 height: `${boxHeightPercent}%`,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                overflow: 'hidden', // Clip to box
+                overflow: 'hidden',
 
                 fontSize: `${currentFontSize}px`,
                 color: color,
                 fontFamily: fontFamily,
                 textAlign: "center",
                 fontWeight: "bold",
-                lineHeight: 1.15, // Professional tight line height for multi-line
+                lineHeight: 1.15,
 
-                // UPDATED: Single line constraint for names, multi-line for course
-                whiteSpace: (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"))) ? "pre-wrap" : "nowrap",
-                wordBreak: (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"))) ? "break-word" : "normal",
+                whiteSpace: isMultiLine ? "pre-wrap" : "nowrap",
+                wordBreak: isMultiLine ? "break-word" : "normal",
 
                 transition: "font-size 0.1s ease-out"
             }}
@@ -128,6 +183,8 @@ export default function CertificateViewer() {
     const { id } = useParams();
     const certificateRef = useRef<HTMLDivElement>(null);
     const backPageRef = useRef<HTMLDivElement>(null);
+    // Caché de ArrayBuffers de fuentes para pre-carga antes de descargar PDF
+    const fontCacheRef = useRef<Record<string, ArrayBuffer>>({});
 
     const [aspectRatio, setAspectRatio] = useState(1.414);
     const [containerWidth, setContainerWidth] = useState<number>(800);
@@ -137,7 +194,7 @@ export default function CertificateViewer() {
         setAspectRatio(ratio);
     };
 
-    const { data: certificate, isLoading, error } = useQuery({
+    const { data: certificate, isLoading, error } = useQuery<CertificateDetails>({
         queryKey: ["certificate", id],
         queryFn: async () => {
             const { data, error } = await supabase
@@ -146,7 +203,15 @@ export default function CertificateViewer() {
             if (error) throw error;
             if (!data) throw new Error("Certificate not found");
 
-            // Ensure fields have boxWidth defaults if missing (migration on read)
+            // Migrar campos legacy (maxWidth → boxWidth) en template_snapshot
+            if (data.metadata?.template_snapshot?.fields) {
+                data.metadata.template_snapshot.fields = data.metadata.template_snapshot.fields.map((f: any) => ({
+                    ...f,
+                    boxWidth: f.boxWidth || f.maxWidth || 30,
+                    boxHeight: f.boxHeight || 10
+                }));
+            }
+            // Migrar campos legacy en la plantilla actual del curso
             if (data.enrollment?.course?.certificate_template?.fields) {
                 data.enrollment.course.certificate_template.fields = data.enrollment.course.certificate_template.fields.map((f: any) => ({
                     ...f,
@@ -160,7 +225,10 @@ export default function CertificateViewer() {
     });
 
     // Derived values for Hooks
-    const template = certificate?.enrollment?.course?.certificate_template || {};
+    // template_snapshot preserva el diseño en el momento de emisión; fallback al template actual del curso
+    const template = certificate?.metadata?.template_snapshot
+        || certificate?.enrollment?.course?.certificate_template
+        || {};
     const adminHoursType = template?.hoursType || 'academic';
 
     // State for hours mode
@@ -210,6 +278,23 @@ export default function CertificateViewer() {
         resizeObserver.observe(certificateRef.current);
         return () => resizeObserver.disconnect();
     }, [showChoiceScreen, isLoading]); // Re-run when view appears
+
+    // Pre-carga de fuentes personalizadas en background para evitar demora al descargar PDF
+    useEffect(() => {
+        if (!template?.fields) return;
+        const fontsToLoad: string[] = [...new Set<string>(
+            template.fields
+                .map((f: any) => f.fontFamily)
+                .filter((ff: string) => FONT_URLS[ff])
+        )];
+        for (const fontFamily of fontsToLoad) {
+            if (fontCacheRef.current[fontFamily]) continue;
+            fetch(FONT_URLS[fontFamily], { mode: 'cors' })
+                .then(res => res.ok ? res.arrayBuffer() : Promise.reject(new Error(`HTTP ${res.status}`)))
+                .then(buf => { fontCacheRef.current[fontFamily] = buf; })
+                .catch(() => {}); // Silencioso; getFont reintentará al descargar
+        }
+    }, [template?.fields]);
 
     const handleChoice = (mode: 'academic' | 'lecture') => {
         setHoursMode(mode);
@@ -306,13 +391,17 @@ export default function CertificateViewer() {
                     if (customFonts[fontFamily]) return customFonts[fontFamily];
 
                     try {
-                        console.log(`Fetching font: ${fontFamily} from ${FONT_URLS[fontFamily]}`);
-
-                        const response = await fetch(FONT_URLS[fontFamily], { mode: 'cors' });
-                        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-
-                        const fontBytes = await response.arrayBuffer();
-                        console.log(`Font ${fontFamily} downloaded: ${fontBytes.byteLength} bytes`);
+                        // Usar caché de pre-carga si está disponible; si no, fetch normal
+                        let fontBytes: ArrayBuffer;
+                        if (fontCacheRef.current[fontFamily]) {
+                            fontBytes = fontCacheRef.current[fontFamily];
+                        } else {
+                            console.log(`Fetching font: ${fontFamily} from ${FONT_URLS[fontFamily]}`);
+                            const response = await fetch(FONT_URLS[fontFamily], { mode: 'cors' });
+                            if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                            fontBytes = await response.arrayBuffer();
+                            fontCacheRef.current[fontFamily] = fontBytes;
+                        }
 
                         if (fontBytes.byteLength < 1000) throw new Error("Archivo de fuente corrupto o vacío");
 
@@ -374,33 +463,17 @@ export default function CertificateViewer() {
                 for (const field of fields) {
                     if (!field.visible || (field.page && field.page !== pageName)) continue;
 
-                    // Logic to swap Academic/Lecture if needed
-                    const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
-                    const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
+                    // Resolver visibilidad y valor del campo de horas via helper centralizado
+                    const hoursResult = resolveHoursField(
+                        field,
+                        fields,
+                        hoursMode,
+                        certificate?.metadata,
+                        course?.metadata || []
+                    );
+                    if (!hoursResult.visible) continue;
 
-                    // Skip if hidden by mode
-                    if (hoursMode === 'academic' && isLectureField) {
-                        const templateHasAcademic = fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
-                        if (templateHasAcademic) continue;
-                    }
-                    if (hoursMode === 'lecture' && isAcademicField) {
-                        const templateHasLecture = fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
-                        if (templateHasLecture) continue;
-                    }
-
-                    let text = getFieldValue(field);
-                    // Value swapping logic
-                    if (isAcademicField && hoursMode === 'lecture') {
-                        const templateHasLecture = fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
-                        if (!templateHasLecture) {
-                            text = certificate.metadata?.["Horas Lectivas"] || certificate.enrollment?.course?.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || "";
-                        }
-                    } else if (isLectureField && hoursMode === 'academic') {
-                        const templateHasAcademic = fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
-                        if (!templateHasAcademic) {
-                            text = certificate.metadata?.["Horas Académicas"] || certificate.enrollment?.course?.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || "";
-                        }
-                    }
+                    let text = hoursResult.value !== undefined ? hoursResult.value : getFieldValue(field);
 
                     if (!text) continue;
 
@@ -724,36 +797,19 @@ export default function CertificateViewer() {
                                             {template.fields?.map((field: any) => {
                                                 if (!field.visible || (field.page && field.page !== 'front')) return null;
 
-                                                // --- Logic for visibility same as before ---
-                                                const isAcademicField = field.label === "Horas Académicas" || field.id.includes("Horas-Académicas") || field.id.includes("Horas-Academicas");
-                                                const isLectureField = field.label === "Horas Lectivas" || field.id.includes("Horas-Lectivas");
+                                                const hoursResult = resolveHoursField(
+                                                    field,
+                                                    template.fields,
+                                                    hoursMode,
+                                                    certificate?.metadata,
+                                                    course?.metadata || []
+                                                );
+                                                if (!hoursResult.visible) return null;
 
-                                                if (hoursMode === 'academic' && isLectureField) {
-                                                    const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
-                                                    if (templateHasAcademic) return null;
-                                                }
-                                                if (hoursMode === 'lecture' && isAcademicField) {
-                                                    const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
-                                                    if (templateHasLecture) return null;
-                                                }
+                                                const displayValue = hoursResult.value !== undefined
+                                                    ? hoursResult.value
+                                                    : getFieldValue(field);
 
-                                                let displayValue = getFieldValue(field);
-
-                                                // Swap Value Logic
-                                                if (isAcademicField && hoursMode === 'lecture') {
-                                                    const templateHasLecture = template.fields.some((f: any) => f.label === "Horas Lectivas" || f.id.includes("Horas-Lectivas"));
-                                                    if (!templateHasLecture) {
-                                                        displayValue = certificate.metadata?.["Horas Lectivas"] || course.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || "";
-                                                    }
-                                                }
-                                                if (isLectureField && hoursMode === 'academic') {
-                                                    const templateHasAcademic = template.fields.some((f: any) => f.label === "Horas Académicas" || f.id.includes("Horas-Académicas"));
-                                                    if (!templateHasAcademic) {
-                                                        displayValue = certificate.metadata?.["Horas Académicas"] || course.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || "";
-                                                    }
-                                                }
-
-                                                // Sizing: Scale font based on container width ratio
                                                 const finalFontSize = field.fontSize * scaleFactor;
 
                                                 return (
@@ -768,6 +824,7 @@ export default function CertificateViewer() {
                                                         boxWidthPercent={field.boxWidth || field.maxWidth || 30}
                                                         boxHeightPercent={field.boxHeight || 10}
                                                         fieldId={field.id}
+                                                        isMultiLine={field.isMultiLine}
                                                     />
                                                 );
                                             })}
@@ -807,6 +864,7 @@ export default function CertificateViewer() {
                                                         boxWidthPercent={field.boxWidth || field.maxWidth || 30}
                                                         boxHeightPercent={field.boxHeight || 10}
                                                         fieldId={field.id}
+                                                        isMultiLine={field.isMultiLine}
                                                     />
                                                 )
                                             })}

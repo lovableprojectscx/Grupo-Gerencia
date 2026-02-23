@@ -21,9 +21,10 @@ interface FieldPosition {
     color: string;
     fontFamily: string;
     visible: boolean;
+    isMultiLine?: boolean;
     value?: string;
     page?: "front" | "back";
-    maxWidth?: number; // Legacy: kept for migration but UI will prefer boxWidth
+    maxWidth?: number; // Legacy: kept for migration only, UI uses boxWidth
     boxWidth?: number; // Percentage of container width
     boxHeight?: number; // Percentage of container height
 }
@@ -31,7 +32,7 @@ interface FieldPosition {
 const defaultFields: FieldPosition[] = [
     { id: "studentName", label: "Nombre del Estudiante", x: 50, y: 40, fontSize: 32, color: "#000000", fontFamily: "Helvetica", visible: true, value: "Maria Elena Torres", boxWidth: 60, boxHeight: 15 },
     { id: "studentDni", label: "DNI del Estudiante", x: 50, y: 48, fontSize: 14, color: "#333333", fontFamily: "Helvetica", visible: true, value: "DNI: 12345678", boxWidth: 40, boxHeight: 10 },
-    { id: "courseName", label: "Nombre del Curso", x: 50, y: 55, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, value: "Diplomado en Cuidados Intensivos", boxWidth: 70, boxHeight: 15 },
+    { id: "courseName", label: "Nombre del Curso", x: 50, y: 55, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, isMultiLine: true, value: "Diplomado en Cuidados Intensivos", boxWidth: 70, boxHeight: 15 },
     { id: "date", label: "Fecha de Emisión", x: 50, y: 70, fontSize: 16, color: "#666666", fontFamily: "Helvetica", visible: true, value: "15 de Enero, 2026", boxWidth: 40, boxHeight: 10 },
     { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "101", boxWidth: 30, boxHeight: 10 },
 ];
@@ -51,9 +52,14 @@ interface CertificateBuilderProps {
     onTemplateChange?: (template: any) => void;
 }
 
-const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, boxWidth, boxHeight, fieldId }: any) => {
+const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, boxWidth, boxHeight, fieldId, isMultiLine: isMultiLineProp }: any) => {
     const textRef = useRef<HTMLDivElement>(null);
     const [currentFontSize, setCurrentFontSize] = useState(fontSize);
+
+    // Prop explícita tiene prioridad; fallback a detección por ID solo si no está definida
+    const isMultiLine = isMultiLineProp !== undefined
+        ? isMultiLineProp
+        : (fieldId?.includes("courseName") || fieldId?.includes("curso"));
 
     // Reset to MAX ("Slider Size") whenever content or BOX Constraints change.
     // This allows the text to "grow back" if the user enlarges the box.
@@ -66,8 +72,6 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
         if (!el || !el.parentElement) return;
 
         const parent = el.parentElement;
-
-        const isMultiLine = fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"));
 
         const checkFit = () => {
             if (isMultiLine) {
@@ -86,10 +90,6 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
 
         // Observe parent size changes (Dragging the box)
         const resizeObserver = new ResizeObserver(() => {
-            // When box resizes, we might need to reset to max to re-evaluate or just check fit.
-            // A simple approach: If box grows, we should probably reset to max and let it shrink down again to find best fit.
-            // BUT, resetting here triggers infinite loops if not careful.
-            // Best strategy: Just check fit. The 'boxWidth' prop change effect handles the massive reset.
             checkFit();
         });
 
@@ -97,7 +97,7 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
 
         return () => resizeObserver.disconnect();
 
-    }, [text, currentFontSize, maxWidthPercent, fontSize, boxWidth, boxHeight]);
+    }, [text, currentFontSize, maxWidthPercent, fontSize, boxWidth, boxHeight, isMultiLine]);
 
     return (
         <div
@@ -106,14 +106,14 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
                 fontSize: `${currentFontSize}px`,
                 color: color,
                 fontFamily: fontFamily,
-                whiteSpace: (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"))) ? "pre-wrap" : "nowrap",
-                lineHeight: 1.15, // Tight professional line height
+                whiteSpace: isMultiLine ? "pre-wrap" : "nowrap",
+                lineHeight: 1.15,
                 width: "100%",
                 display: "flex",
-                alignItems: "center", // Vertically center within the box
-                justifyContent: "center", // Horizontally center
+                alignItems: "center",
+                justifyContent: "center",
                 textAlign: "center",
-                wordBreak: (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso"))) ? "break-word" : "normal"
+                wordBreak: isMultiLine ? "break-word" : "normal"
             }}
         >
             {text}
@@ -386,15 +386,14 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             label: fieldLabel,
             x: 50,
             y: 50,
-            fontSize: 16, // Default
+            fontSize: 16,
             color: "#000000",
             fontFamily: "Helvetica",
             visible: true,
             value: value || "Texto de Ejemplo",
             page: activePage,
-            maxWidth: 85, // Deprecated/Fallback
-            boxWidth: 30, // Default 30% width
-            boxHeight: 10 // Default 10% height
+            boxWidth: 30,
+            boxHeight: 10
         };
         setFields(prev => [...prev, newField]);
         setSelectedFieldId(newField.id);
@@ -407,6 +406,19 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
     const handleSave = async () => {
         if (!courseId) return;
+
+        // Validar que existan los campos mínimos requeridos
+        const requiredIds = ['studentName', 'courseName', 'date', 'code'];
+        const missingFields = requiredIds.filter(req =>
+            !fields.some(f => f.id === req || f.id === `${req}-back`)
+        );
+        if (missingFields.length > 0) {
+            const missingLabels = missingFields.map(id =>
+                CORE_VARIABLES.find(v => v.id === id)?.label || id
+            ).join(', ');
+            toast.warning(`Campos requeridos faltantes: ${missingLabels}`);
+            return;
+        }
 
         const templateData = {
             bgImageFront,
@@ -593,6 +605,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     boxWidth={field.boxWidth}
                                     boxHeight={field.boxHeight}
                                     fieldId={field.id}
+                                    isMultiLine={field.isMultiLine}
                                 />
                             </div>
                         ))}
@@ -770,6 +783,16 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                                 <SelectItem value="Montserrat">Montserrat (Moderno)</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <Input
+                                            type="checkbox"
+                                            id="field-multiline"
+                                            checked={!!selectedField.isMultiLine}
+                                            onChange={(e) => updateField(selectedField.id, { isMultiLine: e.target.checked })}
+                                            className="h-4 w-4 cursor-pointer"
+                                        />
+                                        <Label htmlFor="field-multiline" className="text-xs cursor-pointer">Texto multilinea</Label>
                                     </div>
                                 </div>
                             </div>
