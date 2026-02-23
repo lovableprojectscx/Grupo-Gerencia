@@ -255,7 +255,7 @@ const CursoDetalle = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
+    <div className="min-h-screen bg-background font-sans selection:bg-accent/20 overflow-x-hidden w-full">
       <Navbar />
 
       {/* ── Hero ── navy del brand, imagen en columna derecha */}

@@ -125,9 +125,16 @@
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground antialiased overflow-x-hidden;
     font-family: 'Inter', system-ui, sans-serif;
+    width: 100%;
+    max-width: 100vw;
   }
 
   h1,
