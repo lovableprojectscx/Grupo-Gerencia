@@ -1,6 +1,7 @@
-const SITE_NAME = "Gerencia y Desarrollo Global";
-const SITE_URL = "https://grupogerenciaglobal.com";
-const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
+const SITE_NAME  = "Gerencia y Desarrollo Global";
+const SITE_URL   = "https://www.grupogerenciaglobal.com";
+// Proxy de imagen en el mismo dominio — evita bloqueos de WhatsApp por dominio cruzado
+const IMAGE_PROXY = `${SITE_URL}/api/og-image`;
 
 Deno.serve(async (req: Request) => {
   // CORS preflight
@@ -78,9 +79,8 @@ Deno.serve(async (req: Request) => {
     );
 
     // Construir la URL de la imagen proxeada (sin x-robots-tag: none).
-    // Usamos SUPABASE_URL para garantizar https y la ruta pública correcta.
-    const selfBase = `${SUPABASE_URL}/functions/v1/og`;
-    const image = buildProxiedImageUrl(course.image_url, SUPABASE_URL, selfBase);
+    // Las imágenes de Supabase Storage se sirven desde el mismo dominio via /api/og-image.
+    const image = buildProxiedImageUrl(course.image_url, SUPABASE_URL);
 
     // Bloque og:image solo si tenemos imagen válida
     const ogImageTags = image ? `
@@ -138,17 +138,17 @@ function esc(str: string): string {
 /**
  * Devuelve la URL de imagen para og:image:
  * - Sin imagen → null (no se emite el tag)
- * - Supabase Storage → proxy interno (?img=<path>) para eliminar x-robots-tag: none
- * - URL externa → proxy interno (?img=<url-completa>) para eliminar posibles headers bloqueantes
+ * - Supabase Storage → proxy en mismo dominio (/api/og-image?path=) para eliminar x-robots-tag: none
+ * - URL externa → usar directamente (no tienen x-robots-tag: none de Supabase)
  */
-function buildProxiedImageUrl(imageUrl: string | null, supabaseUrl: string, selfBase: string): string | null {
+function buildProxiedImageUrl(imageUrl: string | null, supabaseUrl: string): string | null {
   if (!imageUrl) return null;
   const storagePublic = `${supabaseUrl}/storage/v1/object/public/`;
   if (imageUrl.startsWith(storagePublic)) {
-    // Imagen de Supabase Storage: pasar solo el path relativo
+    // Imagen de Supabase Storage: proxy en mismo dominio para eliminar x-robots-tag: none
     const path = imageUrl.slice(storagePublic.length);
-    return `${selfBase}?img=${encodeURIComponent(path)}`;
+    return `${IMAGE_PROXY}?path=${encodeURIComponent(path)}`;
   }
-  // URL externa (WordPress, CDN externo, etc.): proxear la URL completa
-  return `${selfBase}?img=${encodeURIComponent(imageUrl)}`;
+  // URL externa (WordPress, CDN externo, etc.): usar directamente sin proxy
+  return imageUrl;
 }
