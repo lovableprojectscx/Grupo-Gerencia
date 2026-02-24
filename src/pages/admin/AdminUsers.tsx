@@ -55,17 +55,14 @@ export default function AdminUsers() {
     const [editData, setEditData] = useState({
         full_name: "",
         dni: "",
-        phone: ""
+        phone: "",
+        email: ""
     });
 
     const { data: users, isLoading } = useQuery({
         queryKey: ["admin-users"],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from("profiles")
-                .select("*")
-                .order("created_at", { ascending: false });
-
+            const { data, error } = await supabase.rpc('get_users_for_admin');
             if (error) throw error;
             return data;
         },
@@ -90,19 +87,29 @@ export default function AdminUsers() {
     });
 
     const updateProfileMutation = useMutation({
-        mutationFn: async ({ id, full_name, dni, phone }: { id: string, full_name: string, dni: string, phone: string }) => {
-            const { error } = await supabase
+        mutationFn: async ({ id, full_name, dni, phone, email, originalEmail }: { id: string, full_name: string, dni: string, phone: string, email: string, originalEmail: string }) => {
+            // Actualizar perfil
+            const { error: profileError } = await supabase
                 .from('profiles')
                 .update({ full_name, dni, phone })
                 .eq('id', id);
-            if (error) throw error;
+            if (profileError) throw profileError;
+
+            // Actualizar email solo si cambió
+            if (email.trim().toLowerCase() !== originalEmail.trim().toLowerCase()) {
+                const { error: emailError } = await supabase.rpc('update_user_email_by_admin', {
+                    target_user_id: id,
+                    new_email: email.trim()
+                });
+                if (emailError) throw emailError;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             toast.success("Perfil actualizado correctamente");
             setIsDialogOpen(false);
         },
-        onError: (e: any) => toast.error("Error al actualizar perfil: " + e.message),
+        onError: (e: any) => toast.error("Error al actualizar: " + e.message),
     });
 
     const deleteUserMutation = useMutation({
@@ -218,7 +225,8 @@ export default function AdminUsers() {
                                                     setEditData({
                                                         full_name: user.full_name || "",
                                                         dni: user.dni || "",
-                                                        phone: user.phone || ""
+                                                        phone: user.phone || "",
+                                                        email: user.email || ""
                                                     });
                                                     setIsDialogOpen(true);
                                                 }}>
@@ -272,6 +280,15 @@ export default function AdminUsers() {
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right">Correo</Label>
+                                <Input
+                                    className="col-span-3"
+                                    type="email"
+                                    value={editData.email}
+                                    onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
                                 <Label className="text-right">DNI</Label>
                                 <Input
                                     className="col-span-3"
@@ -305,6 +322,7 @@ export default function AdminUsers() {
                                 <Button
                                     onClick={() => updateProfileMutation.mutate({
                                         id: selectedUser.id,
+                                        originalEmail: selectedUser.email || "",
                                         ...editData
                                     })}
                                     disabled={updateProfileMutation.isPending}
