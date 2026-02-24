@@ -105,15 +105,22 @@ export default function Checkout() {
 
     const handleSubmit = async () => {
         if (!user) return;
-        // course.id es el UUID real — courseId del URL puede ser un slug
-        const realCourseId = course?.id;
-        if (!realCourseId) {
-            toast.error("No se pudo identificar el curso. Intenta de nuevo.");
-            return;
-        }
-
         setLoading(true);
         try {
+            // Resolver el UUID real del curso.
+            // courseId del URL puede ser un slug (ej. "nombre-del-curso") o un UUID.
+            // Hacemos una consulta directa para garantizar que siempre usamos el UUID correcto.
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const isUUID = uuidRegex.test(courseId || '');
+            const { data: courseRow, error: courseIdErr } = await supabase
+                .from('courses')
+                .select('id')
+                .eq(isUUID ? 'id' : 'slug', courseId!)
+                .maybeSingle();
+            if (courseIdErr) throw courseIdErr;
+            const realCourseId = courseRow?.id;
+            if (!realCourseId) throw new Error("Curso no encontrado");
+
             // 1. Check if already enrolled
             const { data: existing } = await supabase
                 .from('enrollments')
