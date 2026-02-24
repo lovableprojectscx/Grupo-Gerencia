@@ -17,7 +17,7 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative md:min-h-screen bg-hero-gradient overflow-hidden flex items-center">
+    <section className="relative md:min-h-screen bg-hero-gradient overflow-x-hidden flex items-center w-full">
       {/* Background glows */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -32,18 +32,18 @@ export const HeroSection = () => {
         }}
       />
 
-      <div className="container-custom relative z-10 pt-24 pb-10 md:py-0">
-        <div className="max-w-3xl mx-auto text-center">
+      <div className="container-custom relative z-10 pt-24 pb-10 md:py-0 w-full">
+        <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
 
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-xs md:text-sm mb-5 md:mb-10"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-xs md:text-sm mb-5 md:mb-10 max-w-full text-left"
           >
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            Certificaciones válidas para el sector público y privado
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
+            <span>Certificaciones válidas para el sector público y privado</span>
           </motion.div>
 
           {/* Título */}
