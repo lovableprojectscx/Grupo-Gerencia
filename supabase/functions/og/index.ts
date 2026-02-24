@@ -13,23 +13,27 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
 
   // ── Image proxy mode ──────────────────────────────────────────────────────
-  // og:image apunta aquí en vez de directamente a Supabase Storage para
-  // eliminar el header "x-robots-tag: none" que bloquea WhatsApp/Facebook.
-  const imgPath = url.searchParams.get("img");
-  if (imgPath) {
+  // og:image apunta aquí para eliminar "x-robots-tag: none" de Supabase Storage
+  // y cualquier header bloqueante de URLs externas (WordPress, CDNs, etc.).
+  const imgParam = url.searchParams.get("img");
+  if (imgParam) {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     try {
-      const imageRes = await fetch(
-        `${SUPABASE_URL}/storage/v1/render/image/public/${imgPath}?width=1200&height=630&resize=cover&quality=80`
-      );
+      // Si el parámetro es una URL completa externa, usarla directamente.
+      // Si es un path relativo, construir la URL de Supabase Storage con transformación.
+      const isFullUrl = imgParam.startsWith("http://") || imgParam.startsWith("https://");
+      const fetchUrl = isFullUrl
+        ? imgParam
+        : `${SUPABASE_URL}/storage/v1/render/image/public/${imgParam}?width=1200&height=630&resize=cover&quality=80`;
+
+      const imageRes = await fetch(fetchUrl);
       if (!imageRes.ok) return new Response("Not found", { status: 404 });
 
       const headers = new Headers();
       headers.set("content-type", imageRes.headers.get("content-type") || "image/jpeg");
       headers.set("cache-control", "public, max-age=86400, s-maxage=86400");
       headers.set("Access-Control-Allow-Origin", "*");
-      // ⚠️ No reenviar x-robots-tag: none — ese header viene de Supabase Storage
-      //    y haría que WhatsApp ignore la imagen.
+      // ⚠️ No reenviar x-robots-tag: none ni otros headers bloqueantes
       return new Response(imageRes.body, { headers });
     } catch (_) {
       return new Response("Error", { status: 500 });
@@ -77,6 +81,15 @@ Deno.serve(async (req: Request) => {
     const selfBase = `${SUPABASE_URL}/functions/v1/og`;
     const image = buildProxiedImageUrl(course.image_url, SUPABASE_URL, selfBase);
 
+    // Bloque og:image solo si tenemos imagen válida
+    const ogImageTags = image ? `
+  <meta property="og:image"       content="${esc(image)}" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:image"       content="${esc(image)}" />` : `
+  <meta name="twitter:card"        content="summary" />`;
+
     const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -88,15 +101,10 @@ Deno.serve(async (req: Request) => {
   <meta property="og:url"         content="${esc(redirect)}" />
   <meta property="og:site_name"   content="${SITE_NAME}" />
   <meta property="og:title"       content="${title}" />
-  <meta property="og:description" content="${description}" />
-  <meta property="og:image"       content="${esc(image)}" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:description" content="${description}" />${ogImageTags}
 
-  <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="${title}" />
   <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image"       content="${esc(image)}" />
 
   <meta http-equiv="refresh" content="0;url=${esc(redirect)}" />
 </head>
@@ -127,16 +135,19 @@ function esc(str: string): string {
 }
 
 /**
- * Si la imagen está en Supabase Storage, devuelve la URL del proxy interno
- * (la misma edge function con ?img=<path>) para evitar el header x-robots-tag: none.
- * Si no, devuelve la URL original.
+ * Devuelve la URL de imagen para og:image:
+ * - Sin imagen → null (no se emite el tag)
+ * - Supabase Storage → proxy interno (?img=<path>) para eliminar x-robots-tag: none
+ * - URL externa → proxy interno (?img=<url-completa>) para eliminar posibles headers bloqueantes
  */
-function buildProxiedImageUrl(imageUrl: string, supabaseUrl: string, selfBase: string): string {
-  if (!imageUrl) return DEFAULT_IMAGE;
+function buildProxiedImageUrl(imageUrl: string | null, supabaseUrl: string, selfBase: string): string | null {
+  if (!imageUrl) return null;
   const storagePublic = `${supabaseUrl}/storage/v1/object/public/`;
   if (imageUrl.startsWith(storagePublic)) {
+    // Imagen de Supabase Storage: pasar solo el path relativo
     const path = imageUrl.slice(storagePublic.length);
     return `${selfBase}?img=${encodeURIComponent(path)}`;
   }
-  return imageUrl;
+  // URL externa (WordPress, CDN externo, etc.): proxear la URL completa
+  return `${selfBase}?img=${encodeURIComponent(imageUrl)}`;
 }
