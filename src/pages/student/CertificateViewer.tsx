@@ -459,7 +459,11 @@ export default function CertificateViewer() {
 
             // Draw Fields on Front
             const drawFields = async (page: any, fields: any[], pageName: string) => {
-                const pdfScale = page.getWidth() / 800;
+                // containerWidth es el ancho real del canvas HTML del viewer.
+                // Los fontSize del template fueron calibrados en ese mismo ancho,
+                // así que usarlo como referencia garantiza fidelidad HTML → PDF.
+                const refWidth = containerWidth > 0 ? containerWidth : 800;
+                const pdfScale = page.getWidth() / refWidth;
 
                 for (const field of fields) {
                     if (!field.visible || (field.page && field.page !== pageName)) continue;
