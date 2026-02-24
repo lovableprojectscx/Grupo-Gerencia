@@ -19,22 +19,20 @@ export const HeroSection = () => {
   return (
     <section
       className="relative bg-hero-gradient flex items-center min-h-screen"
-      style={{ isolation: "isolate" }}
+      style={{ isolation: "isolate", transform: "translateZ(0)", WebkitTransform: "translateZ(0)" }}
     >
+      {/* Background glows — contenidos en su propio clip para Safari */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-accent/8 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+      </div>
+
       {/* Grid pattern */}
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/G%3E%3C/svg%3E")`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }}
-      />
-
-      {/* Subtle color accent — CSS gradient, no filter:blur */}
-      <div className="absolute top-0 right-0 w-1/2 h-1/2 opacity-10 pointer-events-none"
-        style={{ background: "radial-gradient(circle at top right, hsl(160 84% 39%), transparent 70%)" }}
-      />
-      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 opacity-10 pointer-events-none"
-        style={{ background: "radial-gradient(circle at bottom left, hsl(160 84% 39%), transparent 70%)" }}
       />
 
       <div className="w-full px-4 sm:px-6 lg:px-8 relative z-10 pt-24 pb-16 md:pt-32 md:pb-20">
