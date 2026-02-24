@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/curso/:slug", "destination": "/api/curso?slug=:slug" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
