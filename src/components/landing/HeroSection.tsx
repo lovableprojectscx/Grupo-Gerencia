@@ -17,7 +17,7 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative md:min-h-screen bg-hero-gradient overflow-x-hidden flex items-center w-full">
+    <section className="relative md:min-h-screen bg-hero-gradient overflow-hidden flex items-center w-full">
       {/* Background glows */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -32,8 +32,8 @@ export const HeroSection = () => {
         }}
       />
 
-      <div className="container-custom relative z-10 pt-24 pb-10 md:py-0 w-full">
-        <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
+      <div className="container-custom relative z-10 pt-24 pb-10 md:py-0">
+        <div className="max-w-3xl mx-auto text-center">
 
           {/* Badge */}
           <motion.div

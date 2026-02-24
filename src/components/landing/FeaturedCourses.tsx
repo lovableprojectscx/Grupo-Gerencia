@@ -75,7 +75,7 @@ export const FeaturedCourses = () => {
   };
 
   return (
-    <section className="section-padding bg-background">
+    <section className="section-padding bg-background overflow-hidden">
       <div className="container-custom">
         {/* Section Header */}
         <motion.div
@@ -109,9 +109,9 @@ export const FeaturedCourses = () => {
           </div>
         ) : featuredCourses.length > 0 ? (
           <>
-            <div ref={scrollRef} onScroll={handleScroll} className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:pb-0 sm:mx-0 sm:px-0 lg:grid-cols-4 sm:gap-6">
+            <div ref={scrollRef} onScroll={handleScroll} className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:pb-0 lg:grid-cols-4 sm:gap-6">
               {featuredCourses.map((course) => (
-                <div key={course.id} className="snap-start shrink-0 w-[80vw] sm:w-auto">
+                <div key={course.id} className="snap-start shrink-0 w-[85vw] sm:w-auto">
                   <CourseCard
                     id={course.slug || course.id}
                     image={course.image_url || "/placeholder-course.jpg"}

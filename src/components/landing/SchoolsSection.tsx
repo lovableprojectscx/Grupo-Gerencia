@@ -142,7 +142,7 @@ export const SchoolsSection = () => {
   };
 
   return (
-    <section className="section-padding bg-background">
+    <section className="section-padding bg-background overflow-hidden">
       <div className="container-custom">
         {/* Section Header */}
         <motion.div
@@ -168,14 +168,14 @@ export const SchoolsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:grid md:grid-cols-2 md:overflow-visible md:snap-none md:pb-0 md:mx-0 md:px-0 lg:grid-cols-3 md:gap-6 lg:gap-8"
+          className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:grid md:grid-cols-2 md:overflow-visible md:snap-none md:pb-0 lg:grid-cols-3 md:gap-6 lg:gap-8"
           onScroll={handleScroll}
         >
           {schoolsConfig.map((school) => {
             const count = getCourseCount(school.categoryKey);
 
             return (
-              <div key={school.id} className="snap-start shrink-0 w-[78vw] md:w-auto md:shrink">
+              <div key={school.id} className="snap-start shrink-0 w-[85vw] sm:w-[45vw] md:w-auto md:shrink">
                 <Link
                   to={school.href}
                   className="group block h-full"

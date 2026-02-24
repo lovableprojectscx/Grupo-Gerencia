@@ -38,7 +38,7 @@ const institutions = [
 
 export const TestimonialsSection = () => {
   return (
-    <section id="testimonials" className="section-padding bg-secondary/30">
+    <section id="testimonials" className="section-padding bg-secondary/30 overflow-hidden">
       <div className="container-custom">
         {/* Section Header */}
         <motion.div
