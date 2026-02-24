@@ -114,7 +114,8 @@ export default async function middleware(request: Request) {
 
     const headers = new Headers();
     headers.set("content-type", "text/html; charset=utf-8");
-    headers.set("cache-control", "public, max-age=3600");
+    headers.set("cache-control", "no-store");
+    headers.set("x-og-version", "v2-same-domain"); // debug: confirmar versión activa
     return new Response(html, { status: 200, headers });
   } catch {
     return next();
