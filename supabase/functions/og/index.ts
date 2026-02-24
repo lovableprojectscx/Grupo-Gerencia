@@ -22,9 +22,10 @@ Deno.serve(async (req: Request) => {
       // Si el parámetro es una URL completa externa, usarla directamente.
       // Si es un path relativo, construir la URL de Supabase Storage con transformación.
       const isFullUrl = imgParam.startsWith("http://") || imgParam.startsWith("https://");
+      // 600×315 es suficiente para preview de WhatsApp/Facebook y pesa ~4× menos que 1200×630
       const fetchUrl = isFullUrl
         ? imgParam
-        : `${SUPABASE_URL}/storage/v1/render/image/public/${imgParam}?width=1200&height=630&resize=cover&quality=80`;
+        : `${SUPABASE_URL}/storage/v1/render/image/public/${imgParam}?width=600&height=315&resize=cover&quality=80`;
 
       const imageRes = await fetch(fetchUrl);
       if (!imageRes.ok) return new Response("Not found", { status: 404 });
@@ -84,8 +85,8 @@ Deno.serve(async (req: Request) => {
     // Bloque og:image solo si tenemos imagen válida
     const ogImageTags = image ? `
   <meta property="og:image"       content="${esc(image)}" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image:width"  content="600" />
+  <meta property="og:image:height" content="315" />
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:image"       content="${esc(image)}" />` : `
   <meta name="twitter:card"        content="summary" />`;
