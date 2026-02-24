@@ -362,7 +362,7 @@ export default function CertificateViewer() {
             // Load base PDF or create new
             if (bgFront && bgFront.toLowerCase().endsWith('.pdf')) {
                 const existingPdfBytes = await fetch(bgFront).then(res => res.arrayBuffer());
-                pdfDoc = await PDFDocument.load(existingPdfBytes);
+                pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
             } else {
                 pdfDoc = await PDFDocument.create();
             }
@@ -602,7 +602,7 @@ export default function CertificateViewer() {
                 } else {
                     if (bgBack && bgBack.toLowerCase().endsWith('.pdf')) {
                         const backPdfBytes = await fetch(bgBack).then(res => res.arrayBuffer());
-                        const backPdf = await PDFDocument.load(backPdfBytes);
+                        const backPdf = await PDFDocument.load(backPdfBytes, { ignoreEncryption: true });
                         const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
                         backPage = pdfDoc.addPage(copiedPage);
                     } else {
