@@ -329,11 +329,12 @@ export default function CertificateViewer() {
             case "date-back":
                 return issued_at ? format(new Date(issued_at), "d 'de' MMMM, yyyy", { locale: es }) : "Fecha desconocida";
             case "code":
-            case "code-back":
-                // Prioritize sequential registration number
-                if (certificate.registration_number) return `${certificate.registration_number}`;
-                if (certificate.metadata?.registration_number) return `${certificate.metadata.registration_number}`;
+            case "code-back": {
+                const regNum = certificate.registration_number ?? certificate.metadata?.registration_number;
+                const regYear = certificate.metadata?.registration_year;
+                if (regNum) return regYear ? `${regNum} - ${regYear}` : `${regNum}`;
                 return certificate.code || certificate.id;
+            }
             default:
                 if (field.id.startsWith('meta-')) {
                     const metaKey = field.label;

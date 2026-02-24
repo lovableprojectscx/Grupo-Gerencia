@@ -10,7 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award } from "lucide-react";
+import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +24,10 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +39,8 @@ export default function AdminEnrollments() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedVoucher, setSelectedVoucher] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<string | null>(null);
+    const [certDialogEnrollmentId, setCertDialogEnrollmentId] = useState<string | null>(null);
+    const [certYear, setCertYear] = useState<number>(new Date().getFullYear());
 
     // Fetch Enrollments with Pagination
     const { data, isLoading } = useQuery({
@@ -99,12 +104,14 @@ export default function AdminEnrollments() {
         onError: (error) => toast.error("Error al rechazar: " + error.message)
     });
 
-    const handleGenerateCertificate = async (enrollmentId: string) => {
-        setIsGenerating(enrollmentId);
+    const handleGenerateCertificate = async () => {
+        if (!certDialogEnrollmentId) return;
+        setIsGenerating(certDialogEnrollmentId);
         try {
-            await courseService.generateCertificate(enrollmentId, {});
-            toast.success("Certificado generado exitosamente");
+            await courseService.generateCertificate(certDialogEnrollmentId, {}, certYear);
+            toast.success(`Certificado generado — N° de registro con año ${certYear}`);
             queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+            setCertDialogEnrollmentId(null);
         } catch (e: any) {
             toast.error("Error: " + e.message);
         } finally {
@@ -313,7 +320,10 @@ export default function AdminEnrollments() {
                                                                                 variant="outline"
                                                                                 size="sm"
                                                                                 disabled={isGenerating === enrollment.id}
-                                                                                onClick={() => handleGenerateCertificate(enrollment.id)}
+                                                                                onClick={() => {
+                                                                                    setCertYear(new Date().getFullYear());
+                                                                                    setCertDialogEnrollmentId(enrollment.id);
+                                                                                }}
                                                                                 className={isGenerating === enrollment.id ? "opacity-50" : ""}
                                                                                 title="Generar Certificado Manualmente"
                                                                             >
@@ -368,6 +378,47 @@ export default function AdminEnrollments() {
                     </Button>
                 </div>
             </div>
+
+            {/* Dialog: Seleccionar año para el certificado */}
+            <Dialog open={!!certDialogEnrollmentId} onOpenChange={(open) => !open && setCertDialogEnrollmentId(null)}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CalendarDays className="w-5 h-5 text-accent" />
+                            Generar Certificado
+                        </DialogTitle>
+                        <DialogDescription>
+                            El año se mostrará en el número de registro del certificado.<br />
+                            Ejemplo: <span className="font-semibold text-foreground">101 - {certYear}</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="cert-year" className="mb-2 block">Año del certificado</Label>
+                        <Input
+                            id="cert-year"
+                            type="number"
+                            min={2020}
+                            max={2099}
+                            value={certYear}
+                            onChange={(e) => setCertYear(Number(e.target.value))}
+                            className="text-lg font-semibold"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCertDialogEnrollmentId(null)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleGenerateCertificate}
+                            disabled={!!isGenerating}
+                            className="gap-2"
+                        >
+                            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
+                            Generar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Voucher Dialog */}
             <Dialog open={!!selectedVoucher} onOpenChange={(open) => !open && setSelectedVoucher(null)}>

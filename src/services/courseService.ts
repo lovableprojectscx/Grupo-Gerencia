@@ -421,11 +421,11 @@ export const courseService = {
         if (error) throw error;
     },
 
-    async generateCertificate(enrollmentId: string, additionalMetadata: any = {}) {
-        // Use the secure RPC function to generate certificate
+    async generateCertificate(enrollmentId: string, additionalMetadata: any = {}, year?: number) {
         const { data, error } = await supabase.rpc('generate_certificate_v2', {
             p_enrollment_id: enrollmentId,
-            p_preferences: additionalMetadata
+            p_preferences: additionalMetadata,
+            ...(year ? { p_year: year } : {}),
         });
 
         if (error) throw error;

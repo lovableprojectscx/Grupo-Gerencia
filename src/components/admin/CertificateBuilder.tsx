@@ -34,7 +34,7 @@ const defaultFields: FieldPosition[] = [
     { id: "studentDni", label: "DNI del Estudiante", x: 50, y: 48, fontSize: 14, color: "#333333", fontFamily: "Helvetica", visible: true, value: "DNI: 12345678", boxWidth: 40, boxHeight: 10 },
     { id: "courseName", label: "Nombre del Curso", x: 50, y: 55, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, isMultiLine: true, value: "Diplomado en Cuidados Intensivos", boxWidth: 70, boxHeight: 15 },
     { id: "date", label: "Fecha de Emisión", x: 50, y: 70, fontSize: 16, color: "#666666", fontFamily: "Helvetica", visible: true, value: "15 de Enero, 2026", boxWidth: 40, boxHeight: 10 },
-    { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "101", boxWidth: 30, boxHeight: 10 },
+    { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "101 - 2025", boxWidth: 30, boxHeight: 10 },
 ];
 
 const CORE_VARIABLES = [
@@ -42,7 +42,7 @@ const CORE_VARIABLES = [
     { id: "studentDni", label: "DNI del Estudiante", value: "DNI: 12345678" },
     { id: "courseName", label: "Nombre del Curso", value: "Diplomado en Cuidados Intensivos" },
     { id: "date", label: "Fecha de Emisión", value: "15 de Enero, 2026" },
-    { id: "code", label: "Número de Registro", value: "101" },
+    { id: "code", label: "Número de Registro", value: "101 - 2025" },
 ];
 
 interface CertificateBuilderProps {
