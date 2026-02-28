@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Upload, Building, Smartphone, QrCode, FileImage } from "lucide-react";
+import { Save, Upload, Building, Smartphone, QrCode, FileImage, LayoutTemplate } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { PaymentMethodsManager } from "@/components/admin/PaymentMethodsManager";
+import { CertificateBuilder } from "@/components/admin/CertificateBuilder";
 
 export default function AdminSettings() {
     const { settings, loading: settingsLoading, refetch } = useSiteSettings();
@@ -98,6 +99,10 @@ export default function AdminSettings() {
                 <TabsList className="bg-card border border-border p-1">
                     <TabsTrigger value="general" className="px-6">Identidad y Marca</TabsTrigger>
                     <TabsTrigger value="payment" className="px-6">Pagos (Yape/Plin)</TabsTrigger>
+                    <TabsTrigger value="certificate-template" className="px-6">
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        Plantilla de Certificado
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general">
@@ -161,6 +166,31 @@ export default function AdminSettings() {
 
                 <TabsContent value="payment">
                     <PaymentMethodsManager />
+                </TabsContent>
+
+                <TabsContent value="certificate-template">
+                    <Card className="mb-4">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <LayoutTemplate className="w-5 h-5" />
+                                Plantilla Global de Certificado
+                            </CardTitle>
+                            <CardDescription>
+                                Diseña un modelo base de certificado. Puedes aplicarlo como punto de partida en cualquier curso.
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                    <CertificateBuilder
+                        template={settings?.default_certificate_template}
+                        onSaveSettings={async (template) => {
+                            const { error } = await supabase
+                                .from('site_settings')
+                                .update({ default_certificate_template: template })
+                                .eq('id', settings?.id);
+                            if (error) throw error;
+                            refetch();
+                        }}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

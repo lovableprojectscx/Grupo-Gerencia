@@ -53,7 +53,7 @@ export default function AdminEnrollments() {
                     *,
                     profiles:user_id (full_name, dni, phone),
                     courses:course_id (title, price),
-                    certificates(id)
+                    certificates(id, registration_number, metadata)
                 `, { count: 'exact' });
 
             // Apply search filter on DB side if possible? 
@@ -306,15 +306,25 @@ export default function AdminEnrollments() {
                                                                 {enrollment.status === 'active' && (
                                                                     <>
                                                                         {enrollment.certificatesList && enrollment.certificatesList.length > 0 ? (
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                                                                                onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
-                                                                            >
-                                                                                <Award className="w-4 h-4 mr-2" />
-                                                                                Ver Certificado
-                                                                            </Button>
+                                                                            <div className="flex flex-col items-end gap-1">
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                                                    onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
+                                                                                >
+                                                                                    <Award className="w-4 h-4 mr-2" />
+                                                                                    Ver Certificado
+                                                                                </Button>
+                                                                                {enrollment.certificatesList[0].registration_number && (
+                                                                                    <span className="text-xs text-muted-foreground font-mono">
+                                                                                        N° {enrollment.certificatesList[0].registration_number}
+                                                                                        {enrollment.certificatesList[0].metadata?.registration_year
+                                                                                            ? ` - ${enrollment.certificatesList[0].metadata.registration_year}`
+                                                                                            : ""}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
                                                                         ) : (
                                                                             <Button
                                                                                 variant="outline"

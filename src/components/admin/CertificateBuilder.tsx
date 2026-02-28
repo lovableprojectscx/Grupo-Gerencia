@@ -32,8 +32,7 @@ interface FieldPosition {
 const defaultFields: FieldPosition[] = [
     { id: "studentName", label: "Nombre del Estudiante", x: 50, y: 40, fontSize: 32, color: "#000000", fontFamily: "Helvetica", visible: true, value: "Maria Elena Torres", boxWidth: 60, boxHeight: 15 },
     { id: "studentDni", label: "DNI del Estudiante", x: 50, y: 48, fontSize: 14, color: "#333333", fontFamily: "Helvetica", visible: true, value: "DNI: 12345678", boxWidth: 40, boxHeight: 10 },
-    { id: "courseName", label: "Nombre del Curso", x: 50, y: 55, fontSize: 24, color: "#333333", fontFamily: "Helvetica", visible: true, isMultiLine: true, value: "Diplomado en Cuidados Intensivos", boxWidth: 70, boxHeight: 15 },
-    { id: "date", label: "Fecha de Emisión", x: 50, y: 70, fontSize: 16, color: "#666666", fontFamily: "Helvetica", visible: true, value: "15 de Enero, 2026", boxWidth: 40, boxHeight: 10 },
+    { id: "date", label: "Fecha de Emisión", x: 50, y: 62, fontSize: 16, color: "#666666", fontFamily: "Helvetica", visible: true, value: "15 de Enero, 2026", boxWidth: 40, boxHeight: 10 },
     { id: "code", label: "Número de Registro", x: 80, y: 90, fontSize: 12, color: "#999999", fontFamily: "Courier New", visible: true, value: "101 - 2025", boxWidth: 30, boxHeight: 10 },
 ];
 
@@ -50,6 +49,7 @@ interface CertificateBuilderProps {
     defaultMetadata?: { key: string, value: string }[];
     template?: any;
     onTemplateChange?: (template: any) => void;
+    onSaveSettings?: (template: any) => Promise<void>;
 }
 
 const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, boxWidth, boxHeight, fieldId, isMultiLine: isMultiLineProp }: any) => {
@@ -132,7 +132,7 @@ const isUnwantedField = (field: any) => {
     return unwanted.includes(value) || unwanted.includes(id) || unwanted.includes(label);
 };
 
-export function CertificateBuilder({ courseId, defaultMetadata = [], template, onTemplateChange }: CertificateBuilderProps) {
+export function CertificateBuilder({ courseId, defaultMetadata = [], template, onTemplateChange, onSaveSettings }: CertificateBuilderProps) {
     const [activePage, setActivePage] = useState<"front" | "back">("front");
     const [bgImageFront, setBgImageFront] = useState<string | null>(null);
     const [bgImageBack, setBgImageBack] = useState<string | null>(null);
@@ -146,6 +146,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     const [uploading, setUploading] = useState(false);
     const [numPages, setNumPages] = useState<number>(0);
     const [hoursType, setHoursType] = useState<string>("academic"); // 'academic', 'lecture', 'both'
+    const [previewYear, setPreviewYear] = useState<number>(new Date().getFullYear());
 
     // Smart Guides State
     const [showVerticalGuide, setShowVerticalGuide] = useState(false);
@@ -182,6 +183,15 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     });
 
     const selectedField = fields.find(f => f.id === selectedFieldId);
+
+    // Helper: valor de vista previa para cada campo en el editor
+    const getPreviewValue = (field: FieldPosition): string => {
+        const baseId = field.id.replace(/-back$/, '');
+        if (baseId === 'code') return `N° - ${previewYear}`;
+        const coreVar = CORE_VARIABLES.find(v => v.id === baseId);
+        if (coreVar) return coreVar.value;
+        return field.value || "";
+    };
 
     // Default metadata extraction & FILTERING
     const fetchedMetadata = (defaultMetadata || []).filter(m => !isUnwantedField({ value: m.key, id: m.key, label: m.key }));
@@ -405,20 +415,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     };
 
     const handleSave = async () => {
-        if (!courseId) return;
-
-        // Validar que existan los campos mínimos requeridos
-        const requiredIds = ['studentName', 'courseName', 'date', 'code'];
-        const missingFields = requiredIds.filter(req =>
-            !fields.some(f => f.id === req || f.id === `${req}-back`)
-        );
-        if (missingFields.length > 0) {
-            const missingLabels = missingFields.map(id =>
-                CORE_VARIABLES.find(v => v.id === id)?.label || id
-            ).join(', ');
-            toast.warning(`Campos requeridos faltantes: ${missingLabels}`);
-            return;
-        }
+        if (!courseId && !onSaveSettings) return;
 
         const templateData = {
             bgImageFront,
@@ -430,6 +427,18 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
         // If provided an external handler, use it (for local state updaters)
         if (onTemplateChange) {
             onTemplateChange(templateData);
+        }
+
+        // Standalone mode: save via external handler (e.g. to site_settings)
+        if (!courseId && onSaveSettings) {
+            const toastId = toast.loading("Guardando plantilla global...");
+            try {
+                await onSaveSettings(templateData);
+                toast.success("Plantilla guardada correctamente", { id: toastId });
+            } catch (e: any) {
+                toast.error("Error al guardar: " + e.message, { id: toastId });
+            }
+            return;
         }
 
         const toastId = toast.loading("Guardando plantilla...");
@@ -597,7 +606,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                 )}
 
                                 <SmartText
-                                    text={field.value}
+                                    text={getPreviewValue(field)}
                                     fontSize={field.fontSize}
                                     color={field.color}
                                     fontFamily={field.fontFamily}
@@ -649,7 +658,6 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
                 <Card className="flex-1 overflow-y-auto">
                     <CardContent className="p-4 space-y-6">
-                        {/* ... (Hours Config) */}
                         <div className="space-y-2 pb-4 border-b">
                             <Label className="text-base font-semibold">Configuración de Horas</Label>
                             <Select value={hoursType} onValueChange={(v: any) => setHoursType(v)}>
@@ -732,6 +740,26 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                         <Label className="text-xs">Texto / Etiqueta</Label>
                                         <Input value={selectedField.label} onChange={(e) => updateField(selectedField.id, { label: e.target.value })} />
                                     </div>
+
+                                    {/* Año de vista previa — solo para el campo Número de Registro */}
+                                    {(selectedField.id === 'code' || selectedField.id === 'code-back') && (
+                                        <div className="space-y-1 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                                            <Label className="text-xs font-semibold text-primary">Año en N° de Registro</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="number"
+                                                    min={2020}
+                                                    max={2099}
+                                                    value={previewYear}
+                                                    onChange={(e) => setPreviewYear(Number(e.target.value))}
+                                                    className="w-24 font-semibold"
+                                                />
+                                                <span className="text-sm font-mono font-semibold text-foreground">N° - {previewYear}</span>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground">Solo afecta la vista previa. El año real se elige al generar el certificado.</p>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="space-y-1">
                                             <Label className="text-xs">Tamaño</Label>
@@ -806,7 +834,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                 </Card>
 
                 <div className="grid grid-cols-1 gap-4">
-                    <Button onClick={handleSave} disabled={!courseId}>
+                    <Button onClick={handleSave} disabled={!courseId && !onSaveSettings}>
                         <Save className="w-4 h-4 mr-2" /> Guardar Todo
                     </Button>
                 </div>

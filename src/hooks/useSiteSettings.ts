@@ -11,6 +11,7 @@ export interface SiteSettings {
     payment_number: string | null;
     payment_qr_url: string | null;
     logo_url: string | null;
+    default_certificate_template: any | null;
 }
 
 export function useSiteSettings() {
