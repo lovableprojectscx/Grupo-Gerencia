@@ -661,6 +661,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
                 <Card className="flex-1 overflow-y-auto">
                     <CardContent className="p-4 space-y-6">
+                        {/* El Selector de Año fue movido a la pestaña principal de Configuración del Curso */}
                         <div className="space-y-2 pb-4 border-b">
                             <Label className="text-base font-semibold">Configuración de Horas</Label>
                             <Select value={hoursType} onValueChange={(v: any) => setHoursType(v)}>
@@ -674,26 +675,6 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                 </SelectContent>
                             </Select>
                             <p className="text-xs text-muted-foreground">Define qué tipo de carga horaria mostrar en el certificado.</p>
-                        </div>
-
-                        <div className="space-y-2 pb-4 border-b bg-primary/5 p-4 rounded-lg border border-primary/20">
-                            <Label className="text-base font-semibold text-primary">Año del Certificado</Label>
-                            <div className="flex items-center gap-4">
-                                <Input
-                                    type="number"
-                                    min={2020}
-                                    max={2099}
-                                    value={registrationYear}
-                                    onChange={(e) => setRegistrationYear(Number(e.target.value))}
-                                    className="w-32 font-semibold text-lg"
-                                />
-                                <div className="text-sm font-mono font-semibold text-foreground">
-                                    N° XXX - {registrationYear}
-                                </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                                Este año se registrará en todos los certificados generados <strong>automáticamente</strong> por los alumnos para este curso.
-                            </p>
                         </div>
 
                         <div className="space-y-2">

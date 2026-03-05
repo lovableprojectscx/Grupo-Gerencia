@@ -599,6 +599,34 @@ export default function CourseBuilder() {
                                     <p className="text-xs text-muted-foreground">Define si es un Curso, Diplomado o Especialización.</p>
                                 </div>
 
+                                {/* AÑO DE CERTIFICADO MOVIDO AQUÍ */}
+                                <div className="space-y-2 pt-2 pb-2 bg-primary/5 p-4 rounded-lg border border-primary/20">
+                                    <Label className="text-base font-semibold text-primary">Año del Certificado</Label>
+                                    <div className="flex items-center gap-4">
+                                        <Input
+                                            type="number"
+                                            min={2020}
+                                            max={2099}
+                                            placeholder={new Date().getFullYear().toString()}
+                                            value={course.metadata?.find((m: any) => m.key === "registrationYear")?.value || ""}
+                                            onChange={(e) => {
+                                                const current = [...(course.metadata || [])];
+                                                const index = current.findIndex((m: any) => m.key === "registrationYear");
+                                                if (index >= 0) {
+                                                    current[index].value = e.target.value;
+                                                } else {
+                                                    current.push({ key: "registrationYear", value: e.target.value });
+                                                }
+                                                setCourse({ ...course, metadata: current });
+                                            }}
+                                            className="w-32 font-semibold text-lg"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Si se especifica, este año se registrará en todos los certificados generados automáticamente.
+                                    </p>
+                                </div>
+
                                 <div className="space-y-4 pt-4 border-t border-border">
                                     <Label className="text-base">Datos del Certificado</Label>
                                     <div className="space-y-4">
