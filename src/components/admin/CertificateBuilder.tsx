@@ -809,7 +809,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     </div>
 
                                     {/* Configuración especial solo para el Número de Registro */}
-                                    {selectedField.id.replace(/-back$/, '') === 'code' && (
+                                    {(selectedField.id.replace(/-back$/, '') === 'code' || selectedField.label.toLowerCase().includes('registro') || selectedField.label.toLowerCase().includes('code')) && (
                                         <div className="space-y-2 pt-4 border-t border-border mt-4">
                                             <Label className="text-sm font-bold text-primary">Año para Número de Registro</Label>
                                             <Input
