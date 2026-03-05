@@ -659,7 +659,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                     </CardContent>
                 </Card>
 
-                <Card className="flex-1 overflow-y-auto">
+                <Card className="flex-1 overflow-y-auto pb-10">
                     <CardContent className="p-4 space-y-6">
                         {/* El Selector de Año fue movido a la pestaña principal de Configuración del Curso */}
                         <div className="space-y-2 pb-4 border-b">
@@ -809,22 +809,27 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     </div>
 
                                     {/* Configuración especial solo para el Número de Registro */}
-                                    {(selectedField.id.replace(/-back$/, '') === 'code' || selectedField.label.toLowerCase().includes('registro') || selectedField.label.toLowerCase().includes('code')) && (
-                                        <div className="space-y-2 pt-4 border-t border-border mt-4">
-                                            <Label className="text-sm font-bold text-primary">Año para Número de Registro</Label>
-                                            <Input
-                                                type="number"
-                                                min={2020}
-                                                max={2099}
-                                                value={registrationYear}
-                                                onChange={(e) => setRegistrationYear(Number(e.target.value))}
-                                                className="w-full font-semibold text-lg"
-                                            />
-                                            <p className="text-[10px] text-muted-foreground leading-tight">
-                                                Este año se usará de forma estática en todos los certificados para este curso y se verá en el número, ej: N° 001 - {registrationYear}.
-                                            </p>
-                                        </div>
-                                    )}
+                                    {(
+                                        selectedField.id.replace(/-back$/, '') === 'code' ||
+                                        selectedField.label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('registro') ||
+                                        selectedField.label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('numero') ||
+                                        selectedField.label.toLowerCase().includes('code')
+                                    ) && (
+                                            <div className="space-y-2 pt-4 border-t border-border mt-4">
+                                                <Label className="text-sm font-bold text-primary">Año para Número de Registro</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={2020}
+                                                    max={2099}
+                                                    value={registrationYear}
+                                                    onChange={(e) => setRegistrationYear(Number(e.target.value))}
+                                                    className="w-full font-semibold text-lg"
+                                                />
+                                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                                    Este año se usará de forma estática en todos los certificados para este curso y se verá en el número, ej: N° 001 - {registrationYear}.
+                                                </p>
+                                            </div>
+                                        )}
                                 </div>
                             </div>
                         ) : (
