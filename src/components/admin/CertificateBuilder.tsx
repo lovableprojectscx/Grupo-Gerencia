@@ -805,8 +805,26 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                             onChange={(e) => updateField(selectedField.id, { isMultiLine: e.target.checked })}
                                             className="h-4 w-4 cursor-pointer"
                                         />
-                                        <Label htmlFor="field-multiline" className="text-xs cursor-pointer">Texto multilinea</Label>
+                                        <Label htmlFor="field-multiline" className="text-xs cursor-pointer">Texto multilínea</Label>
                                     </div>
+
+                                    {/* Configuración especial solo para el Número de Registro */}
+                                    {selectedField.id.replace(/-back$/, '') === 'code' && (
+                                        <div className="space-y-2 pt-4 border-t border-border mt-4">
+                                            <Label className="text-sm font-bold text-primary">Año para Número de Registro</Label>
+                                            <Input
+                                                type="number"
+                                                min={2020}
+                                                max={2099}
+                                                value={registrationYear}
+                                                onChange={(e) => setRegistrationYear(Number(e.target.value))}
+                                                className="w-full font-semibold text-lg"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground leading-tight">
+                                                Este año se usará de forma estática en todos los certificados para este curso y se verá en el número, ej: N° 001 - {registrationYear}.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (

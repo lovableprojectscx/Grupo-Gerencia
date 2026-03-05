@@ -602,34 +602,6 @@ export default function CourseBuilder() {
                                 <div className="space-y-4 pt-4 border-t border-border">
                                     <Label className="text-base text-primary font-bold">Datos del Certificado</Label>
 
-                                    {/* AÑO DE CERTIFICADO AÑADIDO ACÁ */}
-                                    <div className="space-y-2 pb-2 bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
-                                        <Label className="text-sm font-semibold text-primary">Año de Emisión (Opcional)</Label>
-                                        <div className="flex items-center gap-4">
-                                            <Input
-                                                type="number"
-                                                min={2020}
-                                                max={2099}
-                                                placeholder={new Date().getFullYear().toString()}
-                                                value={course.metadata?.find((m: any) => m.key === "registrationYear")?.value || ""}
-                                                onChange={(e) => {
-                                                    const current = [...(course.metadata || [])];
-                                                    const index = current.findIndex((m: any) => m.key === "registrationYear");
-                                                    if (index >= 0) {
-                                                        current[index].value = e.target.value;
-                                                    } else {
-                                                        current.push({ key: "registrationYear", value: e.target.value });
-                                                    }
-                                                    setCourse({ ...course, metadata: current });
-                                                }}
-                                                className="w-32 font-semibold"
-                                            />
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Si se especifica (ej. 2024), este año se usará en los certificados generados automáticamente.
-                                        </p>
-                                    </div>
-
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
