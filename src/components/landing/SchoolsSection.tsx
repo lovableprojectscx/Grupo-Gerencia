@@ -66,7 +66,17 @@ const schoolsConfig = [
     image: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800",
     color: "school-management",
     borderColor: "border-school-management/20",
-    href: "/catalogo?area=gestion",
+    href: "/catalogo?area=management",
+  },
+  {
+    id: "forestal",
+    categoryKey: "forestry",
+    name: "Gestión y Manejo Forestal",
+    description: "Silvicultura, tecnología de la madera y conservación de recursos forestales",
+    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=800&auto=format&fit=crop",
+    color: "school-forestry",
+    borderColor: "border-school-forestry/20",
+    href: "/catalogo?area=forestry",
   },
 ];
 

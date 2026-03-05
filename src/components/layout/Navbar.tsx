@@ -24,6 +24,7 @@ const areas = [
   { id: "environmental", label: "Ingeniería Ambiental" },
   { id: "agronomy", label: "Agronomía" },
   { id: "management", label: "Gestión Pública y Empresarial" },
+  { id: "forestry", label: "Gestión y Manejo Forestal" },
 ];
 // Force sync categories: 2026-02-19 15:40
 

@@ -23,25 +23,26 @@ interface CourseCardProps {
 
 // Dot de color por categoría (reemplaza los badges de color sólido)
 const categoryDot: Record<string, string> = {
-  health:          "bg-rose-500",
-  veterinary:      "bg-pink-500",
-  engineering:     "bg-orange-500",
-  environmental:   "bg-emerald-500",
-  agronomy:        "bg-lime-600",
-  management:      "bg-blue-500",
-  law:             "bg-purple-500",
-  default:         "bg-slate-400",
+  health: "bg-rose-500",
+  veterinary: "bg-pink-500",
+  engineering: "bg-orange-500",
+  environmental: "bg-emerald-500",
+  agronomy: "bg-lime-600",
+  management: "bg-blue-500",
+  law: "bg-purple-500",
+  forestry: "bg-green-800",
+  default: "bg-slate-400",
 };
 
 const levelLabel: Record<string, string> = {
-  beginner:     "Básico",
+  beginner: "Básico",
   intermediate: "Intermedio",
-  advanced:     "Avanzado",
+  advanced: "Avanzado",
 };
 
 const programTypeLabel: Record<string, string> = {
-  course:         "Curso",
-  diploma:        "Diplomado",
+  course: "Curso",
+  diploma: "Diplomado",
   specialization: "Especialización",
 };
 

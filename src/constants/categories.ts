@@ -60,6 +60,16 @@ export const COURSE_CATEGORIES = [
             { id: "social_sciences", label: "Ciencias Sociales" },
             { id: "soft_skills", label: "Habilidades Blandas" }
         ]
+    },
+    {
+        id: "forestry",
+        label: "Gestión y Manejo Forestal",
+        specialties: [
+            { id: "forest_management", label: "Gestión Forestal" },
+            { id: "silviculture", label: "Silvicultura" },
+            { id: "wood_tech", label: "Tecnología de la Madera" },
+            { id: "forest_conservation", label: "Conservación de Bosques" }
+        ]
     }
 ];
 
