@@ -10,7 +10,8 @@ import { Footer } from "@/components/layout/Footer";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Save, User } from "lucide-react";
+import { Loader2, Save, User, UploadCloud } from "lucide-react";
+import { useRef } from "react";
 
 export default function EditProfile() {
     const navigate = useNavigate();
@@ -24,6 +25,8 @@ export default function EditProfile() {
         email: "",
         avatar_url: ""
     });
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         getProfile();
@@ -99,6 +102,55 @@ export default function EditProfile() {
         }
     };
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setUploadingAvatar(true);
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            // Validación de 5MB
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("La imagen no puede pesar más de 5MB");
+                return;
+            }
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${formData.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // Upload a bucket 'avatars'
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            // Get public url
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            // Update in BD
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', formData.id);
+
+            if (updateError) throw updateError;
+
+            setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+            toast.success("Foto de perfil actualizada (podría tardar unos segundos en reflejarse globalmente)");
+
+            // Forzar actualización global (AuthContext reescucha auth events, pero como recargamos profile no basta. Un simple reload en último caso, pero con local state es suficiente para esta vista)
+
+        } catch (error: any) {
+            toast.error("Error al subir foto: " + error.message);
+        } finally {
+            setUploadingAvatar(false);
+            if (fileInputRef.current) fileInputRef.current.value = ""; // reset
+        }
+    };
+
     if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>;
 
     return (
@@ -120,7 +172,15 @@ export default function EditProfile() {
                                         <AvatarImage src={formData.avatar_url} />
                                         <AvatarFallback><User className="w-12 h-12" /></AvatarFallback>
                                     </Avatar>
-                                    <Button variant="outline" type="button" size="sm" onClick={() => toast.info("Subida de foto no disponible en demo")}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        ref={fileInputRef}
+                                        onChange={handleAvatarUpload}
+                                    />
+                                    <Button variant="outline" type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar}>
+                                        {uploadingAvatar ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
                                         Cambiar Foto
                                     </Button>
                                 </div>

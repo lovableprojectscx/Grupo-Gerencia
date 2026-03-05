@@ -46,6 +46,7 @@ import { courseService } from "@/services/courseService";
 import { getCategoryLabel } from "@/constants/categories";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { CourseCard } from "@/components/courses/CourseCard";
 import {
   DropdownMenu,
@@ -59,17 +60,7 @@ import {
 const CursoDetalle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => authListener.subscription.unsubscribe();
-  }, []);
+  const { user } = useAuth();
 
   // Fetch course details
   const { data: course, isLoading } = useQuery({
@@ -100,15 +91,15 @@ const CursoDetalle = () => {
       el.setAttribute("content", content);
     };
 
-    setMeta('meta[property="og:title"]',       "content", pageTitle);
+    setMeta('meta[property="og:title"]', "content", pageTitle);
     setMeta('meta[property="og:description"]', "content", description);
-    setMeta('meta[property="og:image"]',        "content", image);
-    setMeta('meta[property="og:url"]',          "content", url);
-    setMeta('meta[property="og:type"]',         "content", "product");
-    setMeta('meta[name="description"]',         "content", description);
-    setMeta('meta[name="twitter:title"]',       "content", pageTitle);
+    setMeta('meta[property="og:image"]', "content", image);
+    setMeta('meta[property="og:url"]', "content", url);
+    setMeta('meta[property="og:type"]', "content", "product");
+    setMeta('meta[name="description"]', "content", description);
+    setMeta('meta[name="twitter:title"]', "content", pageTitle);
     setMeta('meta[name="twitter:description"]', "content", description);
-    setMeta('meta[name="twitter:image"]',       "content", image);
+    setMeta('meta[name="twitter:image"]', "content", image);
 
     return () => {
       document.title = `${siteName} - Cursos Especializados y Certificaciones`;

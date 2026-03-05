@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"/c/Users/JACK FRANKLIN/Downloads/Trabajos/Gerencia/supabase\" -type f -name \"*.sql\" | xargs ls -lh 2>/dev/null)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(cd:*)",
+      "Bash(cd \"C:/Users/JACK FRANKLIN/Downloads/Trabajos/Gerencia\" && npx tsc --noEmit 2>&1)",
+      "WebSearch",
+      "WebFetch(domain:blog.logrocket.com)",
+      "WebFetch(domain:drewlong.co)",
+      "WebFetch(domain:www.perfectafternoon.com)",
+      "WebFetch(domain:designerup.co)",
+      "WebFetch(domain:www.untitledui.com)",
+      "WebFetch(domain:www.caffeinemarketing.com)",
+      "WebFetch(domain:swipepages.com)",
+      "WebFetch(domain:blog.hubspot.com)",
+      "WebFetch(domain:kevinhufnagl.com)",
+      "Bash(cd \"C:\\\\Users\\\\JACK FRANKLIN\\\\Downloads\\\\Trabajos\\\\Gerencia\" && SUPABASE_ACCESS_TOKEN=\"sbp_89c63a5c73f50cd05ae69a6bb19161c72100b078\" npx supabase projects list 2>&1)",
+      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_89c63a5c73f50cd05ae69a6bb19161c72100b078\" \"$SUPABASE_BIN\" projects:*)",
+      "Bash(cd C:\\\\Users\\\\JACK FRANKLIN\\\\Downloads\\\\Trabajos\\\\Gerencia:*)",
+      "Bash(cd \"C:\\\\Users\\\\JACK FRANKLIN\\\\Downloads\\\\Trabajos\\\\Gerencia\" && git add src/components/landing/FeaturedCourses.tsx && git commit -m \"fix\\(ui\\): wrap featured courses carousel and dots in fragment to fix JSX syntax error\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\" && git push sistema main 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\JACK FRANKLIN\\\\Downloads\\\\Trabajos\\\\Gerencia\" && git add workers/ && git commit -m \"$\\(cat <<'EOF'\nfeat\\(workers\\): Cloudflare Worker para OG preview en URLs directas\n\nScript listo para desplegar en Cloudflare Workers si se migra el hosting.\nIntercepta peticiones de bots \\(WhatsApp, Facebook, etc.\\) a /curso/* y devuelve\nHTML con og:image, og:title y og:description del curso consultando Supabase.\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push sistema main 2>&1)",
+      "Bash(cd \"/c/Users/JACK FRANKLIN/Downloads/Trabajos/Gerencia\" && npx supabase functions deploy og --no-verify-jwt 2>&1)",
+      "Bash(cd \"/c/Users/JACK FRANKLIN/Downloads/Trabajos/Gerencia\" && SUPABASE_ACCESS_TOKEN=\"sbp_89c63a5c73f50cd05ae69a6bb19161c72100b078\" npx supabase functions deploy og --no-verify-jwt 2>&1)"
+    ]
+  }
+}

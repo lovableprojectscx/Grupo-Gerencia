@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,17 +36,41 @@ export default function AdminEnrollments() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 10;
+    const [activeTab, setActiveTab] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [selectedVoucher, setSelectedVoucher] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<string | null>(null);
     const [certDialogEnrollmentId, setCertDialogEnrollmentId] = useState<string | null>(null);
     const [certYear, setCertYear] = useState<number>(new Date().getFullYear());
 
-    // Fetch Enrollments with Pagination
+    // Debounce search term — evita queries en cada tecla
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 400);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Resetear página cuando cambia el tab o la búsqueda
+    useEffect(() => { setPage(1); }, [activeTab, debouncedSearch]);
+
+    // Fetch Enrollments con paginación + filtro de tab + búsqueda en DB
     const { data, isLoading } = useQuery({
-        queryKey: ["admin-enrollments", page, searchTerm],
+        queryKey: ["admin-enrollments", page, activeTab, debouncedSearch],
         queryFn: async () => {
-            // Base query building
+            // Si hay búsqueda, primero obtenemos los user_ids que coinciden en profiles
+            let userIdFilter: string[] | null = null;
+            if (debouncedSearch) {
+                const { data: profileMatches } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .ilike('full_name', `%${debouncedSearch}%`);
+                userIdFilter = (profileMatches || []).map((p: any) => p.id);
+                // Si no hay coincidencias, devolvemos vacío sin hacer la query principal
+                if (userIdFilter.length === 0) {
+                    return { enrollments: [], count: 0 };
+                }
+            }
+
             let query = supabase
                 .from('enrollments')
                 .select(`
@@ -56,20 +80,16 @@ export default function AdminEnrollments() {
                     certificates(id, registration_number, metadata)
                 `, { count: 'exact' });
 
-            // Apply search filter on DB side if possible? 
-            // Supabase filtering on joined tables is tricky with OR logic across relations.
-            // For MVP performance, we'll keep client-side search ONLY for the current page or 
-            // simpler: we accept that full-text search across relations is hard without RPC.
-            // But strict pagination is the goal.
-            // Let's implement strict pagination sort by purchased_at.
+            // Filtrar por tab en DB (no en cliente)
+            if (activeTab !== 'all') {
+                query = query.eq('status', activeTab);
+            }
 
-            // If search is active, we might need a specific RPC or complex filter. 
-            // For now, let's paginate ALL, and filter client side? NO, that defeats the purpose.
-            // Let's implement DB filtering for common fields if feasible, or just pagination.
-            // Given the complexity of searching "student name" (join) + "course title" (join) via top-level API
-            // it's better to rely on Supabase's "!inner" if searching, but that filters the parent.
+            // Filtrar por user_ids encontrados en la búsqueda
+            if (userIdFilter !== null) {
+                query = query.in('user_id', userIdFilter);
+            }
 
-            // Simple approach: Pagination of RAW result.
             const from = (page - 1) * PAGE_SIZE;
             const to = from + PAGE_SIZE - 1;
 
@@ -82,6 +102,7 @@ export default function AdminEnrollments() {
             return { enrollments: data as any[], count: count || 0 };
         }
     });
+
 
     // Mutations
     const approveMutation = useMutation({
@@ -172,7 +193,7 @@ export default function AdminEnrollments() {
                 </div>
             </div>
 
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                     <TabsList>
                         <TabsTrigger value="all">Todas</TabsTrigger>
@@ -183,7 +204,7 @@ export default function AdminEnrollments() {
                     <div className="relative w-full sm:w-72">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Buscar por estudiante o curso..."
+                            placeholder="Buscar por nombre de estudiante..."
                             className="pl-8"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -197,7 +218,7 @@ export default function AdminEnrollments() {
                             <CardHeader>
                                 <CardTitle>Listado de Inscripciones</CardTitle>
                                 <CardDescription>
-                                    {tab === 'all' ? 'Mostrando todas las inscripciones' : `Mostrando inscripciones ${tab === 'active' ? 'activas' : tab === 'pending' ? 'pendientes' : 'rechazadas'}`}
+                                    {tab === 'all' ? `${totalCount} inscripciones en total` : `${totalCount} inscripciones ${tab === 'active' ? 'aprobadas' : tab === 'pending' ? 'pendientes de revisión' : 'rechazadas'}`}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -217,7 +238,7 @@ export default function AdminEnrollments() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {filteredEnrollments?.filter((e: any) => tab === 'all' || e.status === tab).map((enrollment: any) => (
+                                                {filteredEnrollments?.map((enrollment: any) => (
                                                     <TableRow key={enrollment.id}>
                                                         <TableCell className="font-medium whitespace-nowrap">
                                                             {format(new Date(enrollment.purchased_at), "dd MMM yyyy", { locale: es })}

@@ -83,18 +83,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (data) {
                 setProfile({
                     ...data,
-                    role: (currentUser.email === 'admin@gerencia.com') ? 'admin' : data.role,
                     email: currentUser.email || null
+                    // Rol viene directamente de la BD (profiles.role), sin override por email
                 });
             } else {
-                // Fallback if no profile row exists yet - use metadata or hardcode for dev
-                const isAdminEmail = currentUser.email === 'admin@gerencia.com';
+                // Fallback si no existe fila en profiles — raro, pero posible en registro reciente
                 setProfile({
                     id: currentUser.id,
                     full_name: currentUser.user_metadata?.full_name || "Usuario",
                     dni: currentUser.user_metadata?.dni || null,
                     phone: currentUser.user_metadata?.phone || null,
-                    role: isAdminEmail ? 'admin' : (currentUser.user_metadata?.role || 'student'),
+                    role: currentUser.user_metadata?.role || 'student',
                     avatar_url: currentUser.user_metadata?.avatar_url || null,
                     email: currentUser.email || null
                 });

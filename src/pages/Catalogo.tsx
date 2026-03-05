@@ -58,8 +58,13 @@ const programTypes = [
 
 const Catalogo = () => {
   const { settings } = useSiteSettings();
-  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Auto-scroll al cambiar de página
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -79,7 +84,6 @@ const Catalogo = () => {
   const [selectedModalities, setSelectedModalities] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [sortBy, setSortBy] = useState("newest");
-  const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const coursesPerPage = 6;
 
@@ -538,9 +542,9 @@ const Catalogo = () => {
                       image={course.image_url}
                       price={course.price}
                       originalPrice={course.original_price}
-                      rating={5.0} // Default for now
+                      rating={course.rating ?? 0}
                       students={course.students}
-                      duration="Flexible"
+                      duration={course.duration || "Flexible"}
                       category={course.category}
                       specialty={course.specialty}
                       level={course.level}

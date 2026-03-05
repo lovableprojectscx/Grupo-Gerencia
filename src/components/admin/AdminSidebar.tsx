@@ -7,7 +7,7 @@ import {
   LogOut,
   DollarSign,
 } from "lucide-react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -57,7 +57,13 @@ const items = [
 
 export function AdminSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ["admin-pending-count"],
     queryFn: async () => {
@@ -112,7 +118,11 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === item.url}
+                    isActive={
+                      item.url === '/admin'
+                        ? location.pathname === '/admin'
+                        : location.pathname.startsWith(item.url)
+                    }
                   >
                     <Link to={item.url}>
                       <item.icon />
@@ -134,11 +144,9 @@ export function AdminSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/">
-                <LogOut className="rotate-180" />
-                <span>Cerrar Sesión</span>
-              </Link>
+            <SidebarMenuButton onClick={handleSignOut} className="cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10">
+              <LogOut className="rotate-180" />
+              <span>Cerrar Sesión</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -31,6 +31,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Classroom() {
     const { courseId } = useParams();
@@ -38,18 +39,14 @@ export default function Classroom() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeLesson, setActiveLesson] = useState<any>(null);
     const queryClient = useQueryClient();
-    const [userId, setUserId] = useState<string | null>(null);
+    const { user } = useAuth();
+    const userId = user?.id || null;
 
     // Certificate Preference State
     const [isCertDialogOpen, setIsCertDialogOpen] = useState(false);
     // const [hoursType, setHoursType] = useState<"lectivas" | "academicas">("lectivas"); // Removed
 
     const [isGenerating, setIsGenerating] = useState(false);
-
-    // Get current user
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
-    }, []);
 
     // Fetch real course data
     const { data: course, isLoading } = useQuery({
@@ -465,6 +462,8 @@ export default function Classroom() {
 }
 
 function CourseSidebarContent({ course, activeLesson, setActiveLesson, completedLessons }: { course: any, activeLesson: any, setActiveLesson: any, completedLessons: string[] }) {
+    const [searchQuery, setSearchQuery] = useState("");
+
     return (
         <div className="flex flex-col h-full bg-card">
             <div className="p-4 border-b border-border">
@@ -474,51 +473,67 @@ function CourseSidebarContent({ course, activeLesson, setActiveLesson, completed
                     <input
                         className="w-full bg-secondary/50 rounded-md py-1.5 pl-8 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         placeholder="Buscar lección..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
             </div>
 
             <ScrollArea className="flex-1">
                 <div className="p-4 space-y-6">
-                    {course.modules?.map((module: any, i: number) => (
-                        <div key={module.id || i}>
-                            <h4 className="font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wider">{module.title}</h4>
-                            <div className="space-y-1">
-                                {module.lessons?.map((lesson: any) => {
-                                    const isCompleted = completedLessons.includes(lesson.id);
-                                    return (
-                                        <button
-                                            key={lesson.id}
-                                            onClick={() => setActiveLesson(lesson)}
-                                            className={cn(
-                                                "w-full flex items-start text-left gap-3 p-3 rounded-lg transition-colors group relative",
-                                                activeLesson?.id === lesson.id ? "bg-primary/10 text-primary" : "hover:bg-secondary/50"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                                                isCompleted ? "bg-green-500 border-green-500 text-white" : (activeLesson?.id === lesson.id ? "border-primary" : "border-muted-foreground")
-                                            )}>
-                                                {isCompleted && <CheckCircle className="w-3 h-3" />}
-                                            </div>
+                    {course.modules?.map((module: any, i: number) => {
+                        const filteredLessons = module.lessons?.filter((lesson: any) =>
+                            lesson.title.toLowerCase().includes(searchQuery.toLowerCase())
+                        ) || [];
 
-                                            <div className="flex-1">
-                                                <p className={cn("text-sm font-medium leading-tight mb-1", activeLesson?.id === lesson.id && "font-bold")}>
-                                                    {lesson.title}
-                                                </p>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    {lesson.type === "video" ? <Play className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                                                    <span>{lesson.duration || "5 min"}</span>
+                        // Si hay búsqueda y este módulo no tiene coincidencias, no lo mostramos
+                        if (searchQuery && filteredLessons.length === 0) return null;
+
+                        return (
+                            <div key={module.id || i}>
+                                <h4 className="font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wider">{module.title}</h4>
+                                <div className="space-y-1">
+                                    {filteredLessons.map((lesson: any) => {
+                                        const isCompleted = completedLessons.includes(lesson.id);
+                                        return (
+                                            <button
+                                                key={lesson.id}
+                                                onClick={() => setActiveLesson(lesson)}
+                                                className={cn(
+                                                    "w-full flex items-start text-left gap-3 p-3 rounded-lg transition-colors group relative",
+                                                    activeLesson?.id === lesson.id ? "bg-primary/10 text-primary" : "hover:bg-secondary/50"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                                                    isCompleted ? "bg-green-500 border-green-500 text-white" : (activeLesson?.id === lesson.id ? "border-primary" : "border-muted-foreground")
+                                                )}>
+                                                    {isCompleted && <CheckCircle className="w-3 h-3" />}
                                                 </div>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                                {!module.lessons?.length && <div className="text-xs text-muted-foreground pl-8 italic">Sin lecciones</div>}
+
+                                                <div className="flex-1">
+                                                    <p className={cn("text-sm font-medium leading-tight mb-1", activeLesson?.id === lesson.id && "font-bold")}>
+                                                        {lesson.title}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        {lesson.type === "video" ? <Play className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                                                        <span>{lesson.duration || "5 min"}</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                    {!filteredLessons.length && !searchQuery && <div className="text-xs text-muted-foreground pl-8 italic">Sin lecciones</div>}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {!course.modules?.length && <div className="text-center text-muted-foreground py-4">No hay contenido disponible</div>}
+                    {course.modules?.length > 0 && searchQuery && !course.modules.some((m: any) => m.lessons?.some((l: any) => l.title.toLowerCase().includes(searchQuery.toLowerCase()))) && (
+                        <div className="text-center text-muted-foreground py-4 text-sm">
+                            No se encontraron lecciones con "{searchQuery}"
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
         </div>

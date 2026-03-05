@@ -13,6 +13,8 @@ import { supabase } from "@/lib/supabase";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { PaymentMethodsManager } from "@/components/admin/PaymentMethodsManager";
 import { CertificateBuilder } from "@/components/admin/CertificateBuilder";
+import { Loader2 } from "lucide-react";
+import { useRef } from "react";
 
 export default function AdminSettings() {
     const { settings, loading: settingsLoading, refetch } = useSiteSettings();
@@ -26,6 +28,8 @@ export default function AdminSettings() {
         payment_qr_url: "",
         logo_url: ""
     });
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (settings) {
@@ -52,7 +56,8 @@ export default function AdminSettings() {
                     contact_email: formData.contact_email,
                     contact_phone: formData.contact_phone,
                     payment_number: formData.payment_number,
-                    payment_qr_url: formData.payment_qr_url
+                    payment_qr_url: formData.payment_qr_url,
+                    logo_url: formData.logo_url
                 })
                 .eq('id', settings?.id); // Assumes single row logic usually, but ID makes it safe
 
@@ -67,17 +72,40 @@ export default function AdminSettings() {
         }
     };
 
-    // Mock upload implementation - In production use Supabase Storage
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'qr' | 'logo') => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Simulate upload for now or implement real upload if bucket exists
-        // For this demo, we can just use a placeholder or data URL if small, 
-        // but let's stick to text inputs for URLs for MVP unless user specifically asked for file picker logic connected to storage
-        // The prompt asked for "upload", so let's prepare the UI but maybe just set a dummy URL or handle real upload later if bucket is ready.
-        // I'll keep it as text input for URL for robustness unless I set up storage.
-        toast.info("Función de subida de archivos requiere Bucket de Supabase. Por ahora ingresa la URL.");
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("El archivo no puede exceder los 5MB");
+            if (logoInputRef.current) logoInputRef.current.value = "";
+            return;
+        }
+
+        try {
+            setUploadingLogo(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `logo-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('site-content')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('site-content')
+                .getPublicUrl(filePath);
+
+            setFormData({ ...formData, logo_url: publicUrl });
+            toast.success("Logo subido correctamente. Haz clic en Guardar Cambios para aplicar.");
+        } catch (error: any) {
+            toast.error("Error al subir logo: " + error.message);
+        } finally {
+            setUploadingLogo(false);
+            if (logoInputRef.current) logoInputRef.current.value = "";
+        }
     };
 
     if (settingsLoading) return <div>Cargando configuración...</div>;
@@ -158,6 +186,22 @@ export default function AdminSettings() {
                                             onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
                                         />
                                     </div>
+                                    <input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/svg+xml"
+                                        className="hidden"
+                                        ref={logoInputRef}
+                                        onChange={handleFileUpload}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => logoInputRef.current?.click()}
+                                        disabled={uploadingLogo}
+                                    >
+                                        {uploadingLogo ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                                        Subir
+                                    </Button>
                                 </div>
                             </div>
                         </CardContent>

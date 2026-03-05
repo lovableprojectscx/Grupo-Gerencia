@@ -205,9 +205,20 @@ export default function AdminUsers() {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-200">
-                                            Activo
-                                        </Badge>
+                                        {(() => {
+                                            const lastSeen = user.last_sign_in_at ? new Date(user.last_sign_in_at) : null;
+                                            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                                            const isActive = lastSeen && lastSeen > thirtyDaysAgo;
+                                            return isActive ? (
+                                                <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-200">
+                                                    Activo
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-muted-foreground">
+                                                    Inactivo
+                                                </Badge>
+                                            );
+                                        })()}
                                     </TableCell>
                                     <TableCell>
                                         {user.created_at ? format(new Date(user.created_at), "dd MMM yyyy", { locale: es }) : "-"}

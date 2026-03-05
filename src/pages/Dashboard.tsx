@@ -65,12 +65,12 @@ const Dashboard = () => {
   // }
 
   // Derived Stats
-  const activeCourses = enrollments?.filter(e => e.status === 'active' && e.progress < 100) || [];
-  const completedCourses = enrollments?.filter(e => e.progress === 100) || []; // Assuming 100% means completed
-  // Certificates logic: In this schema, certificates are in a separate table linked to bookings, 
-  // or we can assume completed = certificate available. Let's check if there is a certificate relation or table query needed.
-  // For now, let's assume completed courses have certificates.
-  // Better: Query certificates separately or assume if progress 100 -> count it.
+  const activeEnrollments = enrollments?.filter(e => e.status === 'active') || [];
+  const activeCourses = activeEnrollments.filter(e => e.progress < 100);
+  const completedCourses = activeEnrollments.filter(e => e.progress === 100);
+  const pendingEnrollments = enrollments?.filter(e => e.status === 'pending') || [];
+  // Certificados reales: enrollments activas que tienen al menos 1 certificado en la tabla certificates
+  const certificatesCount = activeEnrollments.filter(e => e.certificate && e.certificate.length > 0).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,7 +133,7 @@ const Dashboard = () => {
                   <div className="p-2 bg-amber-100 rounded-full mb-2">
                     <Award className="w-5 h-5 text-amber-600" />
                   </div>
-                  <div className="text-2xl font-bold">{completedCourses.length}</div>
+                  <div className="text-2xl font-bold">{certificatesCount}</div>
                   <div className="text-xs text-muted-foreground font-medium">Certificados</div>
                 </CardContent>
               </Card>
@@ -195,7 +195,7 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <>
-                      {!activeCourses.length && (
+                      {!activeCourses.length && !pendingEnrollments.length && (
                         <div className="text-center py-10 bg-secondary/20 rounded-xl border border-dashed border-border">
                           <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center mx-auto mb-3">
                             <BookOpen className="w-6 h-6 text-muted-foreground" />
@@ -204,6 +204,33 @@ const Dashboard = () => {
                           <Button variant="link" className="text-primary mt-2" onClick={() => navigate('/catalogo')}>
                             Explorar cursos nuevos
                           </Button>
+                        </div>
+                      )}
+                      {/* Inscripciones pendientes de aprobación */}
+                      {pendingEnrollments.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Clock className="w-4 h-4 text-amber-600" />
+                            <span className="text-sm font-semibold text-amber-800">Inscripciones pendientes de aprobación ({pendingEnrollments.length})</span>
+                          </div>
+                          <div className="space-y-2">
+                            {pendingEnrollments.map((enrollment: any) => (
+                              <div key={enrollment.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={enrollment.course?.image_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
+                                    alt={enrollment.course?.title}
+                                    className="w-10 h-10 rounded object-cover shrink-0"
+                                  />
+                                  <div>
+                                    <p className="text-sm font-medium leading-tight">{enrollment.course?.title}</p>
+                                    <p className="text-xs text-muted-foreground">Pago en revisión — te notificaremos cuando sea aprobado</p>
+                                  </div>
+                                </div>
+                                <Badge variant="secondary" className="shrink-0 bg-amber-100 text-amber-700 border-amber-200">Pendiente</Badge>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                       <div className="grid md:grid-cols-2 gap-4 md:gap-6">

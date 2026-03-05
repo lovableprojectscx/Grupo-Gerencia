@@ -70,19 +70,21 @@ export default function AdminDashboard() {
                         const price = enr.courses?.price || 0;
                         revenue += price;
 
-                        // Monthly Aggregation
+                        // Usar YYYY-MM como clave para ordenar correctamente
                         const date = new Date(enr.purchased_at);
-                        const monthKey = format(date, 'MMM', { locale: es }); // E.g., "Ene"
+                        const monthKey = format(date, 'yyyy-MM');
                         monthlyRev[monthKey] = (monthlyRev[monthKey] || 0) + price;
                     });
                 }
 
-                // Format chart data (simplified to just last months found)
-                // Note: In a real app, you'd fill in missing months
-                const chart = Object.keys(monthlyRev).map(key => ({
-                    name: key.charAt(0).toUpperCase() + key.slice(1),
-                    total: monthlyRev[key]
-                }));
+                // Ordenar cronológicamente y formatear para el gráfico
+                const chart = Object.keys(monthlyRev)
+                    .sort() // YYYY-MM se ordena correctamente como string
+                    .map(key => ({
+                        name: format(new Date(key + '-01'), 'MMM', { locale: es })
+                            .replace(/^\w/, c => c.toUpperCase()), // Capitalizar "ene" → "Ene"
+                        total: monthlyRev[key]
+                    }));
 
                 // 3. Fetch Recent Enrollments details
                 // Using explicit aliases to match AdminEnrollments.tsx which is known to work
