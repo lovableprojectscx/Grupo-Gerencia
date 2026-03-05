@@ -146,6 +146,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     const [uploading, setUploading] = useState(false);
     const [numPages, setNumPages] = useState<number>(0);
     const [hoursType, setHoursType] = useState<string>("academic"); // 'academic', 'lecture', 'both'
+    const [registrationYear, setRegistrationYear] = useState<number>(new Date().getFullYear());
     const [previewYear, setPreviewYear] = useState<number>(new Date().getFullYear());
 
     // Smart Guides State
@@ -172,6 +173,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                 setFields(migratedFields);
             }
             if (template.hoursType) setHoursType(template.hoursType);
+            if (template.registrationYear) setRegistrationYear(template.registrationYear);
         }
     }, [template]);
 
@@ -187,7 +189,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     // Helper: valor de vista previa para cada campo en el editor
     const getPreviewValue = (field: FieldPosition): string => {
         const baseId = field.id.replace(/-back$/, '');
-        if (baseId === 'code') return `N° - ${previewYear}`;
+        if (baseId === 'code') return `N° - ${registrationYear}`;
         const coreVar = CORE_VARIABLES.find(v => v.id === baseId);
         if (coreVar) return coreVar.value;
         return field.value || "";
@@ -421,7 +423,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             bgImageFront,
             bgImageBack,
             fields,
-            hoursType
+            hoursType,
+            registrationYear
         };
 
         // If provided an external handler, use it (for local state updaters)
@@ -673,6 +676,26 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                             <p className="text-xs text-muted-foreground">Define qué tipo de carga horaria mostrar en el certificado.</p>
                         </div>
 
+                        <div className="space-y-2 pb-4 border-b bg-primary/5 p-4 rounded-lg border border-primary/20">
+                            <Label className="text-base font-semibold text-primary">Año del Certificado</Label>
+                            <div className="flex items-center gap-4">
+                                <Input
+                                    type="number"
+                                    min={2020}
+                                    max={2099}
+                                    value={registrationYear}
+                                    onChange={(e) => setRegistrationYear(Number(e.target.value))}
+                                    className="w-32 font-semibold text-lg"
+                                />
+                                <div className="text-sm font-mono font-semibold text-foreground">
+                                    N° XXX - {registrationYear}
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Este año se registrará en todos los certificados generados <strong>automáticamente</strong> por los alumnos para este curso.
+                            </p>
+                        </div>
+
                         <div className="space-y-2">
                             {/* ... (Fields List) */}
                             <Label className="text-base font-semibold">Campos - {activePage === 'front' ? 'Frontal' : 'Reverso'}</Label>
@@ -740,25 +763,6 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                         <Label className="text-xs">Texto / Etiqueta</Label>
                                         <Input value={selectedField.label} onChange={(e) => updateField(selectedField.id, { label: e.target.value })} />
                                     </div>
-
-                                    {/* Año de vista previa — solo para el campo Número de Registro */}
-                                    {(selectedField.id === 'code' || selectedField.id === 'code-back') && (
-                                        <div className="space-y-1 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                                            <Label className="text-xs font-semibold text-primary">Año en N° de Registro</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    type="number"
-                                                    min={2020}
-                                                    max={2099}
-                                                    value={previewYear}
-                                                    onChange={(e) => setPreviewYear(Number(e.target.value))}
-                                                    className="w-24 font-semibold"
-                                                />
-                                                <span className="text-sm font-mono font-semibold text-foreground">N° - {previewYear}</span>
-                                            </div>
-                                            <p className="text-[10px] text-muted-foreground">Solo afecta la vista previa. El año real se elige al generar el certificado.</p>
-                                        </div>
-                                    )}
 
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="space-y-1">
