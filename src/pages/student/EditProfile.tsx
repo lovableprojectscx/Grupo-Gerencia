@@ -202,15 +202,14 @@ export default function EditProfile() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="dni">DNI / Documento de Identidad</Label>
+                                    <Label htmlFor="dni">DNI / Documento de Identidad <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                                     <Input
                                         id="dni"
                                         value={formData.dni}
                                         onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                                        required
                                     />
                                     <p className="text-xs text-yellow-600 font-medium">
-                                        ⚠️ Importante: Este número aparecerá en tus certificados.
+                                        ⚠️ Importante: Si lo completas, este número aparecerá en tus certificados.
                                     </p>
                                 </div>
 

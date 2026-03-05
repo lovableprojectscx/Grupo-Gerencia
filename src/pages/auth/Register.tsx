@@ -78,22 +78,20 @@ export default function Register() {
                     </p>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="dni">DNI</Label>
+                    <Label htmlFor="dni">DNI <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                     <Input
                         id="dni"
                         placeholder="12345678"
-                        required
                         value={formData.dni}
                         onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="phone">Número de Celular</Label>
+                    <Label htmlFor="phone">Número de Celular <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                     <Input
                         id="phone"
                         type="tel"
                         placeholder="900 000 000"
-                        required
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
