@@ -292,7 +292,7 @@ export default function CertificateViewer() {
             fetch(FONT_URLS[fontFamily], { mode: 'cors' })
                 .then(res => res.ok ? res.arrayBuffer() : Promise.reject(new Error(`HTTP ${res.status}`)))
                 .then(buf => { fontCacheRef.current[fontFamily] = buf; })
-                .catch(() => {}); // Silencioso; getFont reintentará al descargar
+                .catch(() => { }); // Silencioso; getFont reintentará al descargar
         }
     }, [template?.fields]);
 
@@ -493,26 +493,28 @@ export default function CertificateViewer() {
                     const maxBoxHeight = page.getHeight() * (boxH_percent / 100);
 
                     const isMultiLine = field.id.includes("courseName") || field.id.includes("curso");
-                    const minFontSize = isMultiLine ? 20 : 6;
+                    const minFontSize = isMultiLine ? 16 : 8;
                     let currentFontSize = fontSize;
                     let lines: string[] = [];
-                    let iterations = 0;
                     const lineHeightMultiplier = 1.15; // Match CSS
 
-                    // Fit Loop: Try to wrap text. If it overflows height, shrink font.
-                    const minimumLegibleSize = isMultiLine ? 20 : 6;
-
-                    while (iterations < 50) {
-                        lines = [];
-
-                        if (!isMultiLine) {
-                            // Strict Single Line
-                            lines.push(text);
-                            const textWidth = font.widthOfTextAtSize(text, currentFontSize);
-                            if (textWidth <= maxBoxWidth) {
-                                break;
-                            }
-                        } else {
+                    if (!isMultiLine) {
+                        // Exact mathematical scaling for single line text to prevent overflow
+                        lines = [text];
+                        const textWidth = font.widthOfTextAtSize(text, currentFontSize);
+                        if (textWidth > maxBoxWidth) {
+                            currentFontSize = currentFontSize * (maxBoxWidth / textWidth);
+                        }
+                        const textHeight = font.heightAtSize(currentFontSize) * lineHeightMultiplier;
+                        if (textHeight > maxBoxHeight) {
+                            currentFontSize = currentFontSize * (maxBoxHeight / textHeight);
+                        }
+                        if (currentFontSize < minFontSize) currentFontSize = minFontSize;
+                    } else {
+                        // Fit Loop: Try to wrap text. If it overflows height, shrink font.
+                        let iterations = 0;
+                        while (iterations < 50) {
+                            lines = [];
                             // Respect manual newlines first
                             const paragraphs = text.split('\n');
 
@@ -539,19 +541,19 @@ export default function CertificateViewer() {
 
                             const fitsWidth = maxWordWidth <= maxBoxWidth;
                             const fitsHeight = totalHeight <= maxBoxHeight;
-                            const isLegible = currentFontSize >= minimumLegibleSize;
+                            const isLegible = currentFontSize >= minFontSize;
 
                             if (fitsWidth && (fitsHeight || !isLegible)) {
                                 break;
                             }
-                        }
 
-                        currentFontSize *= 0.95;
-                        if (currentFontSize < minFontSize) {
-                            currentFontSize = minFontSize;
-                            break;
+                            currentFontSize *= 0.95;
+                            if (currentFontSize < minFontSize) {
+                                currentFontSize = minFontSize;
+                                break;
+                            }
+                            iterations++;
                         }
-                        iterations++;
                     }
 
                     // --- DRAWING ---
