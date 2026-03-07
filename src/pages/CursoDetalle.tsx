@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/accordion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
-import { getCategoryLabel } from "@/constants/categories";
+import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,11 +56,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CursoDetalle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { categories } = useCategories();
 
   // Fetch course details
   const { data: course, isLoading } = useQuery({
@@ -163,8 +165,48 @@ const CursoDetalle = () => {
 
   if (isLoading || !course) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+      <div className="min-h-screen bg-background font-sans selection:bg-accent/20 overflow-x-hidden w-full">
+        <Navbar />
+        {/* Skeleton Hero */}
+        <section className="bg-hero-gradient pt-20 pb-16 lg:pt-28 lg:pb-20">
+          <div className="container-custom">
+            <div className="grid lg:grid-cols-5 gap-8 lg:gap-14 items-center">
+              <div className="lg:col-span-3 space-y-5">
+                <Skeleton className="h-6 w-1/3 bg-white/10 rounded" />
+                <Skeleton className="h-10 sm:h-12 w-full max-w-xl bg-white/10 rounded-lg" />
+                <Skeleton className="h-10 sm:h-12 w-2/3 max-w-lg bg-white/10 rounded-lg" />
+                <Skeleton className="h-16 w-full max-w-xl bg-white/10 rounded-lg mt-4" />
+                <div className="flex gap-4 pt-4 border-t border-white/10 mt-6">
+                  <Skeleton className="w-12 h-12 rounded-full bg-white/10" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-20 bg-white/10 rounded" />
+                    <Skeleton className="h-4 w-32 bg-white/10 rounded" />
+                    <Skeleton className="h-3 w-24 bg-white/10 rounded" />
+                  </div>
+                </div>
+              </div>
+              <div className="hidden lg:block lg:col-span-2">
+                <Skeleton className="aspect-video w-full rounded-2xl bg-white/10 shadow-2xl" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Skeleton Content */}
+        <section className="relative z-30 pb-20 bg-background">
+          <div className="container-custom">
+            <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 pt-10">
+              <div className="lg:col-span-1 lg:order-2 space-y-6">
+                <Skeleton className="h-96 w-full rounded-3xl" />
+                <Skeleton className="h-64 w-full rounded-2xl" />
+              </div>
+              <div className="lg:col-span-2 lg:order-1 space-y-8">
+                <Skeleton className="h-64 w-full rounded-2xl" />
+                <Skeleton className="h-96 w-full rounded-2xl" />
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
@@ -278,7 +320,7 @@ const CursoDetalle = () => {
                 <span className="text-white/25">/</span>
                 <Link to="/catalogo" className="text-white/50 hover:text-white/80 transition-colors">Catálogo</Link>
                 <span className="text-white/25">/</span>
-                <span className="text-accent font-medium">{getCategoryLabel(course.category) || "General"}</span>
+                <span className="text-accent font-medium">{categories.find(c => c.id === course.category)?.label || "General"}</span>
               </nav>
 
               {/* Badges de modalidad y certificado */}

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import AuthLayout from "@/components/auth/AuthLayout";
+import { handleDbError } from "@/utils/errorHandler";
 import { ArrowLeft } from "lucide-react";
 
 export default function ForgotPassword() {
@@ -29,7 +30,7 @@ export default function ForgotPassword() {
             setSent(true);
             toast.success("Correo de recuperación enviado");
         } catch (error: any) {
-            toast.error(error.message || "Error al enviar correo");
+            toast.error(handleDbError(error, "Error al enviar el correo de recuperación."));
         } finally {
             setLoading(false);
         }

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import AuthLayout from "@/components/auth/AuthLayout";
+import { handleDbError } from "@/utils/errorHandler";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -34,9 +35,9 @@ export default function Login() {
             if (error) throw error;
 
             toast.success("Bienvenido de nuevo");
-            navigate(from, { replace: true });
+            navigate("/dashboard");
         } catch (error: any) {
-            toast.error(error.message || "Error al iniciar sesión");
+            toast.error(handleDbError(error, "Error al iniciar sesión. Verifica tus datos."));
         } finally {
             setLoading(false);
         }

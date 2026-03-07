@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import AuthLayout from "@/components/auth/AuthLayout";
+import { Eye, EyeOff } from "lucide-react";
+import { handleDbError } from "@/utils/errorHandler";
 
 export default function ResetPassword() {
     const navigate = useNavigate();
@@ -46,9 +48,11 @@ export default function ResetPassword() {
             if (error) throw error;
 
             toast.success("Contraseña actualizada correctamente");
-            navigate("/dashboard");
+            setTimeout(() => {
+                navigate("/login", { replace: true });
+            }, 2000);
         } catch (error: any) {
-            toast.error(error.message || "Error al actualizar la contraseña");
+            toast.error(handleDbError(error, "Error al actualizar la contraseña."));
         } finally {
             setLoading(false);
         }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, CheckCircle, XCircle, Award, Calendar, Clock, User, QrCode, Shield, BadgeCheck, IdCard, Download } from "lucide-react";
@@ -20,15 +20,24 @@ const Verificar = () => {
   }>({ searched: false, certificates: [], error: false });
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchCode.trim()) return;
+  // Auto-search if code is in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      setSearchCode(code);
+      performSearch(code);
+    }
+  }, []);
+
+  const performSearch = async (codeToSearch: string) => {
+    if (!codeToSearch.trim()) return;
 
     setIsSearching(true);
     setSearchResult({ searched: false, certificates: [], error: false });
 
     try {
-      const code = searchCode.trim();
+      const code = codeToSearch.trim();
       const { data, error } = await supabase.rpc('verify_certificate_search', {
         search_code: code
       });
@@ -48,11 +57,17 @@ const Verificar = () => {
         }));
         setSearchResult({ searched: true, certificates, error: false });
       }
-    } catch (err) {
+    } catch (error) {
+      console.error("Verification error:", error);
       setSearchResult({ searched: true, certificates: [], error: true });
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    performSearch(searchCode);
   };
 
   const resetSearch = () => {

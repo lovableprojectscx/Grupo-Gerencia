@@ -30,6 +30,8 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { motion } from "framer-motion";
 import { PaymentMethod } from "@/types";
+import imageCompression from 'browser-image-compression';
+import { handleDbError } from "@/utils/errorHandler";
 
 export default function Checkout() {
     const { courseId } = useParams();
@@ -156,13 +158,31 @@ export default function Checkout() {
             // 1.5 Upload Voucher if exists
             let voucherUrl = null;
             if (file) {
-                const fileExt = file.name.split('.').pop();
+                let fileToUpload = file;
+                // Si es imagen, comprimirla antes de subirla
+                if (file.type.startsWith('image/')) {
+                    toast.loading("Procesando imagen...", { id: "compressToast" });
+                    try {
+                        fileToUpload = await imageCompression(file, {
+                            maxSizeMB: 1, // Límite de 1MB para vouchers
+                            maxWidthOrHeight: 1280, // No necesitamos vouchers gigantes
+                            useWebWorker: true,
+                        });
+                    } catch (compError) {
+                        console.warn("Fallo al comprimir, usando original", compError);
+                    } finally {
+                        toast.dismiss("compressToast");
+                    }
+                }
+
+                // Asegurar que fileToUpload tenga la extensión correcta tras compresión
+                const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
                 const fileName = `${user.id}-${Date.now()}.${fileExt}`;
                 const filePath = `receipts/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('course-content')
-                    .upload(filePath, file);
+                    .upload(filePath, fileToUpload);
 
                 if (uploadError) throw uploadError;
 
@@ -192,7 +212,7 @@ export default function Checkout() {
             toast.success("Inscripción solicitada. Verificaremos tu pago pronto.");
             navigate(`/checkout/success?enrollmentId=${newEnrollment.id}`);
         } catch (error: any) {
-            toast.error("Error al procesar: " + error.message);
+            toast.error(handleDbError(error, "Error al procesar la inscripción."));
         } finally {
             setLoading(false);
         }

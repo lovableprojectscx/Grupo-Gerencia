@@ -56,32 +56,53 @@ export default function AdminDashboard() {
                 const certificatesCount = await supabase.from('certificates').select('*', { count: 'exact', head: true });
                 const studentsCount = await supabase.from('enrollments').select('user_id', { count: 'exact', head: true }); // Approximate active students queries
 
-                // 2. Fetch Enrollments for Revenue (Last 1000 for simplicity in client-side calc)
-                const { data: enrollments } = await supabase
-                    .from('enrollments')
-                    .select('purchased_at, courses(price)')
-                    .eq('status', 'active');
-
+                // 2. Fetch Enrollments for Revenue (Paginated to bypass 1000 limit)
                 let revenue = 0;
                 const monthlyRev: Record<string, number> = {};
 
-                if (enrollments) {
+                let hasMore = true;
+                let from = 0;
+                const step = 1000;
+
+                while (hasMore) {
+                    const { data: enrollments, error } = await supabase
+                        .from('enrollments')
+                        .select('purchased_at, courses(price)')
+                        .eq('status', 'active')
+                        .range(from, from + step - 1);
+
+                    if (error || !enrollments || enrollments.length === 0) {
+                        hasMore = false;
+                        break;
+                    }
+
                     enrollments.forEach((enr: any) => {
                         const price = enr.courses?.price || 0;
                         revenue += price;
 
                         // Usar YYYY-MM como clave para ordenar correctamente
-                        const date = new Date(enr.purchased_at);
-                        const monthKey = format(date, 'yyyy-MM');
-                        monthlyRev[monthKey] = (monthlyRev[monthKey] || 0) + price;
+                        if (enr.purchased_at) {
+                            const date = new Date(enr.purchased_at);
+                            if (!isNaN(date.getTime())) {
+                                const monthKey = format(date, 'yyyy-MM');
+                                monthlyRev[monthKey] = (monthlyRev[monthKey] || 0) + price;
+                            }
+                        }
                     });
+
+                    if (enrollments.length < step) {
+                        hasMore = false;
+                    } else {
+                        from += step;
+                    }
                 }
 
                 // Ordenar cronológicamente y formatear para el gráfico
                 const chart = Object.keys(monthlyRev)
                     .sort() // YYYY-MM se ordena correctamente como string
                     .map(key => ({
-                        name: format(new Date(key + '-01'), 'MMM', { locale: es })
+                        // Usar mediodía para evitar problemas de huso horario que cambien el mes
+                        name: format(new Date(`${key}-01T12:00:00`), 'MMM', { locale: es })
                             .replace(/^\w/, c => c.toUpperCase()), // Capitalizar "ene" → "Ene"
                         total: monthlyRev[key]
                     }));

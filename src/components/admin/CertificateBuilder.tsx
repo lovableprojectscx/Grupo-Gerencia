@@ -42,6 +42,7 @@ const CORE_VARIABLES = [
     { id: "courseName", label: "Nombre del Curso", value: "Diplomado en Cuidados Intensivos" },
     { id: "date", label: "Fecha de Emisión", value: "15 de Enero, 2026" },
     { id: "code", label: "Número de Registro", value: "101 - 2025" },
+    { id: "qrCode", label: "Código QR de Validación", value: "[ CÓDIGO QR ]" },
 ];
 
 interface CertificateBuilderProps {
@@ -109,14 +110,24 @@ const SmartText = ({ text, fontSize, color, fontFamily, maxWidthPercent = 85, bo
                 whiteSpace: isMultiLine ? "pre-wrap" : "nowrap",
                 lineHeight: 1.15,
                 width: "100%",
+                height: fieldId?.includes("qrCode") ? "100%" : "auto", // Height 100% for QR to center
                 display: "flex",
+                flexDirection: fieldId?.includes("qrCode") ? "column" : "row",
                 alignItems: "center",
                 justifyContent: "center",
                 textAlign: "center",
-                wordBreak: isMultiLine ? "break-word" : "normal"
+                wordBreak: isMultiLine ? "break-word" : "normal",
+                backgroundColor: fieldId?.includes("qrCode") ? "rgba(0,0,0,0.05)" : "transparent",
             }}
         >
-            {text}
+            {fieldId?.includes("qrCode") ? (
+                <div className="flex flex-col items-center justify-center w-full h-full border-2 border-dashed border-gray-400 p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40%" height="40%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 mb-1"><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" /></svg>
+                    <span className="text-[10px] sm:text-xs text-gray-500 font-medium">QR Válido</span>
+                </div>
+            ) : (
+                text
+            )}
         </div>
     );
 };
@@ -393,6 +404,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             fieldLabel = keyOrId || "Nuevo Campo";
         }
 
+        const isQr = fieldId.includes("qrCode");
+
         const newField: FieldPosition = {
             id: fieldId,
             label: fieldLabel,
@@ -404,8 +417,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
             visible: true,
             value: value || "Texto de Ejemplo",
             page: activePage,
-            boxWidth: 30,
-            boxHeight: 10
+            boxWidth: isQr ? 15 : 30,
+            boxHeight: isQr ? 15 : 10
         };
         setFields(prev => [...prev, newField]);
         setSelectedFieldId(newField.id);

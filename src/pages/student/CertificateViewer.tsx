@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Document, Page, pdfjs } from 'react-pdf';
+import QRCode from 'qrcode';
 
 // Setup PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -110,10 +111,26 @@ const SmartText = ({
         ? isMultiLineProp
         : (fieldId && (fieldId.includes("courseName") || fieldId.includes("curso")));
 
+    const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
     // Reset when text or base fontSize changes
     useEffect(() => {
         setCurrentFontSize(fontSize);
     }, [text, fontSize]);
+
+    // Async QR generation
+    useEffect(() => {
+        if (fieldId && fieldId.includes("qrCode") && text && text.startsWith("http")) {
+            QRCode.toDataURL(text, {
+                margin: 0,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff00' // Transparent background
+                }
+            }).then(url => setQrDataUrl(url))
+                .catch(err => console.error("Error generating QR:", err));
+        }
+    }, [fieldId, text]);
 
     useEffect(() => {
         const el = textRef.current;
@@ -126,6 +143,8 @@ const SmartText = ({
         const boxH_px = (boxHeightPercent / 100) * container.clientHeight;
 
         const checkFit = () => {
+            if (fieldId && fieldId.includes("qrCode")) return; // Don't resize font for QR
+
             if (isMultiLine) {
                 if ((el.scrollWidth > boxW_px || el.scrollHeight > boxH_px) && currentFontSize > 20) {
                     setCurrentFontSize(prev => Math.max(20, prev * 0.90));
@@ -142,7 +161,7 @@ const SmartText = ({
         const timer = setTimeout(checkFit, 50);
         return () => clearTimeout(timer);
 
-    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize, isMultiLine]);
+    }, [text, currentFontSize, boxWidthPercent, boxHeightPercent, fontSize, isMultiLine, fieldId]);
 
     return (
         <div
@@ -174,7 +193,11 @@ const SmartText = ({
             }}
             className="print:leading-none"
         >
-            {text}
+            {fieldId && fieldId.includes("qrCode") ? (
+                qrDataUrl ? <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain mix-blend-multiply" /> : <Loader2 className="animate-spin w-4 h-4 text-muted-foreground" />
+            ) : (
+                text
+            )}
         </div>
     );
 };
@@ -335,6 +358,14 @@ export default function CertificateViewer() {
                 if (regNum) return regYear ? `${regNum} - ${regYear}` : `${regNum}`;
                 return certificate.code || certificate.id;
             }
+            case "qrCode":
+            case "qrCode-back": {
+                // Return a placeholder or the actual QR code if we have the ID ready
+                // Because getFieldValue is sync, we can't await QRCode.toDataURL here easily
+                // Instead, we will generate the URL and we'll handle the async generation in a separate effect or use a wrapper
+                // For now, return the URL. We will intercept this in the rendering.
+                return `${window.location.origin}/verificar?code=${certificate.code || certificate.id}`;
+            }
             default:
                 if (field.id.startsWith('meta-')) {
                     const metaKey = field.label;
@@ -478,9 +509,11 @@ export default function CertificateViewer() {
                     );
                     if (!hoursResult.visible) continue;
 
-                    let text = hoursResult.value !== undefined ? hoursResult.value : getFieldValue(field);
+                    const rawText = hoursResult.value !== undefined ? hoursResult.value : getFieldValue(field);
 
-                    if (!text) continue;
+                    if (rawText === null || rawText === undefined || rawText === '') continue;
+
+                    const text = String(rawText);
 
                     // Dynamic Font Sizing
                     const fontSize = field.fontSize * pdfScale;
@@ -557,13 +590,41 @@ export default function CertificateViewer() {
                     }
 
                     // --- DRAWING ---
-                    const fontHeight = font.heightAtSize(currentFontSize);
-                    const singleLineHeight = fontHeight * lineHeightMultiplier;
-                    const totalBlockHeight = lines.length * singleLineHeight;
-
                     // Recalculate center coordinates
                     const x = (field.x / 100) * page.getWidth();
                     const y = page.getHeight() - ((field.y / 100) * page.getHeight());
+
+                    // --- DRAW QR CODE ---
+                    if (field.id.includes("qrCode")) {
+                        try {
+                            // Generate DataURI purely for PDF insertion
+                            const qrDataUrl = await QRCode.toDataURL(text, {
+                                margin: 0,
+                                color: { dark: '#000000', light: '#ffffff00' }
+                            });
+                            // Remove header to get raw base64
+                            const base64Data = qrDataUrl.split(',')[1];
+                            const qrImgBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                            // Embed into PDF
+                            const embeddedQr = await pdfDoc.embedPng(qrImgBytes);
+
+                            // Draw centered at x,y
+                            page.drawImage(embeddedQr, {
+                                x: x - (maxBoxWidth / 2),
+                                y: y - (maxBoxHeight / 2),
+                                width: maxBoxWidth,
+                                height: maxBoxHeight,
+                            });
+                        } catch (err) {
+                            console.error("Failed to render QR Code into PDF:", err);
+                        }
+                        return; // Skip drawing text
+                    }
+
+                    // --- DRAW TEXT ---
+                    const fontHeight = font.heightAtSize(currentFontSize);
+                    const singleLineHeight = fontHeight * lineHeightMultiplier;
+                    const totalBlockHeight = lines.length * singleLineHeight;
 
                     let lineY = y + (totalBlockHeight / 2) - singleLineHeight + (singleLineHeight * 0.25);
 

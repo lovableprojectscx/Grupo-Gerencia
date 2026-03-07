@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -69,7 +70,7 @@ export default function Classroom() {
             if (!userId) return null;
             const { data } = await supabase
                 .from('enrollments')
-                .select('status, progress')
+                .select('id, status, progress')
                 .eq('user_id', userId)
                 .eq('course_id', courseId)
                 .maybeSingle();
@@ -80,17 +81,14 @@ export default function Classroom() {
 
     // Fetch Certificate
     const { data: certificate } = useQuery({
-        queryKey: ["my-certificate", userId, courseId],
+        queryKey: ["my-certificate", userId, courseId, enrollment?.id],
         queryFn: async () => {
-            if (!userId) return null;
-            // Get enrollment first
-            const { data: enrol } = await supabase.from('enrollments').select('id').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
-            if (!enrol) return null;
-            // Get certificate
-            const { data: cert } = await supabase.from('certificates').select('id').eq('enrollment_id', enrol.id).maybeSingle();
+            if (!enrollment?.id) return null;
+            // Get certificate directly using existing enrollment ID
+            const { data: cert } = await supabase.from('certificates').select('id').eq('enrollment_id', enrollment.id).maybeSingle();
             return cert;
         },
-        enabled: !!userId && !!courseId
+        enabled: !!userId && !!courseId && !!enrollment?.id
     });
 
     // Toggle Completion Mutation
@@ -118,7 +116,56 @@ export default function Classroom() {
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
     if (isLoading) {
-        return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin w-10 h-10 text-primary" /></div>;
+        return (
+            <div className="flex flex-col h-screen bg-background overflow-hidden">
+                {/* Header Skeleton */}
+                <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 z-20">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="w-8 h-8 rounded" />
+                        <div className="flex flex-col gap-1.5 mt-1">
+                            <Skeleton className="h-4 w-48" />
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="h-2 w-24" />
+                                <Skeleton className="h-3 w-16" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="h-9 w-32 hidden md:block" />
+                        <Skeleton className="h-9 w-9 md:hidden" />
+                    </div>
+                </header>
+
+                {/* Main Content Skeleton */}
+                <div className="flex flex-1 overflow-hidden">
+                    <main className="flex-1 flex flex-col min-w-0 bg-secondary/10 p-4 md:p-6 space-y-6">
+                        <Skeleton className="aspect-video w-full max-w-5xl mx-auto rounded-xl shadow-xl" />
+                        <div className="max-w-4xl w-full mx-auto space-y-4 pt-2">
+                            <div className="flex justify-between items-center">
+                                <Skeleton className="h-8 w-64" />
+                                <Skeleton className="h-10 w-40" />
+                            </div>
+                            <Skeleton className="h-8 w-40 mt-6" />
+                            <Skeleton className="h-20 w-full" />
+                        </div>
+                    </main>
+
+                    {/* Sidebar Skeleton */}
+                    <aside className="hidden md:flex flex-col border-l border-border bg-card w-80 shrink-0 p-4 space-y-4">
+                        <Skeleton className="h-6 w-24 mb-4" />
+                        <Skeleton className="h-10 w-full rounded-md" />
+                        <div className="space-y-4 mt-6 pt-4 border-t border-border/50">
+                            <Skeleton className="h-4 w-20" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-14 w-full rounded-lg" />
+                                <Skeleton className="h-14 w-full rounded-lg" />
+                                <Skeleton className="h-14 w-full rounded-lg" />
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        );
     }
 
     if (!course) {

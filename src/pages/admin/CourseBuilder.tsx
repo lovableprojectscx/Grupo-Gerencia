@@ -24,8 +24,12 @@ import {
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { CertificateBuilder } from "@/components/admin/CertificateBuilder";
-import { BrowserWindow } from "@/components/ui/BrowserWindow"; // Added import
-import { Switch } from "@/components/ui/switch";
+import { CourseGeneralTab } from "@/components/admin/course-builder/CourseGeneralTab";
+import { CourseSyllabusTab } from "@/components/admin/course-builder/CourseSyllabusTab";
+import { CourseSettingsTab } from "@/components/admin/course-builder/CourseSettingsTab";
+import { SyllabusDialogs } from "@/components/admin/course-builder/SyllabusDialogs";
+import { InstructorManagerDialogs } from "@/components/admin/course-builder/InstructorManagerDialogs";
+import { CategoryManagerDialogs } from "@/components/admin/course-builder/CategoryManagerDialogs";
 import {
     Dialog,
     DialogContent,
@@ -49,9 +53,9 @@ import { toast } from "sonner";
 import { useAdminCourses } from "@/hooks/useAdminCourses";
 import { courseService } from "@/services/courseService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { COURSE_CATEGORIES } from "@/constants/categories";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Upload } from "lucide-react";
+import imageCompression from 'browser-image-compression';
 
 export default function CourseBuilder() {
     const { id } = useParams();
@@ -82,6 +86,7 @@ export default function CourseBuilder() {
     const [instructors, setInstructors] = useState<any[]>([]);
     const [isInstructorDialogOpen, setIsInstructorDialogOpen] = useState(false);
     const [isInstructorManagerOpen, setIsInstructorManagerOpen] = useState(false);
+    const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [instructorToDelete, setInstructorToDelete] = useState<string | null>(null);
     const [newInstructor, setNewInstructor] = useState({ name: "", title: "", photo_url: "" });
     const [instructorUploading, setInstructorUploading] = useState(false);
@@ -199,13 +204,29 @@ export default function CourseBuilder() {
 
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
+            let fileToUpload = file;
+            if (file.type.startsWith('image/')) {
+                toast.loading("Optimizando imagen de portada...", { id: "compressCoverToast" });
+                try {
+                    fileToUpload = await imageCompression(file, {
+                        maxSizeMB: 0.5, // 500KB para portadas
+                        maxWidthOrHeight: 1280,
+                        useWebWorker: true,
+                    });
+                } catch (compError) {
+                    console.warn("Fallo al comprimir, usando original", compError);
+                } finally {
+                    toast.dismiss("compressCoverToast");
+                }
+            }
+
+            const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `covers/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('course-content')
-                .upload(filePath, file);
+                .upload(filePath, fileToUpload);
 
             if (uploadError) throw uploadError;
 
@@ -229,13 +250,29 @@ export default function CourseBuilder() {
 
         setInstructorUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
+            let fileToUpload = file;
+            if (file.type.startsWith('image/')) {
+                toast.loading("Optimizando foto...", { id: "compressAvatarToast" });
+                try {
+                    fileToUpload = await imageCompression(file, {
+                        maxSizeMB: 0.2, // 200KB para avatares
+                        maxWidthOrHeight: 500, // Avatares pequeños
+                        useWebWorker: true,
+                    });
+                } catch (compError) {
+                    console.warn("Fallo al comprimir, usando original", compError);
+                } finally {
+                    toast.dismiss("compressAvatarToast");
+                }
+            }
+
+            const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
             const fileName = `instructor-${Math.random()}.${fileExt}`;
             const filePath = `instructors/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('course-content')
-                .upload(filePath, file);
+                .upload(filePath, fileToUpload);
 
             if (uploadError) throw uploadError;
 
@@ -453,423 +490,31 @@ export default function CourseBuilder() {
 
                 {/* General Tab */}
                 <TabsContent value="general">
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Detalles Básicos</CardTitle>
-                                <CardDescription>Información principal que verán los estudiantes.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="title" className="flex gap-1">Título del Curso <span className="text-destructive">*</span></Label>
-                                    <Input
-                                        id="title"
-                                        placeholder="Ej. Diplomado en Gestión Pública"
-                                        value={course.title}
-                                        onChange={(e) => setCourse({ ...course, title: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="subtitle">Subtítulo Corto</Label>
-                                    <Input
-                                        id="subtitle"
-                                        placeholder="Breve descripción atractiva"
-                                        value={course.subtitle || ""}
-                                        onChange={(e) => setCourse({ ...course, subtitle: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <Label htmlFor="desc" className="flex gap-1">Descripción Completa <span className="text-destructive">*</span></Label>
-
-                                    </div>
-                                    <Textarea
-                                        id="desc"
-                                        className="min-h-[150px]"
-                                        placeholder="Detalla qué aprenderán los estudiantes..."
-                                        value={course.description || ""}
-                                        onChange={(e) => setCourse({ ...course, description: e.target.value })}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex justify-between items-center">
-                                    <span>Instructor</span>
-                                    <Button variant="outline" size="sm" onClick={() => setIsInstructorManagerOpen(true)} className="mr-2">
-                                        <GripVertical className="w-3 h-3 mr-1" /> Gestionar
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setIsInstructorDialogOpen(true)}>
-                                        <Plus className="w-3 h-3 mr-1" /> Nuevo
-                                    </Button>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Seleccionar Instructor</Label>
-                                    <Select
-                                        value={course.instructor_id || ""}
-                                        onValueChange={(val) => setCourse({ ...course, instructor_id: val })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccione un instructor" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {instructors.map((inst) => (
-                                                <SelectItem key={inst.id} value={inst.id}>
-                                                    {inst.name} ({inst.title})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Configuración del Curso</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Modalidad</Label>
-                                    <Select value={course.modality || "async"} onValueChange={(val) => setCourse({ ...course, modality: val })}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccione modalidad" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="async">Grabado (Asincrónico)</SelectItem>
-                                            <SelectItem value="live">En Vivo (Sincrónico)</SelectItem>
-                                            <SelectItem value="hybrid">Híbrido</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-muted-foreground">Define si las clases son en vivo o grabadas.</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Duración del Curso</Label>
-                                    <Input
-                                        placeholder="Ej. 10 Semanas (120 Horas)"
-                                        value={course.duration || ""}
-                                        onChange={(e) => setCourse({ ...course, duration: e.target.value })}
-                                    />
-                                    <p className="text-xs text-muted-foreground">Se mostrará en la ficha del curso en lugar de "A tu ritmo".</p>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Nivel</Label>
-                                    <Select value={course.level || "none"} onValueChange={(val) => setCourse({ ...course, level: val })}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">Ninguno (No mostrar)</SelectItem>
-                                            <SelectItem value="beginner">Básico</SelectItem>
-                                            <SelectItem value="intermediate">Intermedio</SelectItem>
-                                            <SelectItem value="advanced">Avanzado</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Tipo de Programa</Label>
-                                    <Select
-                                        value={course.metadata?.find((m: any) => m.key === "program_type")?.value || "course"}
-                                        onValueChange={(val) => {
-                                            const current = [...(course.metadata || [])];
-                                            const index = current.findIndex((m: any) => m.key === "program_type");
-                                            if (index >= 0) {
-                                                current[index].value = val;
-                                            } else {
-                                                current.push({ key: "program_type", value: val });
-                                            }
-                                            setCourse({ ...course, metadata: current });
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccione tipo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="course">Curso Especializado</SelectItem>
-                                            <SelectItem value="diploma">Diplomado</SelectItem>
-                                            <SelectItem value="specialization">Especialización</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-muted-foreground">Define si es un Curso, Diplomado o Especialización.</p>
-                                </div>
-
-                                <div className="space-y-4 pt-4 border-t border-border">
-                                    <Label className="text-base text-primary font-bold">Datos del Certificado</Label>
-
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-muted-foreground">Horas Lectivas</Label>
-                                                <Input
-                                                    placeholder="Ej. 120 Horas Lectivas"
-                                                    value={course.metadata?.find((m: any) => m.key === "Horas Lectivas")?.value || ""}
-                                                    onChange={(e) => {
-                                                        const current = [...(course.metadata || [])];
-                                                        const index = current.findIndex((m: any) => m.key === "Horas Lectivas");
-                                                        if (index >= 0) {
-                                                            current[index].value = e.target.value;
-                                                        } else {
-                                                            current.push({ key: "Horas Lectivas", value: e.target.value });
-                                                        }
-                                                        setCourse({ ...course, metadata: current });
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-muted-foreground">Horas Académicas</Label>
-                                                <Input
-                                                    placeholder="Ej. 160 Horas Académicas"
-                                                    value={course.metadata?.find((m: any) => m.key === "Horas Académicas")?.value || ""}
-                                                    onChange={(e) => {
-                                                        const current = [...(course.metadata || [])];
-                                                        const index = current.findIndex((m: any) => m.key === "Horas Académicas");
-                                                        if (index >= 0) {
-                                                            current[index].value = e.target.value;
-                                                        } else {
-                                                            current.push({ key: "Horas Académicas", value: e.target.value });
-                                                        }
-                                                        setCourse({ ...course, metadata: current });
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-muted-foreground">Créditos</Label>
-                                                <Input
-                                                    placeholder="Ej. 5 Créditos"
-                                                    value={course.metadata?.find((m: any) => m.key === "Créditos")?.value || ""}
-                                                    onChange={(e) => {
-                                                        const current = [...(course.metadata || [])];
-                                                        const index = current.findIndex((m: any) => m.key === "Créditos");
-                                                        if (index >= 0) {
-                                                            current[index].value = e.target.value;
-                                                        } else {
-                                                            current.push({ key: "Créditos", value: e.target.value });
-                                                        }
-                                                        setCourse({ ...course, metadata: current });
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <Separator className="my-2" />
-                                        <Label className="text-sm">Otros Datos Personalizados</Label>
-
-                                        {course.metadata?.filter((m: any) => !["Horas Lectivas", "Horas Académicas", "Créditos", "program_type", "live_url", "live_date", "certificates_enabled"].includes(m.key)).map((item: any, index: number) => {
-                                            // We need the REAL index in the main array to update correctly
-                                            const realIndex = course.metadata.findIndex((m: any) => m === item);
-                                            // Using a more stable key combining item key and index
-                                            const itemKey = `meta-${item.key || 'empty'}-${index}`;
-                                            return (
-                                                <div key={itemKey} className="flex gap-2 items-center">
-                                                    <Input
-                                                        placeholder="Nombre del dato"
-                                                        value={item.key}
-                                                        onChange={(e) => {
-                                                            const newMeta = [...(course.metadata || [])];
-                                                            newMeta[realIndex].key = e.target.value;
-                                                            setCourse({ ...course, metadata: newMeta });
-                                                        }}
-                                                        className="flex-1"
-                                                    />
-                                                    <Input
-                                                        placeholder="Valor"
-                                                        value={item.value}
-                                                        onChange={(e) => {
-                                                            const newMeta = [...(course.metadata || [])];
-                                                            newMeta[realIndex].value = e.target.value;
-                                                            setCourse({ ...course, metadata: newMeta });
-                                                        }}
-                                                        className="flex-1"
-                                                    />
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-red-500"
-                                                        onClick={() => {
-                                                            const newMeta = course.metadata.filter((_: any, i: number) => i !== realIndex);
-                                                            setCourse({ ...course, metadata: newMeta });
-                                                        }}
-                                                    >
-                                                        <XCircle className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            )
-                                        })}
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setCourse({ ...course, metadata: [...(course.metadata || []), { key: "", value: "" }] })}
-                                            className="w-full border-dashed"
-                                        >
-                                            <Plus className="w-4 h-4 mr-2" />
-                                            Agregar Otro Dato
-                                        </Button>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Ingresa los valores específicos para este curso. El alumno elegirá entre Horas Lectivas y Académicas.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Multimedia y Categorización</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-2">
-                                    <Label>Imagen de Portada</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="https://..."
-                                            value={course.image_url || ""}
-                                            onChange={(e) => setCourse({ ...course, image_url: e.target.value })}
-                                            className="flex-1"
-                                        />
-                                        <div className="relative">
-                                            <Input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
-                                                className="hidden"
-                                                id="image-upload"
-                                                disabled={uploading}
-                                            />
-                                            <Button variant="outline" size="icon" asChild>
-                                                <Label htmlFor="image-upload" className="cursor-pointer">
-                                                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                                </Label>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div className="aspect-video bg-secondary/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer overflow-hidden">
-                                        {course.image_url ? (
-                                            <img src={course.image_url} alt="Preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <>
-                                                <ImageIcon className="w-10 h-10 text-muted-foreground mb-2" />
-                                                <span className="text-sm text-muted-foreground">Vista previa</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="flex gap-1">Categoría <span className="text-destructive">*</span></Label>
-                                        <Select value={course.category} onValueChange={(val) => setCourse({ ...course, category: val, specialty: "" })}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seleccione" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {COURSE_CATEGORIES.map(cat => (
-                                                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Especialidad</Label>
-                                        <Select
-                                            value={course.specialty || ""}
-                                            onValueChange={(val) => setCourse({ ...course, specialty: val })}
-                                            disabled={!course.category}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seleccione" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {course.category && COURSE_CATEGORIES.find(c => c.id === course.category)?.specialties.map(spec => (
-                                                    <SelectItem key={spec.id} value={spec.id}>{spec.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <CourseGeneralTab
+                        course={course}
+                        setCourse={setCourse}
+                        instructors={instructors}
+                        setIsInstructorManagerOpen={setIsInstructorManagerOpen}
+                        setIsInstructorDialogOpen={setIsInstructorDialogOpen}
+                        setIsCategoryManagerOpen={setIsCategoryManagerOpen}
+                        handleImageUpload={handleImageUpload}
+                        uploading={uploading}
+                    />
                 </TabsContent>
 
                 {/* Syllabus Tab */}
                 <TabsContent value="syllabus" className="space-y-6">
-                    {isEditing ? (
-                        <div className="space-y-6">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <div>
-                                        <CardTitle>Estructura del Curso</CardTitle>
-                                        <CardDescription>Organiza el contenido en módulos y lecciones.</CardDescription>
-                                    </div>
-                                    <Button onClick={openCreateModuleDialog}>
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Agregar Módulo
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {!course.modules?.length && <p className="text-muted-foreground text-center py-4">No hay módulos creados.</p>}
-
-                                    {course.modules?.map((module: any) => (
-                                        <Card key={module.id} className="border bg-card/50">
-                                            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-                                                <div className="font-semibold flex items-center gap-2">
-                                                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
-                                                    {module.title}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Button variant="ghost" size="sm" onClick={() => openEditModuleDialog(module)}>Editar</Button>
-                                                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setModuleToDelete(module.id)}>
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="p-4 pt-0 pl-10 space-y-2">
-                                                {module.lessons?.map((lesson: any) => (
-                                                    <div key={lesson.id} className="flex items-center justify-between p-2 bg-background rounded-md border text-sm">
-                                                        <div className="flex items-center gap-2">
-                                                            {lesson.type === 'video' ? <Video className="w-3 h-3 text-blue-500" /> : <FileText className="w-3 h-3 text-orange-500" />}
-                                                            {lesson.title}
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Button variant="ghost" size="sm" onClick={() => openEditLessonDialog(lesson, module.id)}>
-                                                                <Pencil className="w-3 h-3 mr-1" /> Editar
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setLessonToDelete(lesson.id)}>
-                                                                <X className="w-3 h-3" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                <Button variant="outline" size="sm" className="w-full mt-2 border-dashed" onClick={() => openCreateLessonDialog(module.id)}>
-                                                    <Plus className="w-3 h-3 mr-1" /> Agregar Lección
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 space-y-4 border-2 border-dashed rounded-xl bg-card/50">
-                            <div className="p-4 bg-primary/10 rounded-full">
-                                <Save className="w-8 h-8 text-primary" />
-                            </div>
-                            <h3 className="text-lg font-medium">Guarda el curso primero</h3>
-                            <p className="text-muted-foreground text-center max-w-md">
-                                Para agregar módulos y lecciones, primero necesitamos crear el curso en la base de datos.
-                            </p>
-                            <Button onClick={handleSave}>
-                                <Save className="w-4 h-4 mr-2" />
-                                Guardar Borrador y Continuar
-                            </Button>
-                        </div>
-                    )}
+                    <CourseSyllabusTab
+                        course={course}
+                        isEditing={isEditing}
+                        openCreateModuleDialog={openCreateModuleDialog}
+                        openEditModuleDialog={openEditModuleDialog}
+                        openCreateLessonDialog={openCreateLessonDialog}
+                        openEditLessonDialog={openEditLessonDialog}
+                        setModuleToDelete={setModuleToDelete}
+                        setLessonToDelete={setLessonToDelete}
+                        handleSave={handleSave}
+                    />
                 </TabsContent>
 
                 {/* Certificate Tab */}
@@ -900,306 +545,53 @@ export default function CourseBuilder() {
 
                 {/* Settings Tab */}
                 <TabsContent value="settings">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Precio y Publicación</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex flex-col md:flex-row gap-8">
-                                <div className="space-y-6 flex-1">
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label>Precio de Venta (S/)</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={course.price}
-                                                onChange={(e) => setCourse({ ...course, price: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Precio Original (Antes del descuento)</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={course.original_price || ""}
-                                                onChange={(e) => setCourse({ ...course, original_price: e.target.value })}
-                                            />
-                                            <p className="text-xs text-muted-foreground">Opcional. Si se llena, se mostrará como una oferta.</p>
-                                        </div>
-                                    </div>
-
-                                    <Separator />
-
-                                    <div className="flex items-center justify-between p-4 border rounded-lg bg-secondary/10">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Publicar Curso</Label>
-                                            <p className="text-sm text-muted-foreground">Hacer visible este curso para todos los estudiantes.</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={course.published ? "text-green-600 font-bold text-sm" : "text-amber-600 font-bold text-sm"}>
-                                                {course.published ? "PUBLICADO" : "BORRADOR"}
-                                            </span>
-                                            <Switch checked={course.published} onCheckedChange={(c) => setCourse({ ...course, published: c })} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Live Preview Card */}
-                                <div className="w-full md:w-[400px] shrink-0">
-                                    <Label className="mb-3 block text-center font-medium">Vista Previa (Web)</Label>
-                                    <BrowserWindow url={`https://gerencia.global/cursos/${course.slug || '...'}`}>
-                                        <div className="p-4 bg-muted/10 min-h-[300px]">
-                                            <div className="border rounded-xl overflow-hidden shadow-lg bg-card max-w-[320px] mx-auto">
-                                                <div className="aspect-video bg-muted relative">
-                                                    {course.image_url ? (
-                                                        <img src={course.image_url} alt="Cover" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="flex items-center justify-center h-full text-muted-foreground">Sin Imagen</div>
-                                                    )}
-                                                    {course.original_price > Number(course.price) && (
-                                                        <span className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
-                                                            -{Math.round(((course.original_price - course.price) / course.original_price) * 100)}%
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="p-4 space-y-2">
-                                                    <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">{course.category || "Categoría"}</div>
-                                                    <h3 className="font-bold leading-tight line-clamp-2">{course.title || "Título del Curso"}</h3>
-                                                    <p className="text-sm text-muted-foreground line-clamp-2">{course.subtitle || "Subtítulo del curso..."}</p>
-                                                    <div className="pt-2 flex items-baseline gap-2">
-                                                        <span className="text-lg font-bold">S/ {course.price || "0.00"}</span>
-                                                        {Number(course.original_price) > Number(course.price) && (
-                                                            <span className="text-sm text-muted-foreground line-through">S/ {course.original_price}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </BrowserWindow>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <CourseSettingsTab
+                        course={course}
+                        setCourse={setCourse}
+                    />
                 </TabsContent>
             </Tabs>
 
-            <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {moduleDialogMode === 'create' && "Nuevo Módulo"}
-                            {moduleDialogMode === 'edit' && "Editar Módulo"}
-                            {moduleDialogMode === 'create-lesson' && "Nueva Lección"}
-                            {moduleDialogMode === 'edit-lesson' && "Editar Lección"}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {(moduleDialogMode === 'create' || moduleDialogMode === 'edit')
-                                ? "Define el nombre del módulo para estructurar tu curso."
-                                : "Ingresa el título de la lección."}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="descriptorName">Nombre</Label>
-                            <Input
-                                id="descriptorName"
-                                value={descriptorInput}
-                                onChange={(e) => setDescriptorInput(e.target.value)}
-                                placeholder="Ej. Título..."
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleDialogSubmit();
-                                }}
-                            />
-                        </div>
+            <SyllabusDialogs
+                isModuleDialogOpen={isModuleDialogOpen}
+                setIsModuleDialogOpen={setIsModuleDialogOpen}
+                moduleDialogMode={moduleDialogMode}
+                descriptorInput={descriptorInput}
+                setDescriptorInput={setDescriptorInput}
+                descriptorUrl={descriptorUrl}
+                setDescriptorUrl={setDescriptorUrl}
+                descriptorDuration={descriptorDuration}
+                setDescriptorDuration={setDescriptorDuration}
+                handleDialogSubmit={handleDialogSubmit}
+                moduleToDelete={moduleToDelete}
+                setModuleToDelete={setModuleToDelete}
+                handleDeleteModule={handleDeleteModule}
+                lessonToDelete={lessonToDelete}
+                setLessonToDelete={setLessonToDelete}
+                handleDeleteLesson={handleDeleteLesson}
+            />
 
-                        {(moduleDialogMode === 'create-lesson' || moduleDialogMode === 'edit-lesson') && (
-                            <>
-                                <div className="space-y-2 mt-4">
-                                    <Label htmlFor="descriptorUrl">URL del Video (YouTube)</Label>
-                                    <Input
-                                        id="descriptorUrl"
-                                        value={descriptorUrl}
-                                        onChange={(e) => setDescriptorUrl(e.target.value)}
-                                        placeholder="https://youtube.com/..."
-                                    />
-                                </div>
-                                <div className="space-y-2 mt-4">
-                                    <Label htmlFor="descriptorDuration">Duración</Label>
-                                    <Input
-                                        id="descriptorDuration"
-                                        value={descriptorDuration}
-                                        onChange={(e) => setDescriptorDuration(e.target.value)}
-                                        placeholder="Ej. 10 min"
-                                    />
-                                </div>
-                            </>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsModuleDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleDialogSubmit}>Guardar</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <InstructorManagerDialogs
+                isInstructorDialogOpen={isInstructorDialogOpen}
+                setIsInstructorDialogOpen={setIsInstructorDialogOpen}
+                newInstructor={newInstructor}
+                setNewInstructor={setNewInstructor}
+                handleInstructorUpload={handleInstructorUpload}
+                instructorUploading={instructorUploading}
+                handleCreateInstructor={handleCreateInstructor}
+                isInstructorManagerOpen={isInstructorManagerOpen}
+                setIsInstructorManagerOpen={setIsInstructorManagerOpen}
+                instructors={instructors}
+                handleDeleteInstructor={handleDeleteInstructor}
+                instructorToDelete={instructorToDelete}
+                setInstructorToDelete={setInstructorToDelete}
+                confirmDeleteInstructor={confirmDeleteInstructor}
+            />
 
-            {/* Create Instructor Dialog */}
-            <Dialog open={isInstructorDialogOpen} onOpenChange={setIsInstructorDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Nuevo Instructor</DialogTitle>
-                        <DialogDescription>
-                            Registra un nuevo instructor para asignar a tus cursos.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                        <div className="flex justify-center">
-                            <div className="relative w-24 h-24 rounded-full overflow-hidden bg-secondary border-2 border-dashed border-muted-foreground/30 flex items-center justify-center group cursor-pointer">
-                                {newInstructor.photo_url ? (
-                                    <img src={newInstructor.photo_url} alt="Preview" className="w-full h-full object-cover" />
-                                ) : (
-                                    <Upload className="w-8 h-8 text-muted-foreground" />
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={handleInstructorUpload}
-                                    disabled={instructorUploading}
-                                />
-                                {instructorUploading && (
-                                    <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                                        <Loader2 className="w-6 h-6 animate-spin" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Nombre Completo</Label>
-                            <Input
-                                placeholder="Ej. Dr. Juan Pérez"
-                                value={newInstructor.name}
-                                onChange={(e) => setNewInstructor({ ...newInstructor, name: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Título / Cargo</Label>
-                            <Input
-                                placeholder="Ej. Especialista en Gestión Pública"
-                                value={newInstructor.title}
-                                onChange={(e) => setNewInstructor({ ...newInstructor, title: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={() => setIsInstructorDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleCreateInstructor} disabled={instructorUploading}>
-                            {instructorUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Crear Instructor"}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Manage Instructors Dialog */}
-            <Dialog open={isInstructorManagerOpen} onOpenChange={setIsInstructorManagerOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Gestionar Instructores</DialogTitle>
-                        <DialogDescription>
-                            Elimina instructores que no necesitas. Esta acción no se puede deshacer.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="max-h-[300px] overflow-y-auto space-y-2 py-2">
-                        {instructors.length === 0 ? (
-                            <p className="text-center text-muted-foreground py-4">No hay instructores registrados.</p>
-                        ) : (
-                            instructors.map((instructor) => (
-                                <div key={instructor.id} className="flex items-center justify-between p-2 border rounded-md">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-secondary overflow-hidden">
-                                            {instructor.avatar_url ? (
-                                                <img src={instructor.avatar_url} alt={instructor.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-xs font-bold">
-                                                    {instructor.name.charAt(0)}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium">{instructor.name}</p>
-                                            <p className="text-xs text-muted-foreground">{instructor.title}</p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                        onClick={() => handleDeleteInstructor(instructor.id)}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsInstructorManagerOpen(false)}>Cerrar</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog open={!!instructorToDelete} onOpenChange={(open) => !open && setInstructorToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará permanentemente al instructor.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteInstructor} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Eliminar
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Module Delete Dialog */}
-            <AlertDialog open={!!moduleToDelete} onOpenChange={(open) => !open && setModuleToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar este módulo?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción eliminará el módulo y todas sus lecciones. No se puede deshacer.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteModule} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Eliminar Módulo
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Lesson Delete Dialog */}
-            <AlertDialog open={!!lessonToDelete} onOpenChange={(open) => !open && setLessonToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar lección?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción eliminará la lección permanentemente.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteLesson} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Eliminar Lección
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <CategoryManagerDialogs
+                isOpen={isCategoryManagerOpen}
+                setIsOpen={setIsCategoryManagerOpen}
+            />
         </div>
     );
 }

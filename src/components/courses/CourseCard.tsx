@@ -3,7 +3,7 @@ import { Clock, Users, Star, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getSpecialtyLabel, getCategoryLabel } from "@/constants/categories";
+import { useCategories } from "@/hooks/useCategories";
 
 interface CourseCardProps {
   id: string;
@@ -66,9 +66,11 @@ export const CourseCard = ({
     : 0;
 
   const dotColor = categoryDot[category] ?? categoryDot.default;
+  const { categories } = useCategories();
+  const categoryObj = categories.find(c => c.id === category);
   const categoryLabel = specialty
-    ? getSpecialtyLabel(category, specialty)
-    : getCategoryLabel(category);
+    ? categoryObj?.specialties?.find(s => s.id === specialty)?.label || specialty
+    : categoryObj?.label || category;
 
   return (
     <motion.div

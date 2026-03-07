@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import AuthLayout from "@/components/auth/AuthLayout";
+import { handleDbError } from "@/utils/errorHandler";
 
 export default function Register() {
     const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function Register() {
             }
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || "Error al registrarse");
+            toast.error(handleDbError(error, "Error al registrarse. Intenta otra vez."));
         } finally {
             setLoading(false);
         }
