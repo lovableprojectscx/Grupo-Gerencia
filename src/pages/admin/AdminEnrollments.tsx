@@ -405,7 +405,7 @@ export default function AdminEnrollments() {
                                                                                     if (!num) return null;
                                                                                     return (
                                                                                         <span className="text-xs text-muted-foreground font-mono">
-                                                                                            N° {num}{year ? ` - ${year}` : ""}
+                                                                                            {num}{year ? ` - ${year}` : ""}
                                                                                         </span>
                                                                                     );
                                                                                 })()}
