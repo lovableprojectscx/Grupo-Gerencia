@@ -497,7 +497,12 @@ export default function CertificateViewer() {
                 const pdfScale = page.getWidth() / refWidth;
 
                 for (const field of fields) {
-                    if (!field.visible || (field.page && field.page !== pageName)) continue;
+                    if (!field.visible) continue;
+
+                    // Lógica estricta de páginas:
+                    // Si el campo no tiene 'page' definido, se asume 'front' por defecto (legacy data).
+                    const targetPage = field.page || 'front';
+                    if (targetPage !== pageName) continue;
 
                     // Resolver visibilidad y valor del campo de horas via helper centralizado
                     const hoursResult = resolveHoursField(
