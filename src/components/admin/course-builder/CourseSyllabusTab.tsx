@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Plus, Trash2, Video, FileText, Pencil, X, Save } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { GripVertical, Plus, Trash2, Pencil, X, Save, PlayCircle, FileText } from "lucide-react";
 
 interface CourseSyllabusTabProps {
     course: any;
@@ -65,6 +66,10 @@ export function CourseSyllabusTab({
                                 <div className="font-semibold flex items-center gap-2">
                                     <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
                                     {module.title}
+                                    {module.video_url
+                                        ? <Badge variant="secondary" className="text-xs font-normal text-green-700 bg-green-100 border-green-200"><PlayCircle className="w-3 h-3 mr-1" />Video asignado</Badge>
+                                        : <Badge variant="outline" className="text-xs font-normal text-amber-600 border-amber-300">Sin video</Badge>
+                                    }
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Button variant="ghost" size="sm" onClick={() => openEditModuleDialog(module)}>Editar</Button>
@@ -77,7 +82,7 @@ export function CourseSyllabusTab({
                                 {module.lessons?.map((lesson: any) => (
                                     <div key={lesson.id} className="flex items-center justify-between p-2 bg-background rounded-md border text-sm">
                                         <div className="flex items-center gap-2">
-                                            {lesson.type === 'video' ? <Video className="w-3 h-3 text-blue-500" /> : <FileText className="w-3 h-3 text-orange-500" />}
+                                            <FileText className="w-3 h-3 text-muted-foreground" />
                                             {lesson.title}
                                         </div>
                                         <div className="flex items-center gap-1">
