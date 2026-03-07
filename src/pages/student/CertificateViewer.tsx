@@ -604,8 +604,9 @@ export default function CertificateViewer() {
                         try {
                             // Generate DataURI purely for PDF insertion
                             const qrDataUrl = await QRCode.toDataURL(text, {
-                                margin: 0,
-                                color: { dark: '#000000', light: '#ffffff00' }
+                                margin: 1,
+                                width: 1024,
+                                color: { dark: '#000000', light: '#ffffff' }
                             });
                             // Remove header to get raw base64
                             const base64Data = qrDataUrl.split(',')[1];
