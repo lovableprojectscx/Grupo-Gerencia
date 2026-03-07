@@ -244,13 +244,7 @@ const Verificar = () => {
                               <div className="font-semibold text-foreground truncate">{cert.studentName}</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 p-4 bg-secondary/50 rounded-xl">
-                            <Calendar className="w-5 h-5 md:w-6 md:h-6 text-accent shrink-0" />
-                            <div>
-                              <div className="text-xs md:text-sm text-muted-foreground">Fecha de emisión</div>
-                              <div className="font-semibold text-foreground">{cert.issueDate}</div>
-                            </div>
-                          </div>
+
                           <div className="flex items-center gap-4 p-4 bg-secondary/50 rounded-xl">
                             <Clock className="w-5 h-5 md:w-6 md:h-6 text-accent shrink-0" />
                             <div>
