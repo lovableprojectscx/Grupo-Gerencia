@@ -490,11 +490,11 @@ export default function CertificateViewer() {
 
             // Draw Fields on Front
             const drawFields = async (page: any, fields: any[], pageName: string) => {
-                // containerWidth es el ancho real del canvas HTML del viewer.
-                // Los fontSize del template fueron calibrados en ese mismo ancho,
-                // así que usarlo como referencia garantiza fidelidad HTML → PDF.
-                const refWidth = containerWidth > 0 ? containerWidth : 800;
-                const pdfScale = page.getWidth() / refWidth;
+                // El canvas del CertificateBuilder siempre tiene 800px de ancho de referencia.
+                // Usar containerWidth (ancho del navegador del celular) causaría que pdfScale
+                // sea gigante, haciendo el texto 2x más grande de lo esperado en dispositivos móviles.
+                const DESIGN_CANVAS_WIDTH = 800;
+                const pdfScale = page.getWidth() / DESIGN_CANVAS_WIDTH;
 
                 for (const field of fields) {
                     if (!field.visible) continue;
