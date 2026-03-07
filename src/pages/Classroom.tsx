@@ -39,6 +39,7 @@ export default function Classroom() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeLesson, setActiveLesson] = useState<any>(null);
+    const [activeModule, setActiveModule] = useState<any>(null);
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const userId = user?.id || null;
@@ -105,10 +106,11 @@ export default function Classroom() {
         onError: () => toast.error("Error al actualizar progreso")
     });
 
-    // Set initial active lesson once data is loaded
+    // Set initial active lesson/module once data is loaded
     useEffect(() => {
         if (!activeLesson && course?.modules?.[0]?.lessons?.[0]) {
             setActiveLesson(course.modules[0].lessons[0]);
+            setActiveModule(course.modules[0]);
         }
     }, [course, activeLesson]);
 
@@ -274,7 +276,7 @@ export default function Classroom() {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="p-0 w-80">
-                            <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} completedLessons={completedLessons} />
+                            <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} setActiveModule={setActiveModule} completedLessons={completedLessons} />
                         </SheetContent>
                     </Sheet>
                 </div>
@@ -358,37 +360,24 @@ export default function Classroom() {
 
                             {/* Video Player */}
                             <div className="aspect-video bg-black rounded-xl shadow-xl overflow-hidden relative group">
-                                {activeLesson.type === 'video' ? (
+                                {activeModule?.video_url ? (
                                     <div className="w-full h-full bg-black flex items-center justify-center">
-                                        {activeLesson.content_url ? (
-                                            <iframe
-                                                width="100%"
-                                                height="100%"
-                                                src={`https://www.youtube.com/embed/${getYouTubeId(activeLesson.content_url)}?autoplay=0&rel=0`}
-                                                title={activeLesson.title}
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                                className="w-full h-full"
-                                            ></iframe>
-                                        ) : (
-                                            <div className="flex flex-col items-center text-white/50">
-                                                <Play className="w-16 h-16 mb-2" />
-                                                <span>Video no disponible</span>
-                                            </div>
-                                        )}
+                                        <iframe
+                                            width="100%"
+                                            height="100%"
+                                            src={`https://www.youtube.com/embed/${getYouTubeId(activeModule.video_url)}?autoplay=0&rel=0`}
+                                            title={activeModule.title}
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                            className="w-full h-full"
+                                        ></iframe>
                                     </div>
                                 ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-card">
-                                        <FileText className="w-16 h-16 text-primary mb-4" />
-                                        <h3 className="text-xl font-bold">{activeLesson.title}</h3>
-                                        <p className="text-muted-foreground">Recurso de lectura / PDF</p>
-                                        {activeLesson.content_url && (
-                                            <Button variant="outline" className="mt-4" onClick={() => window.open(activeLesson.content_url, '_blank')}>
-                                                <Download className="w-4 h-4 mr-2" />
-                                                Abrir Recurso
-                                            </Button>
-                                        )}
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-white/50">
+                                        <Play className="w-16 h-16 mb-2" />
+                                        <span>Video del módulo no disponible</span>
+                                        <p className="text-xs mt-1 text-white/30">Edita el módulo para agregar un enlace de YouTube</p>
                                     </div>
                                 )}
                             </div>
@@ -396,7 +385,10 @@ export default function Classroom() {
                             {/* Content Tabs */}
                             <div className="max-w-4xl">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold">{activeLesson.title}</h2>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">{activeModule?.title}</p>
+                                        <h2 className="text-2xl font-bold">{activeLesson.title}</h2>
+                                    </div>
                                     {isLessonCompleted ? (
                                         <Button
                                             variant="secondary"
@@ -444,7 +436,7 @@ export default function Classroom() {
                     "hidden md:flex flex-col border-l border-border bg-card w-80 shrink-0 transition-all duration-300",
                     !sidebarOpen && "w-0 border-l-0 overflow-hidden"
                 )}>
-                    {course && <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} completedLessons={completedLessons} />}
+                    {course && <CourseSidebarContent course={course} activeLesson={activeLesson} setActiveLesson={setActiveLesson} setActiveModule={setActiveModule} completedLessons={completedLessons} />}
                 </aside>
 
                 {/* Sidebar Toggle Button (Desktop floating) */}
@@ -508,7 +500,7 @@ export default function Classroom() {
     );
 }
 
-function CourseSidebarContent({ course, activeLesson, setActiveLesson, completedLessons }: { course: any, activeLesson: any, setActiveLesson: any, completedLessons: string[] }) {
+function CourseSidebarContent({ course, activeLesson, setActiveLesson, setActiveModule, completedLessons }: { course: any, activeLesson: any, setActiveLesson: any, setActiveModule: any, completedLessons: string[] }) {
     const [searchQuery, setSearchQuery] = useState("");
 
     return (
@@ -538,14 +530,20 @@ function CourseSidebarContent({ course, activeLesson, setActiveLesson, completed
 
                         return (
                             <div key={module.id || i}>
-                                <h4 className="font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wider">{module.title}</h4>
+                                <div className="flex items-center gap-1.5 mb-3">
+                                    {module.video_url && <Play className="w-3 h-3 text-primary fill-primary flex-shrink-0" />}
+                                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{module.title}</h4>
+                                </div>
                                 <div className="space-y-1">
                                     {filteredLessons.map((lesson: any) => {
                                         const isCompleted = completedLessons.includes(lesson.id);
                                         return (
                                             <button
                                                 key={lesson.id}
-                                                onClick={() => setActiveLesson(lesson)}
+                                                onClick={() => {
+                                                    setActiveLesson(lesson);
+                                                    setActiveModule(module);
+                                                }}
                                                 className={cn(
                                                     "w-full flex items-start text-left gap-3 p-3 rounded-lg transition-colors group relative",
                                                     activeLesson?.id === lesson.id ? "bg-primary/10 text-primary" : "hover:bg-secondary/50"
@@ -559,13 +557,9 @@ function CourseSidebarContent({ course, activeLesson, setActiveLesson, completed
                                                 </div>
 
                                                 <div className="flex-1">
-                                                    <p className={cn("text-sm font-medium leading-tight mb-1", activeLesson?.id === lesson.id && "font-bold")}>
+                                                    <p className={cn("text-sm font-medium leading-tight", activeLesson?.id === lesson.id && "font-bold")}>
                                                         {lesson.title}
                                                     </p>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        {lesson.type === "video" ? <Play className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                                                        <span>{lesson.duration || "5 min"}</span>
-                                                    </div>
                                                 </div>
                                             </button>
                                         );

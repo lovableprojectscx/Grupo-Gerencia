@@ -74,7 +74,7 @@ export function SyllabusDialogs({
                             />
                         </div>
 
-                        {(moduleDialogMode === 'create-lesson' || moduleDialogMode === 'edit-lesson') && (
+                        {(moduleDialogMode === 'create' || moduleDialogMode === 'edit') && (
                             <>
                                 <div className="space-y-2 mt-4">
                                     <Label htmlFor="descriptorUrl">URL del Video (YouTube)</Label>

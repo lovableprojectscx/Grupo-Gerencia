@@ -31,6 +31,8 @@ export interface Module {
     course_id: string;
     title: string;
     order: number;
+    video_url?: string;
+    duration?: string;
     lessons?: Lesson[];
 }
 

@@ -127,6 +127,8 @@ export default function CourseBuilder() {
     const openEditModuleDialog = (module: any) => {
         setModuleDialogMode('edit');
         setDescriptorInput(module.title);
+        setDescriptorUrl(module.video_url || "");
+        setDescriptorDuration(module.duration || "");
         setCurrentModuleId(module.id);
         setIsModuleDialogOpen(true);
     };
@@ -140,12 +142,11 @@ export default function CourseBuilder() {
         setIsModuleDialogOpen(true);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const openEditLessonDialog = (lesson: any, moduleId: string) => { // moduleId kept for reference if needed
         setModuleDialogMode('edit-lesson');
         setDescriptorInput(lesson.title);
-        setDescriptorUrl(lesson.content_url || "");
-        setDescriptorDuration(lesson.duration || "");
+        setDescriptorUrl("");
+        setDescriptorDuration("");
         setCurrentLessonId(lesson.id);
         setIsModuleDialogOpen(true);
     }
@@ -158,12 +159,18 @@ export default function CourseBuilder() {
                 await courseService.createModule({
                     course_id: id!,
                     title: descriptorInput,
+                    video_url: descriptorUrl || undefined,
+                    duration: descriptorDuration || undefined,
                     order: (course.modules?.length || 0) + 1
                 });
                 toast.success("Módulo agregado");
             } else if (moduleDialogMode === 'edit') {
                 if (currentModuleId) {
-                    await courseService.updateModule(currentModuleId, { title: descriptorInput });
+                    await courseService.updateModule(currentModuleId, {
+                        title: descriptorInput,
+                        video_url: descriptorUrl || undefined,
+                        duration: descriptorDuration || undefined,
+                    });
                     toast.success("Módulo actualizado");
                 }
             } else if (moduleDialogMode === 'create-lesson') {
@@ -171,8 +178,6 @@ export default function CourseBuilder() {
                     await courseService.createLesson({
                         module_id: currentModuleId,
                         title: descriptorInput,
-                        content_url: descriptorUrl,
-                        duration: descriptorDuration,
                         type: 'video',
                         order: (course.modules?.find((m: any) => m.id === currentModuleId)?.lessons?.length || 0) + 1,
                         is_free_preview: false
@@ -183,8 +188,6 @@ export default function CourseBuilder() {
                 if (currentLessonId) {
                     await courseService.updateLesson(currentLessonId, {
                         title: descriptorInput,
-                        content_url: descriptorUrl,
-                        duration: descriptorDuration
                     });
                     toast.success("Lección actualizada");
                 }
