@@ -200,7 +200,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     // Helper: valor de vista previa para cada campo en el editor
     const getPreviewValue = (field: FieldPosition): string => {
         const baseId = field.id.replace(/-back$/, '');
-        if (baseId === 'code') return `N° - ${registrationYear}`;
+        if (baseId === 'code') return `101 - ${registrationYear}`;
         const coreVar = CORE_VARIABLES.find(v => v.id === baseId);
         if (coreVar) return coreVar.value;
         return field.value || "";
