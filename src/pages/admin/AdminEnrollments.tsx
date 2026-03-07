@@ -10,7 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays, QrCode } from "lucide-react";
+import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays, QrCode, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -124,6 +124,15 @@ export default function AdminEnrollments() {
             queryClient.invalidateQueries({ queryKey: ["admin-pending-count"] });
         },
         onError: (error) => toast.error("Error al rechazar: " + error.message)
+    });
+
+    const deleteCertMutation = useMutation({
+        mutationFn: courseService.deleteCertificate,
+        onSuccess: () => {
+            toast.success("Certificado eliminado correctamente. Puede volver a generarlo.");
+            queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+        },
+        onError: (error) => toast.error("Error al eliminar el certificado: " + error.message)
     });
 
     const handleGenerateCertificate = async () => {
@@ -373,6 +382,20 @@ export default function AdminEnrollments() {
                                                                                         onClick={() => handleDownloadQR(enrollment.certificatesList[0].id, enrollment.profiles?.full_name)}
                                                                                     >
                                                                                         <QrCode className="w-5 h-5" />
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        variant="outline"
+                                                                                        size="icon"
+                                                                                        className="h-9 w-9 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 shadow-sm"
+                                                                                        title="Eliminar certificado"
+                                                                                        onClick={() => {
+                                                                                            if (confirm("¿Estás seguro de que deseas eliminar este certificado? Podrás volver a generarlo luego.")) {
+                                                                                                deleteCertMutation.mutate(enrollment.certificatesList[0].id);
+                                                                                            }
+                                                                                        }}
+                                                                                        disabled={deleteCertMutation.isPending}
+                                                                                    >
+                                                                                        {deleteCertMutation.isPending && deleteCertMutation.variables === enrollment.certificatesList[0].id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
                                                                                     </Button>
                                                                                 </div>
                                                                                 {(() => {

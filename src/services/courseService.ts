@@ -432,6 +432,15 @@ export const courseService = {
         return data;
     },
 
+    async deleteCertificate(certificateId: string) {
+        const { error } = await supabase
+            .from('certificates')
+            .delete()
+            .eq('id', certificateId);
+
+        if (error) throw error;
+    },
+
     // --- Favorites ---
     async toggleFavorite(userId: string, courseId: string, isFavorite: boolean) {
         if (isFavorite) {
