@@ -10,7 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays } from "lucide-react";
+import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays, QrCode } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -367,13 +367,12 @@ export default function AdminEnrollments() {
                                                                                     </Button>
                                                                                     <Button
                                                                                         variant="outline"
-                                                                                        size="sm"
-                                                                                        className="text-gray-600 border-gray-200 hover:bg-gray-50"
+                                                                                        size="icon"
+                                                                                        className="h-9 w-9 text-indigo-600 border-indigo-100 hover:bg-indigo-50 hover:text-indigo-700 shadow-sm"
                                                                                         title="Descargar código QR de validación"
                                                                                         onClick={() => handleDownloadQR(enrollment.certificatesList[0].id, enrollment.profiles?.full_name)}
                                                                                     >
-                                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-qr-code mr-2"><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" /></svg>
-                                                                                        Descargar QR
+                                                                                        <QrCode className="w-5 h-5" />
                                                                                     </Button>
                                                                                 </div>
                                                                                 {enrollment.certificatesList[0].registration_number && (

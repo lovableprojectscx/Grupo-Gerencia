@@ -125,7 +125,7 @@ const SmartText = ({
                 margin: 0,
                 color: {
                     dark: '#000000',
-                    light: '#ffffff00' // Transparent background
+                    light: '#ffffff' // Solid white background
                 }
             }).then(url => setQrDataUrl(url))
                 .catch(err => console.error("Error generating QR:", err));
@@ -194,7 +194,7 @@ const SmartText = ({
             className="print:leading-none"
         >
             {fieldId && fieldId.includes("qrCode") ? (
-                qrDataUrl ? <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain mix-blend-multiply" /> : <Loader2 className="animate-spin w-4 h-4 text-muted-foreground" />
+                qrDataUrl ? <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain" /> : <Loader2 className="animate-spin w-4 h-4 text-muted-foreground" />
             ) : (
                 text
             )}
