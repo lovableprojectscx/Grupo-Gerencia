@@ -19,6 +19,7 @@ import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import QRCode from "qrcode";
 import {
     Dialog,
     DialogContent,
@@ -137,6 +138,32 @@ export default function AdminEnrollments() {
             toast.error("Error: " + e.message);
         } finally {
             setIsGenerating(null);
+        }
+    };
+
+    const handleDownloadQR = async (certificateId: string, enrollmentName: string) => {
+        try {
+            const verificationUrl = `${window.location.origin}/verificar?code=${certificateId}`;
+            const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+                width: 400,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            });
+
+            // Create a temporary link element to trigger the download
+            const link = document.createElement('a');
+            link.href = qrDataUrl;
+            link.download = `QR_Certificado_${enrollmentName?.replace(/\s+/g, '_') || 'Alumno'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("Código QR descargado exitosamente");
+        } catch (error) {
+            console.error("Error generating QR for download:", error);
+            toast.error("Hubo un error al generar el código QR");
         }
     };
 
@@ -328,15 +355,27 @@ export default function AdminEnrollments() {
                                                                     <>
                                                                         {enrollment.certificatesList && enrollment.certificatesList.length > 0 ? (
                                                                             <div className="flex flex-col items-end gap-1">
-                                                                                <Button
-                                                                                    variant="outline"
-                                                                                    size="sm"
-                                                                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                                                                                    onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
-                                                                                >
-                                                                                    <Award className="w-4 h-4 mr-2" />
-                                                                                    Ver Certificado
-                                                                                </Button>
+                                                                                <div className="flex gap-2">
+                                                                                    <Button
+                                                                                        variant="outline"
+                                                                                        size="sm"
+                                                                                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                                                        onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
+                                                                                    >
+                                                                                        <Award className="w-4 h-4 mr-2" />
+                                                                                        Ver Certificado
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        variant="outline"
+                                                                                        size="sm"
+                                                                                        className="text-gray-600 border-gray-200 hover:bg-gray-50"
+                                                                                        title="Descargar código QR de validación"
+                                                                                        onClick={() => handleDownloadQR(enrollment.certificatesList[0].id, enrollment.profiles?.full_name)}
+                                                                                    >
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-qr-code mr-2"><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" /></svg>
+                                                                                        Descargar QR
+                                                                                    </Button>
+                                                                                </div>
                                                                                 {enrollment.certificatesList[0].registration_number && (
                                                                                     <span className="text-xs text-muted-foreground font-mono">
                                                                                         N° {enrollment.certificatesList[0].registration_number}
