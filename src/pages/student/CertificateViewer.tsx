@@ -355,8 +355,8 @@ export default function CertificateViewer() {
             case "code-back": {
                 const regNum = certificate.registration_number ?? certificate.metadata?.registration_number;
                 const regYear = certificate.metadata?.registration_year;
-                if (regNum) return regYear ? `${regNum} - ${regYear}` : `${regNum}`;
-                return certificate.code || certificate.id;
+                const fullCode = regNum ? (regYear ? `${regNum} - ${regYear}` : `${regNum}`) : (certificate.code || certificate.id);
+                return `N° Registro: ${fullCode}`;
             }
             case "qrCode":
             case "qrCode-back": {

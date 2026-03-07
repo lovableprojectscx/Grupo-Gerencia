@@ -375,14 +375,17 @@ export default function AdminEnrollments() {
                                                                                         <QrCode className="w-5 h-5" />
                                                                                     </Button>
                                                                                 </div>
-                                                                                {enrollment.certificatesList[0].registration_number && (
-                                                                                    <span className="text-xs text-muted-foreground font-mono">
-                                                                                        N° {enrollment.certificatesList[0].registration_number}
-                                                                                        {enrollment.certificatesList[0].metadata?.registration_year
-                                                                                            ? ` - ${enrollment.certificatesList[0].metadata.registration_year}`
-                                                                                            : ""}
-                                                                                    </span>
-                                                                                )}
+                                                                                {(() => {
+                                                                                    const cert = enrollment.certificatesList[0];
+                                                                                    const num = cert.registration_number || cert.metadata?.registration_number;
+                                                                                    const year = cert.metadata?.registration_year;
+                                                                                    if (!num) return null;
+                                                                                    return (
+                                                                                        <span className="text-xs text-muted-foreground font-mono">
+                                                                                            N° {num}{year ? ` - ${year}` : ""}
+                                                                                        </span>
+                                                                                    );
+                                                                                })()}
                                                                             </div>
                                                                         ) : (
                                                                             <Button
