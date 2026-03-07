@@ -433,10 +433,11 @@ export const courseService = {
     },
 
     async deleteCertificate(certificateId: string) {
+        // Llamar a la función RPC inteligente para limpiar números correlativos
         const { error } = await supabase
-            .from('certificates')
-            .delete()
-            .eq('id', certificateId);
+            .rpc('delete_certificate_reclaim_number', {
+                p_certificate_id: certificateId
+            });
 
         if (error) throw error;
     },
