@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Upload, Building, Smartphone, QrCode, FileImage, LayoutTemplate } from "lucide-react";
+import { Save, Upload, Building, Smartphone, QrCode, FileImage, LayoutTemplate, KeyRound, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -28,6 +28,9 @@ export default function AdminSettings() {
         payment_qr_url: "",
         logo_url: ""
     });
+    const [passwordData, setPasswordData] = useState({ newPassword: "", confirmPassword: "" });
+    const [showPassword, setShowPassword] = useState(false);
+    const [loadingPassword, setLoadingPassword] = useState(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +72,28 @@ export default function AdminSettings() {
             toast.error("Error al guardar: " + error.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (passwordData.newPassword.length < 6) {
+            toast.error("La contraseña debe tener al menos 6 caracteres");
+            return;
+        }
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            toast.error("Las contraseñas no coinciden");
+            return;
+        }
+        setLoadingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: passwordData.newPassword });
+            if (error) throw error;
+            toast.success("Contraseña actualizada correctamente");
+            setPasswordData({ newPassword: "", confirmPassword: "" });
+        } catch (error: any) {
+            toast.error("Error al cambiar contraseña: " + error.message);
+        } finally {
+            setLoadingPassword(false);
         }
     };
 
@@ -130,6 +155,10 @@ export default function AdminSettings() {
                     <TabsTrigger value="certificate-template" className="px-6">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         Plantilla de Certificado
+                    </TabsTrigger>
+                    <TabsTrigger value="security" className="px-6">
+                        <ShieldCheck className="w-4 h-4 mr-2" />
+                        Seguridad
                     </TabsTrigger>
                 </TabsList>
 
@@ -235,6 +264,78 @@ export default function AdminSettings() {
                             refetch();
                         }}
                     />
+                </TabsContent>
+
+                <TabsContent value="security">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <KeyRound className="w-5 h-5" />
+                                Cambiar Contraseña
+                            </CardTitle>
+                            <CardDescription>
+                                Actualiza la contraseña de tu cuenta de administrador.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4 max-w-md">
+                            <div className="space-y-2">
+                                <Label htmlFor="new-password">Nueva Contraseña</Label>
+                                <div className="relative">
+                                    <KeyRound className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="new-password"
+                                        type={showPassword ? "text" : "password"}
+                                        className="pl-9 pr-9"
+                                        placeholder="Mínimo 6 caracteres"
+                                        value={passwordData.newPassword}
+                                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirm-password">Confirmar Nueva Contraseña</Label>
+                                <div className="relative">
+                                    <KeyRound className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="confirm-password"
+                                        type={showPassword ? "text" : "password"}
+                                        className="pl-9"
+                                        placeholder="Repite la nueva contraseña"
+                                        value={passwordData.confirmPassword}
+                                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            {passwordData.newPassword && passwordData.confirmPassword && (
+                                <p className={`text-sm font-medium ${passwordData.newPassword === passwordData.confirmPassword
+                                        ? "text-green-600" : "text-destructive"
+                                    }`}>
+                                    {passwordData.newPassword === passwordData.confirmPassword
+                                        ? "✓ Las contraseñas coinciden"
+                                        : "✗ Las contraseñas no coinciden"}
+                                </p>
+                            )}
+                            <Separator />
+                            <Button
+                                onClick={handleChangePassword}
+                                disabled={loadingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                                className="w-full"
+                            >
+                                {loadingPassword ? (
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Actualizando...</>
+                                ) : (
+                                    <><ShieldCheck className="w-4 h-4 mr-2" /> Actualizar Contraseña</>
+                                )}
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>
