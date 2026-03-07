@@ -17,7 +17,8 @@ import {
     ArrowRight,
     ArrowLeft,
     MonitorPlay,
-    ListChecks
+    ListChecks,
+    Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
