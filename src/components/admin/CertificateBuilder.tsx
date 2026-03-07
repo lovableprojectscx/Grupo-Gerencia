@@ -771,25 +771,25 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
                                     <div className="space-y-1">
                                         <Label className="text-xs">Dimensiones de Caja (Ancho x Alto %)</Label>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] w-4">W:</span>
-                                                <Slider
-                                                    value={[selectedField.boxWidth || 30]}
-                                                    min={5} max={100} step={1}
-                                                    onValueChange={(val) => updateField(selectedField.id, { boxWidth: val[0] })}
-                                                    className="flex-1"
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] text-muted-foreground">Ancho %</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={5} max={100}
+                                                    value={selectedField.boxWidth || 30}
+                                                    onChange={(e) => updateField(selectedField.id, { boxWidth: Math.max(5, Math.min(100, Number(e.target.value))) })}
+                                                    className="h-8 text-sm"
                                                 />
-                                                <span className="text-[10px] w-6">{selectedField.boxWidth || 30}%</span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] w-4">H:</span>
-                                                <Slider
-                                                    value={[selectedField.boxHeight || 10]}
-                                                    min={2} max={100} step={1}
-                                                    onValueChange={(val) => updateField(selectedField.id, { boxHeight: val[0] })}
-                                                    className="flex-1"
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] text-muted-foreground">Alto %</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={2} max={100}
+                                                    value={selectedField.boxHeight || 10}
+                                                    onChange={(e) => updateField(selectedField.id, { boxHeight: Math.max(2, Math.min(100, Number(e.target.value))) })}
+                                                    className="h-8 text-sm"
                                                 />
-                                                <span className="text-[10px] w-6">{selectedField.boxHeight || 10}%</span>
                                             </div>
                                         </div>
                                         <p className="text-[10px] text-muted-foreground">Define el área reservada. El texto se reducirá para caber.</p>
