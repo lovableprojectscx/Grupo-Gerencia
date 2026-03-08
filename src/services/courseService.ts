@@ -444,6 +444,25 @@ export const courseService = {
         if (error) throw error;
     },
 
+    async getCertificateSequence(courseId: string) {
+        const { data, error } = await supabase.rpc('get_course_certificate_sequence', {
+            p_course_id: courseId
+        });
+
+        if (error) throw error;
+        return data as { last_number: number };
+    },
+
+    async updateCertificateSequence(courseId: string, startNumber: number) {
+        const { data, error } = await supabase.rpc('update_course_certificate_sequence', {
+            p_course_id: courseId,
+            p_start_number: startNumber
+        });
+
+        if (error) throw error;
+        return data as { success: boolean, new_last_number: number };
+    },
+
     // --- Favorites ---
     async toggleFavorite(userId: string, courseId: string, isFavorite: boolean) {
         if (isFavorite) {

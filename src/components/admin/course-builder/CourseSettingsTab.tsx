@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { BrowserWindow } from "@/components/ui/BrowserWindow";
+import { courseService } from "@/services/courseService";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface CourseSettingsTabProps {
     course: any;
@@ -11,35 +16,125 @@ interface CourseSettingsTabProps {
 }
 
 export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps) {
+    const [certSequence, setCertSequence] = useState<string>("");
+    const [isLoadingSeq, setIsLoadingSeq] = useState(false);
+    const [isSavingSeq, setIsSavingSeq] = useState(false);
+
+    useEffect(() => {
+        if (course?.id) {
+            loadSequence();
+        }
+    }, [course?.id]);
+
+    const loadSequence = async () => {
+        if (!course?.id) return;
+        setIsLoadingSeq(true);
+        try {
+            const result = await courseService.getCertificateSequence(course.id);
+            if (result && result.last_number !== undefined) {
+                setCertSequence(result.last_number.toString());
+            }
+        } catch (error) {
+            console.error("Error loading sequence", error);
+        } finally {
+            setIsLoadingSeq(false);
+        }
+    };
+
+    const handleUpdateSequence = async () => {
+        if (!course?.id) return;
+        const newSeq = parseInt(certSequence);
+        if (isNaN(newSeq) || newSeq < 1) {
+            toast.error("Por favor ingresa un número válido mayor a 0.");
+            return;
+        }
+
+        setIsSavingSeq(true);
+        try {
+            await courseService.updateCertificateSequence(course.id, newSeq);
+            toast.success("Secuencia de certificados actualizada correctamente.");
+            loadSequence();
+        } catch (error: any) {
+            console.error("Error updating sequence", error);
+            // Mostrar error amigable si es la excepción lanzada desde Postgres
+            if (error.message && error.message.includes('existen certificados emitidos')) {
+                toast.error(error.message);
+            } else {
+                toast.error("Error al actualizar la secuencia. Inténtalo de nuevo.");
+            }
+        } finally {
+            setIsSavingSeq(false);
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Precio y Publicación</CardTitle>
+                <CardTitle>Configuración del Curso</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-8">
                 <div className="flex flex-col md:flex-row gap-8">
-                    <div className="space-y-6 flex-1">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label>Precio de Venta (S/)</Label>
-                                <Input
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={course.price}
-                                    onChange={(e) => setCourse({ ...course, price: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Precio Original (Antes del descuento)</Label>
-                                <Input
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={course.original_price || ""}
-                                    onChange={(e) => setCourse({ ...course, original_price: e.target.value })}
-                                />
-                                <p className="text-xs text-muted-foreground">Opcional. Si se llena, se mostrará como una oferta.</p>
+                    <div className="space-y-8 flex-1">
+                        {/* Precios */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Precio y Ofertas</h3>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>Precio de Venta (S/)</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={course.price}
+                                        onChange={(e) => setCourse({ ...course, price: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Precio Original (Antes del descuento)</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={course.original_price || ""}
+                                        onChange={(e) => setCourse({ ...course, original_price: e.target.value })}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Opcional. Si se llena, se mostrará como una oferta.</p>
+                                </div>
                             </div>
                         </div>
+
+                        <Separator />
+
+                        {/* Numeración de Certificados */}
+                        {course?.id && (
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-medium">Numeración de Certificados</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Define el número base para los próximos certificados de este curso.
+                                        El siguiente certificado emitido tomará este número + 1.
+                                    </p>
+                                </div>
+                                <div className="flex items-end gap-4 max-w-sm">
+                                    <div className="space-y-2 flex-1">
+                                        <Label>Número Base Actual</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="Ej. 100, 200..."
+                                            value={certSequence}
+                                            onChange={(e) => setCertSequence(e.target.value)}
+                                            disabled={isLoadingSeq || isSavingSeq}
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={handleUpdateSequence}
+                                        disabled={isLoadingSeq || isSavingSeq}
+                                    >
+                                        {isSavingSeq ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                        Actualizar
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
 
                         <Separator />
 
