@@ -657,9 +657,6 @@ const CursoDetalle = () => {
                               <div className="font-bold text-lg text-foreground group-hover:text-accent transition-colors leading-tight">
                                 {module.title}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-1.5 font-medium flex items-center gap-1.5">
-                                <BookOpen className="w-3.5 h-3.5" /> {module.lessons?.length || 0} clases incluidas
-                              </div>
                             </div>
                           </div>
                         </AccordionTrigger>

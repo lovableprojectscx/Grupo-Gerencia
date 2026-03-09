@@ -302,9 +302,6 @@ export default function Classroom() {
                                         <CardTitle className="text-base flex items-center gap-2">
                                             <BookOpen className="w-4 h-4 text-accent" />
                                             Temario del Módulo
-                                            <span className="ml-auto text-xs font-normal text-muted-foreground">
-                                                {activeModule?.lessons?.length || 0} tópicos
-                                            </span>
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-1 pt-0">
@@ -572,14 +569,6 @@ function SidebarContent({ course, activeModule, setActiveModule, completedLesson
                                 </div>
 
                                 {/* Lesson count indicator */}
-                                {isActive && module.lessons?.length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-primary/10 flex items-center gap-1.5">
-                                        <BookOpen className="w-3 h-3 text-primary/60" />
-                                        <span className="text-[10px] text-primary/60 font-medium">
-                                            {module.lessons.length} tópico{module.lessons.length > 1 ? 's' : ''}
-                                        </span>
-                                    </div>
-                                )}
                             </button>
                         );
                     })}
