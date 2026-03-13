@@ -24,7 +24,6 @@ import {
   MonitorPlay,
   ArrowRight,
   Zap,
-  BookOpen,
   MessageCircle,
   MessageSquare,
   Link as LinkIcon,
