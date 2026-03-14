@@ -14,8 +14,15 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Document, Page, pdfjs } from 'react-pdf';
 import QRCode from 'qrcode';
 
-// Setup PDF worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Setup PDF worker - use local bundled worker for reliability
+try {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url
+    ).toString();
+} catch {
+    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+}
 
 import fontkit from '@pdf-lib/fontkit';
 
@@ -80,11 +87,12 @@ function resolveHoursField(
 
 // Font URL Mapping (using Google Fonts GitHub Raw -> Static TTF for maximum compatibility)
 // pdf-lib/fontkit has trouble with Variable Fonts (Var) and WOFF2 sometimes. Static TTFs are safest.
+// NOTE: Must use STATIC (non-variable) TTF files. Variable fonts ([wght]) are NOT supported by pdf-lib/fontkit
 const FONT_URLS: Record<string, string> = {
     'Great Vibes': 'https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf',
-    'Cinzel': 'https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/Cinzel%5Bwght%5D.ttf',
-    'Playfair Display': 'https://raw.githubusercontent.com/google/fonts/main/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf',
-    'Montserrat': 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf'
+    'Cinzel': 'https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/static/Cinzel-Regular.ttf',
+    'Playfair Display': 'https://raw.githubusercontent.com/google/fonts/main/ofl/playfairdisplay/static/PlayfairDisplay-Regular.ttf',
+    'Montserrat': 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Regular.ttf'
 };
 
 // ... inside handleDownloadPDF ...
@@ -624,7 +632,7 @@ export default function CertificateViewer() {
                         } catch (err) {
                             console.error("Failed to render QR Code into PDF:", err);
                         }
-                        return; // Skip drawing text
+                        continue; // Skip text drawing for this field, process next fields
                     }
 
                     // --- DRAW TEXT ---
@@ -712,12 +720,22 @@ export default function CertificateViewer() {
             }
 
             const pdfBytes = await pdfDoc.save();
-            // Trigger download
-            const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+
+            // Validate PDF is not empty (catches silent PDF build failures)
+            if (!pdfBytes || pdfBytes.byteLength < 100) {
+                throw new Error("El PDF generado está vacío o corrupto. Verifica la imagen de fondo del certificado.");
+            }
+
+            // Trigger download - NO appendTo body, that conflicts with React's DOM reconciler
+            // and causes the 'insertBefore' NotFoundError crash on some browsers
+            const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+            const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
+            link.href = objectUrl;
             link.download = `certificado-${id}.pdf`;
             link.click();
+            // Defer revoke to allow browser time to start the download
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 
             toast.success("PDF descargado correctamente", { id: toastId });
         } catch (error: any) {
