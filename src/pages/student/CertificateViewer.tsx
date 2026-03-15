@@ -726,16 +726,26 @@ export default function CertificateViewer() {
                 throw new Error("El PDF generado está vacío o corrupto. Verifica la imagen de fondo del certificado.");
             }
 
-            // Trigger download - NO appendTo body, that conflicts with React's DOM reconciler
-            // and causes the 'insertBefore' NotFoundError crash on some browsers
+            // Trigger download - compatible con Chrome Android y todos los navegadores
+            // Chrome móvil requiere que el <a> esté en el DOM antes de .click()
             const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
             const objectUrl = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = objectUrl;
-            link.download = `certificado-${id}.pdf`;
-            link.click();
+            try {
+                const link = document.createElement("a");
+                link.href = objectUrl;
+                link.download = `certificado-${id}.pdf`;
+                link.style.display = "none";
+                // Insertar FUERA del árbol de React (en body directamente)
+                document.body.appendChild(link);
+                link.click();
+                // Remover inmediatamente después del click
+                document.body.removeChild(link);
+            } catch {
+                // Fallback: abrir en nueva pestaña (funciona en todos los móviles)
+                window.open(objectUrl, '_blank');
+            }
             // Defer revoke to allow browser time to start the download
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
 
             toast.success("PDF descargado correctamente", { id: toastId });
         } catch (error: any) {
