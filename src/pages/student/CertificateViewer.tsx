@@ -228,11 +228,46 @@ export default function CertificateViewer() {
     const { data: certificate, isLoading, error } = useQuery<CertificateDetails>({
         queryKey: ["certificate", id],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .rpc('get_certificate_details', { cert_id: id });
+            // Reemplazo de la función RPC faltante por una consulta directa equitativa
+            const { data: rawData, error } = await supabase
+                .from('certificates')
+                .select(`
+                    id, code, registration_number, issued_at, metadata,
+                    enrollment:enrollments(
+                        student:profiles(full_name, dni),
+                        course:courses(title, certificate_template, metadata)
+                    )
+                `)
+                .eq('id', id)
+                .single();
 
             if (error) throw error;
-            if (!data) throw new Error("Certificate not found");
+            if (!rawData) throw new Error("Certificate not found");
+
+            // Mapear la data para que coincida exactamente con la interfaz CertificateDetails esperada
+            // handle the fact that joins might return arrays or single objects depending on relationship definition
+            const enrollmentData = Array.isArray(rawData.enrollment) ? rawData.enrollment[0] : rawData.enrollment;
+            const studentData = enrollmentData ? (Array.isArray(enrollmentData.student) ? enrollmentData.student[0] : enrollmentData.student) : null;
+            const courseData = enrollmentData ? (Array.isArray(enrollmentData.course) ? enrollmentData.course[0] : enrollmentData.course) : null;
+
+            const data: CertificateDetails = {
+                id: rawData.id,
+                code: rawData.code,
+                registration_number: rawData.registration_number,
+                issued_at: rawData.issued_at,
+                metadata: rawData.metadata || {},
+                enrollment: {
+                    student: {
+                        full_name: studentData?.full_name,
+                        dni: studentData?.dni
+                    },
+                    course: {
+                        title: courseData?.title,
+                        certificate_template: courseData?.certificate_template,
+                        metadata: courseData?.metadata
+                    }
+                }
+            };
 
             // Migrar campos legacy (maxWidth → boxWidth) en template_snapshot
             if (data.metadata?.template_snapshot?.fields) {
