@@ -428,13 +428,14 @@ export default function CertificateViewer() {
             const bgFront = template.bgImageFront || template.bgImage;
             const bgBack = template.bgImageBack;
 
-            // Initialize PDF
-            let pdfDoc: PDFDocument;
-
-            // Load base PDF or create new
-            // Detect PDF by path (strip query params first to handle signed URLs like ?token=xxx)
+            // Detect PDF background (strip query params for signed URLs like ?token=xxx)
             const bgFrontPath = bgFront?.split('?')[0] || '';
             const bgFrontIsPdf = bgFrontPath.toLowerCase().endsWith('.pdf');
+
+            // SIEMPRE crear documento limpio — cargar el PDF existente directamente en pdfDoc
+            // hereda su estructura interna y produce PDFs corruptos al serializar con pdf-lib.
+            // La solución correcta es copiar las páginas al documento nuevo.
+            const pdfDoc: PDFDocument = await PDFDocument.create();
 
             if (bgFront && bgFrontIsPdf) {
                 try {
@@ -442,13 +443,12 @@ export default function CertificateViewer() {
                         if (!res.ok) throw new Error(`HTTP ${res.status} al cargar el fondo PDF`);
                         return res.arrayBuffer();
                     });
-                    pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+                    const bgPdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+                    const copiedPages = await pdfDoc.copyPages(bgPdfDoc, bgPdfDoc.getPageIndices());
+                    copiedPages.forEach(p => pdfDoc.addPage(p));
                 } catch (bgErr: any) {
                     console.warn("No se pudo cargar el fondo PDF, generando sin fondo:", bgErr.message);
-                    pdfDoc = await PDFDocument.create();
                 }
-            } else {
-                pdfDoc = await PDFDocument.create();
             }
 
             // REGISTER FONTKIT (Critical for custom fonts)
@@ -713,15 +713,24 @@ export default function CertificateViewer() {
                         const lineWidth = font.widthOfTextAtSize(line, currentFontSize);
                         const lineX = x - (lineWidth / 2);
 
-                        // Main Text
-                        page.drawText(line, { x: lineX, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+                        try {
+                            // Main Text
+                            page.drawText(line, { x: lineX, y: lineY, size: currentFontSize, font: font, color: rgbColor });
 
-                        // Simulated Bold
-                        const isCustomFont = FONT_URLS[field.fontFamily];
-                        if (isCustomFont) {
-                            const offset = currentFontSize / 80;
-                            page.drawText(line, { x: lineX + offset, y: lineY, size: currentFontSize, font: font, color: rgbColor });
-                            page.drawText(line, { x: lineX, y: lineY + offset, size: currentFontSize, font: font, color: rgbColor });
+                            // Simulated Bold
+                            const isCustomFont = FONT_URLS[field.fontFamily];
+                            if (isCustomFont) {
+                                const offset = currentFontSize / 80;
+                                page.drawText(line, { x: lineX + offset, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+                                page.drawText(line, { x: lineX, y: lineY + offset, size: currentFontSize, font: font, color: rgbColor });
+                            }
+                        } catch (drawErr: any) {
+                            // Caracter fuera del encoding de la fuente estándar — intentar con texto ASCII
+                            console.warn(`Campo ${field.id}: error al dibujar "${line}":`, drawErr.message);
+                            try {
+                                const safeText = line.replace(/[^\x00-\xFF]/g, '?');
+                                page.drawText(safeText, { x: lineX, y: lineY, size: currentFontSize, font: font, color: rgbColor });
+                            } catch { /* skip line */ }
                         }
 
                         lineY -= singleLineHeight;
