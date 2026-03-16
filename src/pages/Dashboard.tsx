@@ -65,12 +65,11 @@ const Dashboard = () => {
   // }
 
   // Derived Stats
-  const activeEnrollments = enrollments?.filter(e => e.status === 'active') || [];
-  const activeCourses = activeEnrollments.filter(e => e.progress < 100);
-  const completedCourses = activeEnrollments.filter(e => e.progress === 100);
+  const activeCourses = enrollments?.filter(e => e.status === 'active' && e.progress < 100) || [];
+  const completedCourses = enrollments?.filter(e => e.status === 'completed' || (e.status === 'active' && e.progress === 100)) || [];
   const pendingEnrollments = enrollments?.filter(e => e.status === 'pending') || [];
-  // Certificados reales: enrollments activas que tienen al menos 1 certificado en la tabla certificates
-  const certificatesCount = activeEnrollments.filter(e => e.certificate && e.certificate.length > 0).length;
+  // Certificados reales: enrollments completadas que tienen al menos 1 certificado en la tabla certificates
+  const certificatesCount = completedCourses.filter(e => e.certificate && e.certificate.length > 0).length;
 
   return (
     <div className="min-h-screen bg-background">
