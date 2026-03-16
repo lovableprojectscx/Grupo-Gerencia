@@ -472,9 +472,9 @@ export default function Classroom() {
                                         setIsCertDialogOpen(false);
                                         navigate(`/verify/${cert.id}`);
                                     }
-                                } catch (error) {
-                                    console.error(error);
-                                    toast.error("No se pudo generar el certificado");
+                                } catch (error: any) {
+                                    console.error("Error generating certificate:", error);
+                                    toast.error(`Error al generar: ${error?.message || error?.details || "Desconocido"}`);
                                 } finally {
                                     setIsGenerating(false);
                                 }
