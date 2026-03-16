@@ -754,7 +754,13 @@ export default function CertificateViewer() {
                 if (template.fields) await drawFields(backPage, template.fields, 'back');
             }
 
-            const pdfBytes = await pdfDoc.save();
+            let pdfBytes;
+            try {
+                pdfBytes = await pdfDoc.save();
+            } catch (saveError: any) {
+                console.error("PDF Save Error:", saveError);
+                throw new Error("Error interno al compilar el PDF. Es posible que las imágenes de fondo tengan un formato corrupto o bloqueado.");
+            }
 
             // Validate PDF is not empty (catches silent PDF build failures)
             if (!pdfBytes || pdfBytes.byteLength < 100) {
@@ -762,15 +768,15 @@ export default function CertificateViewer() {
             }
 
             // Trigger download - compatible con Chrome Android y todos los navegadores
-            // Chrome móvil requiere que el <a> esté en el DOM antes de .click()
-            const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
             const objectUrl = URL.createObjectURL(blob);
+            
             try {
+                // Check if browser supports modern download
                 const link = document.createElement("a");
                 link.href = objectUrl;
                 link.download = `certificado-${id}.pdf`;
                 link.style.display = "none";
-                // Insertar FUERA del árbol de React (en body directamente)
                 document.body.appendChild(link);
                 link.click();
                 // Remover inmediatamente después del click
