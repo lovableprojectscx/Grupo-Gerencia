@@ -335,13 +335,11 @@ export const courseService = {
 
         const progress = Math.round(((count || 0) / totalLessons) * 100);
 
-        // 3. Update Enrollment
-        // Note: We use course_id and user_id to find the enrollment
-        await supabase
-            .from('enrollments')
-            .update({ progress: progress })
-            .eq('user_id', userId)
-            .eq('course_id', courseId);
+        // 3. Update Enrollment via RPC (bypasa RLS que bloquea UPDATE directo a estudiantes)
+        await supabase.rpc('update_enrollment_progress', {
+            p_course_id: courseId,
+            p_progress: progress
+        });
     },
 
     async markAllLessonsCompleted(userId: string, courseId: string, lessonIds: string[]) {
@@ -386,12 +384,12 @@ export const courseService = {
         const newProgress = Math.round(((count || 0) / totalLessons) * 100);
         const newStatus = newProgress === 100 ? 'completed' : 'active';
 
-        // 4. Update Enrollment progress
-        await supabase
-            .from('enrollments')
-            .update({ progress: newProgress, status: newStatus })
-            .eq('user_id', userId)
-            .eq('course_id', courseId);
+        // 4. Update Enrollment progress via RPC (bypasa RLS que bloquea UPDATE directo a estudiantes)
+        await supabase.rpc('update_enrollment_progress', {
+            p_course_id: courseId,
+            p_progress: newProgress,
+            p_status: newStatus
+        });
     },
 
     async getLessonCompletions(userId: string, courseId: string) {
