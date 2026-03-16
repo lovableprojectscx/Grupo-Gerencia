@@ -432,13 +432,15 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     const handleSave = async () => {
         if (!courseId && !onSaveSettings) return;
 
-        const templateData = {
-            bgImageFront,
-            bgImageBack,
+        // Solo incluir fondos si tienen valor — evita borrar el fondo existente
+        // cuando el admin guarda sin haber cambiado la imagen de fondo
+        const templateData: Record<string, any> = {
             fields,
             hoursType,
             registrationYear
         };
+        if (bgImageFront !== null) templateData.bgImageFront = bgImageFront;
+        if (bgImageBack !== null) templateData.bgImageBack = bgImageBack;
 
         // If provided an external handler, use it (for local state updaters)
         if (onTemplateChange) {
@@ -483,7 +485,8 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
     }
 
     const currentBg = activePage === "front" ? bgImageFront : bgImageBack;
-    const isPdf = currentBg?.toLowerCase().endsWith('.pdf');
+    // Strip query params antes de detectar extensión (URLs de Supabase pueden tener ?token=xxx)
+    const isPdf = currentBg?.split('?')[0].toLowerCase().endsWith('.pdf');
     // We only force aspect ratio if it's a PDF (canvas needs it? no pdf renders its own size, but we need container size)
     // OR if there is no background (placeholder)
     // If it's an IMAGE, we let the image define the height via h-auto to avoid whitespace gaps.

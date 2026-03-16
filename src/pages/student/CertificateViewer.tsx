@@ -273,16 +273,16 @@ export default function CertificateViewer() {
             if (data.metadata?.template_snapshot?.fields) {
                 data.metadata.template_snapshot.fields = data.metadata.template_snapshot.fields.map((f: any) => ({
                     ...f,
-                    boxWidth: f.boxWidth || f.maxWidth || 30,
-                    boxHeight: f.boxHeight || 10
+                    boxWidth: f.boxWidth ?? f.maxWidth ?? 30,
+                    boxHeight: f.boxHeight ?? 10
                 }));
             }
             // Migrar campos legacy en la plantilla actual del curso
             if (data.enrollment?.course?.certificate_template?.fields) {
                 data.enrollment.course.certificate_template.fields = data.enrollment.course.certificate_template.fields.map((f: any) => ({
                     ...f,
-                    boxWidth: f.boxWidth || f.maxWidth || 30,
-                    boxHeight: f.boxHeight || 10
+                    boxWidth: f.boxWidth ?? f.maxWidth ?? 30,
+                    boxHeight: f.boxHeight ?? 10
                 }));
             }
             return data;
@@ -326,7 +326,7 @@ export default function CertificateViewer() {
                 // setHasChosen(false); // Dangerous loop if not careful.
             }
         }
-    }, [template?.hoursType, adminHoursType]);
+    }, [template?.hoursType, adminHoursType, hasChosen]);
 
     // Check if we need to show choice screen
     const showChoiceScreen = !hasChosen && adminHoursType === 'both';
@@ -403,11 +403,9 @@ export default function CertificateViewer() {
             }
             case "qrCode":
             case "qrCode-back": {
-                // Return a placeholder or the actual QR code if we have the ID ready
-                // Because getFieldValue is sync, we can't await QRCode.toDataURL here easily
-                // Instead, we will generate the URL and we'll handle the async generation in a separate effect or use a wrapper
-                // For now, return the URL. We will intercept this in the rendering.
-                return `${window.location.origin}/verificar?code=${certificate.code || certificate.id}`;
+                // Apunta directo al visor del certificado (/verify/:id) para que al escanear
+                // el QR se abra la descarga directa, no la página de búsqueda.
+                return `${window.location.origin}/verify/${certificate.id}`;
             }
             default:
                 if (field.id.startsWith('meta-')) {
@@ -434,9 +432,21 @@ export default function CertificateViewer() {
             let pdfDoc: PDFDocument;
 
             // Load base PDF or create new
-            if (bgFront && bgFront.toLowerCase().endsWith('.pdf')) {
-                const existingPdfBytes = await fetch(bgFront).then(res => res.arrayBuffer());
-                pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+            // Detect PDF by path (strip query params first to handle signed URLs like ?token=xxx)
+            const bgFrontPath = bgFront?.split('?')[0] || '';
+            const bgFrontIsPdf = bgFrontPath.toLowerCase().endsWith('.pdf');
+
+            if (bgFront && bgFrontIsPdf) {
+                try {
+                    const existingPdfBytes = await fetch(bgFront).then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status} al cargar el fondo PDF`);
+                        return res.arrayBuffer();
+                    });
+                    pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+                } catch (bgErr: any) {
+                    console.warn("No se pudo cargar el fondo PDF, generando sin fondo:", bgErr.message);
+                    pdfDoc = await PDFDocument.create();
+                }
             } else {
                 pdfDoc = await PDFDocument.create();
             }
@@ -480,7 +490,9 @@ export default function CertificateViewer() {
 
                         if (fontBytes.byteLength < 1000) throw new Error("Archivo de fuente corrupto o vacío");
 
-                        const embeddedFont = await pdfDoc.embedFont(fontBytes);
+                        // Pasar una copia del ArrayBuffer: pdf-lib/fontkit puede dejar el buffer
+                        // original en estado inválido, causando error si se descarga dos veces.
+                        const embeddedFont = await pdfDoc.embedFont(fontBytes.slice(0));
                         customFonts[fontFamily] = embeddedFont;
                         return embeddedFont;
                     } catch (e: any) {
@@ -502,7 +514,8 @@ export default function CertificateViewer() {
                 if (bgFront) {
                     try {
                         const imgBytes = await fetch(bgFront).then(res => res.arrayBuffer());
-                        const imgExt = bgFront.split('.').pop()?.toLowerCase();
+                        // Strip query params before detecting extension
+                        const imgExt = bgFront.split('?')[0].split('.').pop()?.toLowerCase();
                         let embeddedImage;
 
                         // Support mainly PNG and JPG
@@ -540,7 +553,8 @@ export default function CertificateViewer() {
                 const pdfScale = page.getWidth() / DESIGN_CANVAS_WIDTH;
 
                 for (const field of fields) {
-                    if (!field.visible) continue;
+                    // field.visible puede ser undefined en templates legacy → solo saltar si es explícitamente false
+                    if (field.visible === false) continue;
 
                     // Lógica estricta de páginas:
                     // Si el campo no tiene 'page' definido, se asume 'front' por defecto (legacy data).
@@ -565,6 +579,11 @@ export default function CertificateViewer() {
 
                     // Dynamic Font Sizing
                     const fontSize = field.fontSize * pdfScale;
+
+                    // Saltar campos con valores inválidos — NaN en drawText corrompe el PDF
+                    if (!fontSize || isNaN(fontSize) || isNaN(field.x) || isNaN(field.y) ||
+                        field.x === undefined || field.y === undefined) continue;
+
                     const font = await getFont(field.fontFamily);
 
                     // --- PROFESSIONAL TEXT FITTING ---
@@ -573,8 +592,9 @@ export default function CertificateViewer() {
                     const maxBoxWidth = page.getWidth() * (boxW_percent / 100);
                     const maxBoxHeight = page.getHeight() * (boxH_percent / 100);
 
-                    const isMultiLine = field.id.includes("courseName") || field.id.includes("curso");
-                    const minFontSize = isMultiLine ? 16 : 8;
+                    const isMultiLine = !!field.isMultiLine || field.id.includes("courseName") || field.id.includes("curso");
+                    // minFontSize nunca debe superar el fontSize del diseño original (evita inflar texto en PDFs < 800px)
+                    const minFontSize = Math.min(isMultiLine ? 16 : 8, fontSize);
                     let currentFontSize = fontSize;
                     let lines: string[] = [];
                     const lineHeightMultiplier = 1.15; // Match CSS
@@ -646,9 +666,10 @@ export default function CertificateViewer() {
                     if (field.id.includes("qrCode")) {
                         try {
                             // Generate DataURI purely for PDF insertion
+                            // 256px es más que suficiente para que cualquier lector escanee el QR
                             const qrDataUrl = await QRCode.toDataURL(text, {
                                 margin: 1,
-                                width: 1024,
+                                width: 256,
                                 color: { dark: '#000000', light: '#ffffff' }
                             });
                             // Remove header to get raw base64
@@ -677,7 +698,10 @@ export default function CertificateViewer() {
 
                     let lineY = y + (totalBlockHeight / 2) - singleLineHeight + (singleLineHeight * 0.25);
 
-                    const colorHex = field.color || "#000000";
+                    // Validar que el color sea un hex de 6 dígitos válido antes de parsear
+                    // Un color inválido produce NaN en rgb() que puede corromper el PDF
+                    const rawColor = field.color || "#000000";
+                    const colorHex = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : "#000000";
                     const rgbColor = rgb(
                         parseInt(colorHex.slice(1, 3), 16) / 255,
                         parseInt(colorHex.slice(3, 5), 16) / 255,
@@ -716,7 +740,8 @@ export default function CertificateViewer() {
                 if (pages.length > 1) {
                     backPage = pages[1];
                 } else {
-                    if (bgBack && bgBack.toLowerCase().endsWith('.pdf')) {
+                    const bgBackPath = bgBack?.split('?')[0] || '';
+                    if (bgBack && bgBackPath.toLowerCase().endsWith('.pdf')) {
                         const backPdfBytes = await fetch(bgBack).then(res => res.arrayBuffer());
                         const backPdf = await PDFDocument.load(backPdfBytes, { ignoreEncryption: true });
                         const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
@@ -726,7 +751,7 @@ export default function CertificateViewer() {
                         if (bgBack) {
                             try {
                                 const imgBytes = await fetch(bgBack).then(res => res.arrayBuffer());
-                                const imgExt = bgBack.split('.').pop()?.toLowerCase();
+                                const imgExt = bgBack.split('?')[0].split('.').pop()?.toLowerCase();
                                 let embeddedImage;
                                 if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
                                 else embeddedImage = await pdfDoc.embedJpg(imgBytes);
@@ -785,8 +810,8 @@ export default function CertificateViewer() {
                 // Fallback: abrir en nueva pestaña (funciona en todos los móviles)
                 window.open(objectUrl, '_blank');
             }
-            // Defer revoke to allow browser time to start the download
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
+            // Defer revoke to allow browser time to start the download or open in PDF viewer
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
 
             toast.success("PDF descargado correctamente", { id: toastId });
         } catch (error: any) {
@@ -908,13 +933,13 @@ export default function CertificateViewer() {
                                             // Updated Layout Engine (Matches Builder)
                                             id="certificate-front-container"
                                             className="relative bg-white overflow-hidden select-none"
-                                            style={(!bgImageFront || bgImageFront.toLowerCase().endsWith('.pdf')) ? {
+                                            style={(!bgImageFront || bgImageFront.split('?')[0].toLowerCase().endsWith('.pdf')) ? {
                                                 width: '100%',
                                                 aspectRatio: aspectRatio,
                                             } : { width: '100%' }} // If image, let image define height via h-auto
                                         >
                                             {/* Background */}
-                                            {bgImageFront?.toLowerCase().endsWith('.pdf') ? (
+                                            {bgImageFront?.split('?')[0].toLowerCase().endsWith('.pdf') ? (
                                                 <div className="absolute inset-0 w-full h-full">
                                                     <Document file={bgImageFront} loading={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" /></div>}>
                                                         {/* Responsive Page Width */}
@@ -938,7 +963,7 @@ export default function CertificateViewer() {
 
                                             {/* Fields */}
                                             {template.fields?.map((field: any) => {
-                                                if (!field.visible || (field.page && field.page !== 'front')) return null;
+                                                if (field.visible === false || (field.page && field.page !== 'front')) return null;
 
                                                 const hoursResult = resolveHoursField(
                                                     field,
@@ -982,7 +1007,7 @@ export default function CertificateViewer() {
                                         <div className="relative bg-white shadow-xl mx-auto overflow-hidden select-none border" style={{ width: '100%', aspectRatio: aspectRatio }}>
                                             {/* Background Back */}
                                             {bgImageBack && (
-                                                bgImageBack.toLowerCase().endsWith('.pdf') ? (
+                                                bgImageBack.split('?')[0].toLowerCase().endsWith('.pdf') ? (
                                                     <div className="absolute inset-0 w-full h-full">
                                                         <Document file={bgImageBack} loading={<Loader2 className="animate-spin" />}>
                                                             <Page pageNumber={bgImageBack === bgImageFront ? 2 : 1} width={containerWidth} renderTextLayer={false} renderAnnotationLayer={false} />
@@ -993,7 +1018,7 @@ export default function CertificateViewer() {
 
                                             {/* Fields Back */}
                                             {template.fields?.map((field: any) => {
-                                                if (!field.visible || field.page !== 'back') return null;
+                                                if (field.visible === false || field.page !== 'back') return null;
                                                 const finalFontSize = field.fontSize * scaleFactor;
                                                 return (
                                                     <SmartText
