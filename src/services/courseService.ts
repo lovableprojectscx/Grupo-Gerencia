@@ -360,10 +360,36 @@ export const courseService = {
 
         if (error) throw error;
 
-        // 3. Force update enrollment to 100%
+        // 3. Recalculate Progress (instead of forcing 100%)
+        const { data: course, error: courseError } = await supabase
+            .from('courses')
+            .select(`modules (lessons (id))`)
+            .eq('id', courseId)
+            .maybeSingle();
+
+        if (courseError || !course) return;
+
+        const courseData = course as unknown as Course & { modules: Module[] };
+        const allLessonIds = courseData.modules?.flatMap((m) => m.lessons?.map((l) => l.id)) || [];
+        const totalLessons = allLessonIds.length;
+
+        if (totalLessons === 0) return;
+
+        const { count, error: countError } = await supabase
+            .from('lesson_completions')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .in('lesson_id', allLessonIds);
+
+        if (countError) return;
+
+        const newProgress = Math.round(((count || 0) / totalLessons) * 100);
+        const newStatus = newProgress === 100 ? 'completed' : 'active';
+
+        // 4. Update Enrollment progress
         await supabase
             .from('enrollments')
-            .update({ progress: 100, status: 'completed' }) // Ensure status is completed
+            .update({ progress: newProgress, status: newStatus })
             .eq('user_id', userId)
             .eq('course_id', courseId);
     },
