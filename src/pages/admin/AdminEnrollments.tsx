@@ -208,11 +208,13 @@ export default function AdminEnrollments() {
     const StatusBadge = ({ status }: { status: string }) => {
         const variants: any = {
             active: "bg-green-100 text-green-800 hover:bg-green-100",
+            completed: "bg-blue-100 text-blue-800 hover:bg-blue-100",
             pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
             rejected: "bg-red-100 text-red-800 hover:bg-red-100",
         };
         const labels: any = {
             active: "Aprobado",
+            completed: "Completado",
             pending: "Pendiente",
             rejected: "Rechazado"
         };
@@ -235,6 +237,7 @@ export default function AdminEnrollments() {
                         <TabsTrigger value="all">Todas</TabsTrigger>
                         <TabsTrigger value="pending">Pendientes</TabsTrigger>
                         <TabsTrigger value="active">Activas</TabsTrigger>
+                        <TabsTrigger value="completed">Completadas</TabsTrigger>
                         <TabsTrigger value="rejected">Rechazadas</TabsTrigger>
                     </TabsList>
                     <div className="relative w-full sm:w-72">
@@ -248,13 +251,17 @@ export default function AdminEnrollments() {
                     </div>
                 </div>
 
-                {['all', 'pending', 'active', 'rejected'].map(tab => (
+                {['all', 'pending', 'active', 'completed', 'rejected'].map(tab => (
                     <TabsContent key={tab} value={tab}>
                         <Card>
                             <CardHeader>
                                 <CardTitle>Listado de Inscripciones</CardTitle>
                                 <CardDescription>
-                                    {tab === 'all' ? `${totalCount} inscripciones en total` : `${totalCount} inscripciones ${tab === 'active' ? 'aprobadas' : tab === 'pending' ? 'pendientes de revisión' : 'rechazadas'}`}
+                                    {tab === 'all' ? `${totalCount} inscripciones en total` :
+                                     tab === 'active' ? `${totalCount} inscripciones activas` :
+                                     tab === 'completed' ? `${totalCount} inscripciones completadas (curso terminado)` :
+                                     tab === 'pending' ? `${totalCount} inscripciones pendientes de revisión` :
+                                     `${totalCount} inscripciones rechazadas`}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -360,7 +367,7 @@ export default function AdminEnrollments() {
                                                                         </Button>
                                                                     </>
                                                                 )}
-                                                                {enrollment.status === 'active' && (
+                                                                {(enrollment.status === 'active' || enrollment.status === 'completed') && (
                                                                     <>
                                                                         {enrollment.certificatesList && enrollment.certificatesList.length > 0 ? (
                                                                             <div className="flex flex-col items-end gap-1">
