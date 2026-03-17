@@ -442,6 +442,17 @@ export default function CertificateViewer() {
             const bgFrontPath = bgFront?.split('?')[0] || '';
             const bgFrontIsPdf = bgFrontPath.toLowerCase().endsWith('.pdf');
 
+            // === DIAGNÓSTICO TEMPORAL ===
+            console.group(`[PDF-DIAG] Certificado: ${certificate.id}`);
+            console.log('bgFront URL:', bgFront);
+            console.log('bgFrontPath:', bgFrontPath);
+            console.log('bgFrontIsPdf:', bgFrontIsPdf);
+            console.log('imgExt detectado:', bgFrontPath.split('.').pop()?.toLowerCase());
+            console.log('Campos en template:', template.fields?.length ?? 0);
+            console.log('template_snapshot existe:', !!certificate?.metadata?.template_snapshot);
+            console.groupEnd();
+            // ===========================
+
             // SIEMPRE crear documento limpio — cargar el PDF existente directamente en pdfDoc
             // hereda su estructura interna y produce PDFs corruptos al serializar con pdf-lib.
             // La solución correcta es copiar las páginas al documento nuevo.
