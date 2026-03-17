@@ -417,8 +417,30 @@ export default function CertificateViewer() {
     };
 
 
+    // Convierte cualquier formato de imagen (WebP, AVIF, JPEG, PNG…) a PNG puro
+    // usando el Canvas del navegador. pdf-lib solo soporta JPEG y PNG nativamente;
+    // imágenes WebP o con extensión incorrecta producen PDFs en blanco sin error visible.
+    const convertImageToPng = async (bytes: ArrayBuffer, contentType: string): Promise<ArrayBuffer> => {
+        const blob = new Blob([bytes], { type: contentType || 'image/jpeg' });
+        const bitmap = await createImageBitmap(blob);
+        if (typeof OffscreenCanvas !== 'undefined') {
+            const offscreen = new OffscreenCanvas(bitmap.width, bitmap.height);
+            const ctx = offscreen.getContext('2d')!;
+            ctx.drawImage(bitmap, 0, 0);
+            const outBlob = await offscreen.convertToBlob({ type: 'image/png' });
+            return outBlob.arrayBuffer();
+        }
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d')!;
+            ctx.drawImage(bitmap, 0, 0);
+            canvas.toBlob(b => b ? b.arrayBuffer().then(resolve) : reject(new Error('Canvas toBlob falló')), 'image/png');
+        });
+    };
+
     const handleDownloadPDF = async () => {
-        console.log('[PDF-DIAG-INIT] handleDownloadPDF llamado. certificate:', !!certificate, 'template keys:', Object.keys(template || {}));
         if (!certificate) return;
         const toastId = toast.loading("Generando PDF Vectorial de alta calidad...");
 
@@ -426,7 +448,6 @@ export default function CertificateViewer() {
             // Verificar que la plantilla tenga contenido real
             const hasRealBackground = !!(template.bgImageFront || template.bgImage);
             const hasFields = template.fields && template.fields.length > 0;
-            console.log('[PDF-DIAG-TEMPLATE] hasRealBackground:', hasRealBackground, 'hasFields:', hasFields, 'bgImageFront:', template.bgImageFront, 'bgImage:', template.bgImage);
             if (!hasRealBackground && !hasFields) {
                 toast.dismiss(toastId);
                 toast.error("Este curso no tiene plantilla de certificado configurada. Contacta al administrador.", { duration: 8000 });
@@ -443,17 +464,6 @@ export default function CertificateViewer() {
             // Detect PDF background (strip query params for signed URLs like ?token=xxx)
             const bgFrontPath = bgFront?.split('?')[0] || '';
             const bgFrontIsPdf = bgFrontPath.toLowerCase().endsWith('.pdf');
-
-            // === DIAGNÓSTICO TEMPORAL ===
-            console.group(`[PDF-DIAG] Certificado: ${certificate.id}`);
-            console.log('bgFront URL:', bgFront);
-            console.log('bgFrontPath:', bgFrontPath);
-            console.log('bgFrontIsPdf:', bgFrontIsPdf);
-            console.log('imgExt detectado:', bgFrontPath.split('.').pop()?.toLowerCase());
-            console.log('Campos en template:', template.fields?.length ?? 0);
-            console.log('template_snapshot existe:', !!certificate?.metadata?.template_snapshot);
-            console.groupEnd();
-            // ===========================
 
             // SIEMPRE crear documento limpio — cargar el PDF existente directamente en pdfDoc
             // hereda su estructura interna y produce PDFs corruptos al serializar con pdf-lib.
@@ -537,17 +547,13 @@ export default function CertificateViewer() {
             if (!frontPage) {
                 if (bgFront) {
                     try {
-                        const imgBytes = await fetch(bgFront).then(res => {
-                            if (!res.ok) throw new Error(`HTTP ${res.status} al cargar la imagen de fondo`);
-                            return res.arrayBuffer();
-                        });
-                        // Strip query params before detecting extension
-                        const imgExt = bgFront.split('?')[0].split('.').pop()?.toLowerCase();
-                        let embeddedImage;
-
-                        // Support mainly PNG and JPG
-                        if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
-                        else embeddedImage = await pdfDoc.embedJpg(imgBytes);
+                        const res = await fetch(bgFront);
+                        if (!res.ok) throw new Error(`HTTP ${res.status} al cargar la imagen de fondo`);
+                        const contentType = res.headers.get('content-type') || '';
+                        const rawBytes = await res.arrayBuffer();
+                        // Convertir a PNG vía Canvas para soportar WebP, AVIF y cualquier formato
+                        const pngBytes = await convertImageToPng(rawBytes, contentType);
+                        const embeddedImage = await pdfDoc.embedPng(pngBytes);
 
                         // CREATE PAGE WITH EXACT IMAGE DIMENSIONS (No stretching)
                         // This matches the "object-cover" behavior on a responsive container if container matches aspect ratio
@@ -790,14 +796,12 @@ export default function CertificateViewer() {
                         // Image or blank
                         if (bgBack) {
                             try {
-                                const imgBytes = await fetch(bgBack).then(res => {
-                                    if (!res.ok) throw new Error(`HTTP ${res.status} al cargar imagen de reverso`);
-                                    return res.arrayBuffer();
-                                });
-                                const imgExt = bgBack.split('?')[0].split('.').pop()?.toLowerCase();
-                                let embeddedImage;
-                                if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
-                                else embeddedImage = await pdfDoc.embedJpg(imgBytes);
+                                const resBack = await fetch(bgBack);
+                                if (!resBack.ok) throw new Error(`HTTP ${resBack.status} al cargar imagen de reverso`);
+                                const contentTypeBack = resBack.headers.get('content-type') || '';
+                                const rawBytesBack = await resBack.arrayBuffer();
+                                const pngBytesBack = await convertImageToPng(rawBytesBack, contentTypeBack);
+                                const embeddedImage = await pdfDoc.embedPng(pngBytesBack);
 
                                 // Use exact image dimensions for the page
                                 const { width, height } = embeddedImage;
