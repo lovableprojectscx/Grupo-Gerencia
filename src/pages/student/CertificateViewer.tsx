@@ -417,27 +417,61 @@ export default function CertificateViewer() {
     };
 
 
-    // Convierte cualquier formato de imagen (WebP, AVIF, JPEG, PNG…) a PNG puro
-    // usando el Canvas del navegador. pdf-lib solo soporta JPEG y PNG nativamente;
-    // imágenes WebP o con extensión incorrecta producen PDFs en blanco sin error visible.
-    const convertImageToPng = async (bytes: ArrayBuffer, contentType: string): Promise<ArrayBuffer> => {
-        const blob = new Blob([bytes], { type: contentType || 'image/jpeg' });
+    // Carga cualquier fondo (imagen o PDF) y lo devuelve como PNG puro + dimensiones naturales.
+    // - Para imágenes: usa createImageBitmap (soporta WebP, AVIF, JPEG, PNG, etc.)
+    // - Para PDFs: renderiza la página indicada con pdfjs a Canvas → PNG
+    // Esto evita el problema de pdf-lib copyPages() que produce páginas en blanco
+    // con muchos PDFs de Supabase Storage (XObjects, fuentes no embebidas, etc.)
+    const loadBgAsPng = async (url: string, pageNum: number = 1): Promise<{ bytes: ArrayBuffer; width: number; height: number }> => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status} al cargar el fondo`);
+        const contentType = res.headers.get('content-type') || '';
+        const rawBytes = await res.arrayBuffer();
+
+        const urlPath = url.split('?')[0].toLowerCase();
+        const isPdf = contentType.includes('pdf') || urlPath.endsWith('.pdf');
+
+        if (isPdf) {
+            // Renderizar página del PDF a Canvas usando pdfjs
+            const pdf = await (pdfjs.getDocument({ data: new Uint8Array(rawBytes) }) as any).promise;
+            const totalPages: number = pdf.numPages;
+            const safePageNum = Math.min(pageNum, totalPages);
+            const page = await pdf.getPage(safePageNum);
+            const viewport1x = page.getViewport({ scale: 1.0 });
+            const viewport2x = page.getViewport({ scale: 2.0 }); // 2x para calidad
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport2x.width;
+            canvas.height = viewport2x.height;
+            const ctx = canvas.getContext('2d')!;
+            await page.render({ canvasContext: ctx, viewport: viewport2x }).promise;
+            const bytes = await new Promise<ArrayBuffer>((resolve, reject) => {
+                canvas.toBlob(b => b ? b.arrayBuffer().then(resolve) : reject(new Error('Canvas toBlob falló al renderizar PDF')), 'image/png');
+            });
+            // Dimensiones naturales en puntos PDF (scale 1x) para que pdfScale sea correcto
+            return { bytes, width: viewport1x.width, height: viewport1x.height };
+        }
+
+        // Imagen: usar createImageBitmap para soportar WebP, AVIF, etc.
+        const blob = new Blob([rawBytes], { type: contentType || 'image/jpeg' });
         const bitmap = await createImageBitmap(blob);
+        const { width, height } = bitmap;
+
         if (typeof OffscreenCanvas !== 'undefined') {
-            const offscreen = new OffscreenCanvas(bitmap.width, bitmap.height);
+            const offscreen = new OffscreenCanvas(width, height);
             const ctx = offscreen.getContext('2d')!;
             ctx.drawImage(bitmap, 0, 0);
             const outBlob = await offscreen.convertToBlob({ type: 'image/png' });
-            return outBlob.arrayBuffer();
+            return { bytes: await outBlob.arrayBuffer(), width, height };
         }
-        return new Promise((resolve, reject) => {
+        const bytes = await new Promise<ArrayBuffer>((resolve, reject) => {
             const canvas = document.createElement('canvas');
-            canvas.width = bitmap.width;
-            canvas.height = bitmap.height;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d')!;
             ctx.drawImage(bitmap, 0, 0);
             canvas.toBlob(b => b ? b.arrayBuffer().then(resolve) : reject(new Error('Canvas toBlob falló')), 'image/png');
         });
+        return { bytes, width, height };
     };
 
     const handleDownloadPDF = async () => {
@@ -457,33 +491,12 @@ export default function CertificateViewer() {
                 toast.warning("Advertencia: No hay imagen de fondo configurada en la plantilla.", { duration: 5000 });
             }
 
-            // Usar la misma variable que el preview en pantalla (bgImageFront ya tiene el fallback al placeholder)
+            // Usar la misma variable que el preview (bgImageFront ya tiene el fallback al placeholder)
             const bgFront = bgImageFront || undefined;
             const bgBack = bgImageBack || undefined;
 
-            // Detect PDF background (strip query params for signed URLs like ?token=xxx)
-            const bgFrontPath = bgFront?.split('?')[0] || '';
-            const bgFrontIsPdf = bgFrontPath.toLowerCase().endsWith('.pdf');
-
-            // SIEMPRE crear documento limpio — cargar el PDF existente directamente en pdfDoc
-            // hereda su estructura interna y produce PDFs corruptos al serializar con pdf-lib.
-            // La solución correcta es copiar las páginas al documento nuevo.
+            // Crear documento limpio — loadBgAsPng maneja imagen Y PDF vía Canvas/pdfjs
             const pdfDoc: PDFDocument = await PDFDocument.create();
-
-            if (bgFront && bgFrontIsPdf) {
-                try {
-                    const existingPdfBytes = await fetch(bgFront).then(res => {
-                        if (!res.ok) throw new Error(`HTTP ${res.status} al cargar el fondo PDF`);
-                        return res.arrayBuffer();
-                    });
-                    const bgPdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
-                    const copiedPages = await pdfDoc.copyPages(bgPdfDoc, bgPdfDoc.getPageIndices());
-                    copiedPages.forEach(p => pdfDoc.addPage(p));
-                } catch (bgErr: any) {
-                    console.warn("No se pudo cargar el fondo PDF:", bgErr.message);
-                    toast.error(`No se pudo cargar el fondo PDF: ${bgErr.message}`, { duration: 6000 });
-                }
-            }
 
             // REGISTER FONTKIT (Critical for custom fonts)
             pdfDoc.registerFontkit(fontkit);
@@ -539,43 +552,21 @@ export default function CertificateViewer() {
                 return helveticaFont;
             };
 
-            // Process Pages
-            const pages = pdfDoc.getPages();
-            let frontPage = pages[0];
-
-            // If starting from scratch (image background), add page
-            if (!frontPage) {
-                if (bgFront) {
-                    try {
-                        const res = await fetch(bgFront);
-                        if (!res.ok) throw new Error(`HTTP ${res.status} al cargar la imagen de fondo`);
-                        const contentType = res.headers.get('content-type') || '';
-                        const rawBytes = await res.arrayBuffer();
-                        // Convertir a PNG vía Canvas para soportar WebP, AVIF y cualquier formato
-                        const pngBytes = await convertImageToPng(rawBytes, contentType);
-                        const embeddedImage = await pdfDoc.embedPng(pngBytes);
-
-                        // CREATE PAGE WITH EXACT IMAGE DIMENSIONS (No stretching)
-                        // This matches the "object-cover" behavior on a responsive container if container matches aspect ratio
-                        // But for PDF, we want WYSIWYG relative to the design canvas (800px width reference)
-                        const { width, height } = embeddedImage;
-                        frontPage = pdfDoc.addPage([width, height]);
-
-                        frontPage.drawImage(embeddedImage, {
-                            x: 0,
-                            y: 0,
-                            width: width,
-                            height: height,
-                        });
-                    } catch (err: any) {
-                        console.error("Error embedding background image:", err);
-                        toast.error(`No se pudo cargar la imagen de fondo del certificado: ${err.message}`, { duration: 6000 });
-                        // Fallback to A4 Landscape
-                        frontPage = pdfDoc.addPage([842, 595]);
-                    }
-                } else {
-                    frontPage = pdfDoc.addPage([842, 595]); // Empty canvas
+            // Crear página frontal — loadBgAsPng soporta imágenes (WebP/AVIF/JPG/PNG) y PDFs
+            let frontPage: any;
+            if (bgFront) {
+                try {
+                    const { bytes, width, height } = await loadBgAsPng(bgFront, 1);
+                    const embeddedImage = await pdfDoc.embedPng(bytes);
+                    frontPage = pdfDoc.addPage([width, height]);
+                    frontPage.drawImage(embeddedImage, { x: 0, y: 0, width, height });
+                } catch (err: any) {
+                    console.error("Error cargando fondo frontal:", err);
+                    toast.error(`No se pudo cargar el fondo del certificado: ${err.message}`, { duration: 6000 });
+                    frontPage = pdfDoc.addPage([842, 595]);
                 }
+            } else {
+                frontPage = pdfDoc.addPage([842, 595]);
             }
 
             // Draw Fields on Front
@@ -778,52 +769,23 @@ export default function CertificateViewer() {
             const hasBackFields = template.fields?.some((f: any) => f.page === 'back');
 
             if (bgBack || hasBackFields) {
-                // ... Page creation logic same as before ...
-                let backPage;
-                if (pages.length > 1) {
-                    backPage = pages[1];
-                } else {
-                    const bgBackPath = bgBack?.split('?')[0] || '';
-                    if (bgBack && bgBackPath.toLowerCase().endsWith('.pdf')) {
-                        const backPdfBytes = await fetch(bgBack).then(res => {
-                            if (!res.ok) throw new Error(`HTTP ${res.status} al cargar fondo PDF de reverso`);
-                            return res.arrayBuffer();
-                        });
-                        const backPdf = await PDFDocument.load(backPdfBytes, { ignoreEncryption: true });
-                        const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
-                        backPage = pdfDoc.addPage(copiedPage);
-                    } else {
-                        // Image or blank
-                        if (bgBack) {
-                            try {
-                                const resBack = await fetch(bgBack);
-                                if (!resBack.ok) throw new Error(`HTTP ${resBack.status} al cargar imagen de reverso`);
-                                const contentTypeBack = resBack.headers.get('content-type') || '';
-                                const rawBytesBack = await resBack.arrayBuffer();
-                                const pngBytesBack = await convertImageToPng(rawBytesBack, contentTypeBack);
-                                const embeddedImage = await pdfDoc.embedPng(pngBytesBack);
-
-                                // Use exact image dimensions for the page
-                                const { width, height } = embeddedImage;
-                                backPage = pdfDoc.addPage([width, height]);
-
-                                backPage.drawImage(embeddedImage, {
-                                    x: 0,
-                                    y: 0,
-                                    width: width,
-                                    height: height,
-                                });
-                            } catch (e: any) {
-                                console.error("Error back page image:", e);
-                                toast.error(`No se pudo cargar la imagen de reverso: ${e.message}`, { duration: 6000 });
-                                backPage = pdfDoc.addPage([842, 595]); // Fallback
-                            }
-                        } else {
-                            backPage = pdfDoc.addPage([842, 595]);
-                        }
+                let backPage: any;
+                if (bgBack) {
+                    try {
+                        // Si es el mismo archivo PDF que el frente, renderizar página 2
+                        const backPageNum = bgBack === bgFront ? 2 : 1;
+                        const { bytes, width, height } = await loadBgAsPng(bgBack, backPageNum);
+                        const embeddedImage = await pdfDoc.embedPng(bytes);
+                        backPage = pdfDoc.addPage([width, height]);
+                        backPage.drawImage(embeddedImage, { x: 0, y: 0, width, height });
+                    } catch (e: any) {
+                        console.error("Error cargando fondo trasero:", e);
+                        toast.error(`No se pudo cargar el fondo de reverso: ${e.message}`, { duration: 6000 });
+                        backPage = pdfDoc.addPage([842, 595]);
                     }
+                } else {
+                    backPage = pdfDoc.addPage([842, 595]);
                 }
-
                 if (template.fields) await drawFields(backPage, template.fields, 'back');
             }
 
