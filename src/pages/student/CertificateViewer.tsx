@@ -308,25 +308,22 @@ export default function CertificateViewer() {
         return adminHoursType !== 'both';
     });
 
-    // Sync state with template if it loads late
+    // Cuando el certificado carga por primera vez, establece el estado correcto de horas.
+    // Se dispara una sola vez por ID (no sobreescribe elecciones explícitas del usuario).
     useEffect(() => {
-        if (template?.hoursType === 'lecture') setHoursMode('lecture');
-        else if (template?.hoursType === 'academic') setHoursMode('academic');
-
-        // Also update hasChosen if needed (e.g. initial load was undefined, then became 'both')
-        if (template?.hoursType === 'both') {
-            // If it was already true (default), we might need to reset? 
-            // Actually, better to trust the derived initial state or user interaction.
-            // But if it switches from undefined -> 'both', we might want to force choice?
-            // For now, let's keep it simple. The initial state function handles the 'undefined' case (!='both' => true).
-            // If it later becomes 'both', we might arguably show choice screen.
-            // But usually template data comes in one go.
-            if (hasChosen && adminHoursType === 'both') {
-                // edge case: if we assumed chosen because data was missing, but now we see it's 'both'
-                // setHasChosen(false); // Dangerous loop if not careful.
-            }
+        if (!certificate) return; // datos aún no cargados
+        const loadedHoursType = template?.hoursType || 'academic';
+        if (loadedHoursType === 'both') {
+            setHasChosen(false); // mostrar pantalla de elección
+        } else if (loadedHoursType === 'lecture') {
+            setHoursMode('lecture');
+            setHasChosen(true);
+        } else {
+            setHoursMode('academic');
+            setHasChosen(true);
         }
-    }, [template?.hoursType, adminHoursType, hasChosen]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [certificate?.id]); // solo cuando carga un nuevo certificado
 
     // Check if we need to show choice screen
     const showChoiceScreen = !hasChosen && adminHoursType === 'both';
@@ -425,8 +422,21 @@ export default function CertificateViewer() {
         const toastId = toast.loading("Generando PDF Vectorial de alta calidad...");
 
         try {
-            const bgFront = template.bgImageFront || template.bgImage;
-            const bgBack = template.bgImageBack;
+            // Verificar que la plantilla tenga contenido real
+            const hasRealBackground = !!(template.bgImageFront || template.bgImage);
+            const hasFields = template.fields && template.fields.length > 0;
+            if (!hasRealBackground && !hasFields) {
+                toast.dismiss(toastId);
+                toast.error("Este curso no tiene plantilla de certificado configurada. Contacta al administrador.", { duration: 8000 });
+                return;
+            }
+            if (!hasRealBackground) {
+                toast.warning("Advertencia: No hay imagen de fondo configurada en la plantilla.", { duration: 5000 });
+            }
+
+            // Usar la misma variable que el preview en pantalla (bgImageFront ya tiene el fallback al placeholder)
+            const bgFront = bgImageFront || undefined;
+            const bgBack = bgImageBack || undefined;
 
             // Detect PDF background (strip query params for signed URLs like ?token=xxx)
             const bgFrontPath = bgFront?.split('?')[0] || '';
@@ -447,7 +457,8 @@ export default function CertificateViewer() {
                     const copiedPages = await pdfDoc.copyPages(bgPdfDoc, bgPdfDoc.getPageIndices());
                     copiedPages.forEach(p => pdfDoc.addPage(p));
                 } catch (bgErr: any) {
-                    console.warn("No se pudo cargar el fondo PDF, generando sin fondo:", bgErr.message);
+                    console.warn("No se pudo cargar el fondo PDF:", bgErr.message);
+                    toast.error(`No se pudo cargar el fondo PDF: ${bgErr.message}`, { duration: 6000 });
                 }
             }
 
@@ -513,7 +524,10 @@ export default function CertificateViewer() {
             if (!frontPage) {
                 if (bgFront) {
                     try {
-                        const imgBytes = await fetch(bgFront).then(res => res.arrayBuffer());
+                        const imgBytes = await fetch(bgFront).then(res => {
+                            if (!res.ok) throw new Error(`HTTP ${res.status} al cargar la imagen de fondo`);
+                            return res.arrayBuffer();
+                        });
                         // Strip query params before detecting extension
                         const imgExt = bgFront.split('?')[0].split('.').pop()?.toLowerCase();
                         let embeddedImage;
@@ -534,8 +548,9 @@ export default function CertificateViewer() {
                             width: width,
                             height: height,
                         });
-                    } catch (err) {
+                    } catch (err: any) {
                         console.error("Error embedding background image:", err);
+                        toast.error(`No se pudo cargar la imagen de fondo del certificado: ${err.message}`, { duration: 6000 });
                         // Fallback to A4 Landscape
                         frontPage = pdfDoc.addPage([842, 595]);
                     }
@@ -751,7 +766,10 @@ export default function CertificateViewer() {
                 } else {
                     const bgBackPath = bgBack?.split('?')[0] || '';
                     if (bgBack && bgBackPath.toLowerCase().endsWith('.pdf')) {
-                        const backPdfBytes = await fetch(bgBack).then(res => res.arrayBuffer());
+                        const backPdfBytes = await fetch(bgBack).then(res => {
+                            if (!res.ok) throw new Error(`HTTP ${res.status} al cargar fondo PDF de reverso`);
+                            return res.arrayBuffer();
+                        });
                         const backPdf = await PDFDocument.load(backPdfBytes, { ignoreEncryption: true });
                         const [copiedPage] = await pdfDoc.copyPages(backPdf, [0]);
                         backPage = pdfDoc.addPage(copiedPage);
@@ -759,7 +777,10 @@ export default function CertificateViewer() {
                         // Image or blank
                         if (bgBack) {
                             try {
-                                const imgBytes = await fetch(bgBack).then(res => res.arrayBuffer());
+                                const imgBytes = await fetch(bgBack).then(res => {
+                                    if (!res.ok) throw new Error(`HTTP ${res.status} al cargar imagen de reverso`);
+                                    return res.arrayBuffer();
+                                });
                                 const imgExt = bgBack.split('?')[0].split('.').pop()?.toLowerCase();
                                 let embeddedImage;
                                 if (imgExt === 'png') embeddedImage = await pdfDoc.embedPng(imgBytes);
@@ -775,8 +796,9 @@ export default function CertificateViewer() {
                                     width: width,
                                     height: height,
                                 });
-                            } catch (e) {
+                            } catch (e: any) {
                                 console.error("Error back page image:", e);
+                                toast.error(`No se pudo cargar la imagen de reverso: ${e.message}`, { duration: 6000 });
                                 backPage = pdfDoc.addPage([842, 595]); // Fallback
                             }
                         } else {
@@ -1028,11 +1050,25 @@ export default function CertificateViewer() {
                                             {/* Fields Back */}
                                             {template.fields?.map((field: any) => {
                                                 if (field.visible === false || field.page !== 'back') return null;
+
+                                                const hoursResult = resolveHoursField(
+                                                    field,
+                                                    template.fields,
+                                                    hoursMode,
+                                                    certificate?.metadata,
+                                                    course?.metadata || []
+                                                );
+                                                if (!hoursResult.visible) return null;
+
+                                                const displayValue = hoursResult.value !== undefined
+                                                    ? hoursResult.value
+                                                    : getFieldValue(field);
+
                                                 const finalFontSize = field.fontSize * scaleFactor;
                                                 return (
                                                     <SmartText
                                                         key={field.id}
-                                                        text={getFieldValue(field)}
+                                                        text={displayValue}
                                                         x={field.x}
                                                         y={field.y}
                                                         fontSize={finalFontSize}

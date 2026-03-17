@@ -69,7 +69,7 @@ const Dashboard = () => {
   const completedCourses = enrollments?.filter(e => e.status === 'completed' || (e.status === 'active' && e.progress === 100)) || [];
   const pendingEnrollments = enrollments?.filter(e => e.status === 'pending') || [];
   // Certificados reales: enrollments completadas que tienen al menos 1 certificado en la tabla certificates
-  const certificatesCount = completedCourses.filter(e => e.certificate && e.certificate.length > 0).length;
+  const certificatesCount = completedCourses.filter(e => e.certificate && (Array.isArray(e.certificate) ? e.certificate.length > 0 : true)).length;
 
   return (
     <div className="min-h-screen bg-background">
