@@ -418,6 +418,7 @@ export default function CertificateViewer() {
 
 
     const handleDownloadPDF = async () => {
+        console.log('[PDF-DIAG-INIT] handleDownloadPDF llamado. certificate:', !!certificate, 'template keys:', Object.keys(template || {}));
         if (!certificate) return;
         const toastId = toast.loading("Generando PDF Vectorial de alta calidad...");
 
@@ -425,6 +426,7 @@ export default function CertificateViewer() {
             // Verificar que la plantilla tenga contenido real
             const hasRealBackground = !!(template.bgImageFront || template.bgImage);
             const hasFields = template.fields && template.fields.length > 0;
+            console.log('[PDF-DIAG-TEMPLATE] hasRealBackground:', hasRealBackground, 'hasFields:', hasFields, 'bgImageFront:', template.bgImageFront, 'bgImage:', template.bgImage);
             if (!hasRealBackground && !hasFields) {
                 toast.dismiss(toastId);
                 toast.error("Este curso no tiene plantilla de certificado configurada. Contacta al administrador.", { duration: 8000 });
