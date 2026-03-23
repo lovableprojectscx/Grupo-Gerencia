@@ -65,8 +65,11 @@ export default function AdminCourses() {
     };
 
     const filteredCourses = courses.filter((course: any) => {
+        const normalize = (val: string | undefined | null) => 
+            (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
         // Search Filter
-        const matchesSearch = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = normalize(course.title).includes(normalize(searchTerm));
 
         // Status Filter (Published/Draft)
         let matchesStatus = true;

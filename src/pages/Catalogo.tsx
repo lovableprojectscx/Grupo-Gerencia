@@ -97,22 +97,27 @@ const Catalogo = () => {
   const filteredCourses = useMemo(() => {
     if (!courses) return [];
 
+    const normalize = (val: string | undefined | null) => 
+      (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
     let result = courses.filter((course: any) => {
       // Basic validation - is_archived is already filtered by service, but double check doesn't hurt
       if (!course.published) return false;
 
       // Search filter
-      // Search filter
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = course.title.toLowerCase().includes(q);
-        const matchesSubtitle = course.subtitle?.toLowerCase().includes(q);
-        const matchesDescription = course.description?.toLowerCase().includes(q);
+        const q = normalize(searchQuery);
+        const matchesTitle = normalize(course.title).includes(q);
+        const matchesSubtitle = normalize(course.subtitle).includes(q);
+        const matchesDescription = normalize(course.description).includes(q);
+        const matchesCategory = normalize(course.category).includes(q);
+        const matchesSpecialty = normalize(course.specialty).includes(q);
 
-        if (!matchesTitle && !matchesSubtitle && !matchesDescription) {
+        if (!matchesTitle && !matchesSubtitle && !matchesDescription && !matchesCategory && !matchesSpecialty) {
           return false;
         }
       }
+
       // Area filter
       if (selectedAreas.length > 0 && !selectedAreas.includes(course.category)) {
         return false;
@@ -120,8 +125,14 @@ const Catalogo = () => {
 
       // Program Type filter
       if (selectedProgramTypes.length > 0) {
-        const type = course.metadata?.find((m: any) => m.key === 'program_type')?.value || 'course';
-        if (selectedProgramTypes.length > 0 && !selectedProgramTypes.includes(type)) {
+        let type = 'course';
+        if (Array.isArray(course.metadata)) {
+          type = course.metadata.find((m: any) => m.key === 'program_type')?.value || 'course';
+        } else if (typeof course.metadata === 'object' && course.metadata !== null) {
+          type = course.metadata.program_type || 'course';
+        }
+        
+        if (!selectedProgramTypes.includes(type)) {
           return false;
         }
       }
@@ -158,6 +169,39 @@ const Catalogo = () => {
 
     return result;
   }, [courses, searchQuery, selectedAreas, selectedModalities, selectedProgramTypes, maxPrice, sortBy]);
+
+  // Similar courses if no exact matches found (or just fallback popular)
+  const similarCourses = useMemo(() => {
+    if (!courses || filteredCourses.length > 0) return [];
+    
+    // Si hay búsqueda, intentar palabras individuales y coincidencia parcial amplia
+    if (searchQuery) {
+      const normalize = (val: string | undefined | null) => 
+        (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      
+      const words = normalize(searchQuery).split(" ").filter(w => w.length > 2);
+      
+      if (words.length > 0) {
+        const flexibleMatches = courses.filter((course: any) => {
+          if (!course.published) return false;
+          
+          const textToSearch = normalize(`${course.title} ${course.subtitle || ""} ${course.category} ${course.specialty || ""}`);
+          // Match at least one word
+          return words.some(word => textToSearch.includes(word));
+        });
+        
+        if (flexibleMatches.length > 0) {
+          // Add some randomness or sorting to the flexible matches? Just take top 3 newest
+          return flexibleMatches.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3);
+        }
+      }
+    }
+    
+    // Si aún no hay o no era búsqueda (sólo filtros estrictos), devolver los más recientes o populares
+    return [...courses].filter((c: any) => c.published).sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ).slice(0, 3);
+  }, [courses, filteredCourses.length, searchQuery]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
@@ -393,8 +437,20 @@ const Catalogo = () => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full pl-10 md:pl-14 pr-4 md:pr-6 py-4 md:py-5 bg-transparent text-white placeholder:text-white/50 focus:outline-none text-base md:text-lg font-medium"
+                  className="w-full pl-10 md:pl-14 pr-12 md:pr-14 py-4 md:py-5 bg-transparent text-white placeholder:text-white/50 focus:outline-none text-base md:text-lg font-medium"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors p-1"
+                    title="Limpiar búsqueda"
+                  >
+                    <X className="w-4 h-4 md:w-5 md:h-5" />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
@@ -549,23 +605,62 @@ const Catalogo = () => {
                       category={course.category}
                       specialty={course.specialty}
                       level={course.level}
-                      programType={course.metadata?.find((m: any) => m.key === 'program_type')?.value || 'course'}
+                      programType={Array.isArray(course.metadata) 
+                        ? course.metadata.find((m: any) => m.key === 'program_type')?.value || 'course' 
+                        : (course.metadata?.program_type || 'course')}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-16 bg-card rounded-2xl border border-border">
-                  <SearchX className="w-16 h-16 text-muted-foreground mb-4 mx-auto" strokeWidth={1.5} />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    No se encontraron cursos
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    Intenta ajustar los filtros o buscar con otros términos
-                  </p>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpiar filtros
-                  </Button>
+                <div className="space-y-12">
+                  <div className="text-center py-16 bg-card rounded-2xl border border-border">
+                    <SearchX className="w-16 h-16 text-muted-foreground mb-4 mx-auto" strokeWidth={1.5} />
+                    <h3 className="text-xl font-semibold text-foreground mb-2">
+                      No se encontraron cursos exactos
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      Intenta ajustar los filtros de especialidad o probar con palabras más cortas.
+                    </p>
+                    <Button variant="outline" onClick={clearFilters}>
+                      Limpiar todos los filtros
+                    </Button>
+                  </div>
 
+                  {/* Sugerencias de Cursos Similares */}
+                  {similarCourses.length > 0 && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px bg-border flex-1" />
+                        <h4 className="text-lg font-bold text-foreground">
+                          {searchQuery ? "Quizás te interese..." : "Novedades Destacadas"}
+                        </h4>
+                        <div className="h-px bg-border flex-1" />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 opacity-90 transition-opacity hover:opacity-100">
+                        {similarCourses.map((course: any) => (
+                          <CourseCard
+                            key={course.id}
+                            id={course.slug || course.id}
+                            title={course.title}
+                            instructor={course.instructor?.name || "Gerencia Educativa"}
+                            image={course.image_url}
+                            price={course.price}
+                            originalPrice={course.original_price}
+                            rating={course.rating ?? 0}
+                            students={course.students}
+                            duration={course.duration || "Flexible"}
+                            category={course.category}
+                            specialty={course.specialty}
+                            level={course.level}
+                            programType={Array.isArray(course.metadata) 
+                              ? course.metadata.find((m: any) => m.key === 'program_type')?.value || 'course' 
+                              : (course.metadata?.program_type || 'course')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -126,10 +126,13 @@ export default function AdminUsers() {
         onError: (e: any) => toast.error("Error al eliminar usuario: " + e.message),
     });
 
-    const filteredUsers = users?.filter((user: any) =>
-        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.dni?.includes(searchTerm)
-    );
+    const filteredUsers = users?.filter((user: any) => {
+        const normalize = (val: string | undefined | null) => 
+            (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            
+        return normalize(user.full_name).includes(normalize(searchTerm)) ||
+               normalize(user.dni).includes(normalize(searchTerm));
+    });
 
     return (
         <div className="space-y-6">
