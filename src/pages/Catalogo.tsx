@@ -1,6 +1,22 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+
+// FilterContent must be defined OUTSIDE Catalogo to avoid remounting on every render
+interface FilterContentProps {
+  areas: { id: string; label: string }[];
+  selectedAreas: string[];
+  selectedProgramTypes: string[];
+  selectedModalities: string[];
+  maxPrice: number;
+  activeFiltersCount: number;
+  toggleArea: (id: string) => void;
+  toggleProgramType: (id: string) => void;
+  toggleModality: (id: string) => void;
+  setMaxPrice: (val: number) => void;
+  setCurrentPage: (val: number) => void;
+  clearFilters: () => void;
+}
 import { motion } from "framer-motion";
 import { Search, SlidersHorizontal, X, Loader2, MessageSquare, SearchX } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
@@ -34,17 +50,7 @@ import { BookOpen, Sparkles, BadgeDollarSign, Layers, Settings2, Globe } from "l
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-
-const areas = [
-  { id: "health", label: "Salud" },
-  { id: "veterinary", label: "Veterinaria" },
-  { id: "engineering", label: "Ingeniería Civil" },
-  { id: "environmental", label: "Ingeniería Ambiental" },
-  { id: "agronomy", label: "Agronomía" },
-  { id: "management", label: "Gestión Pública y Empresarial" },
-  { id: "forestry", label: "Gestión y Manejo Forestal" },
-];
-// Force sync categories: 2026-02-19 15:40
+import { useCategories } from "@/hooks/useCategories";
 
 const modalities = [
   { id: "live", label: "En Vivo" },
@@ -57,8 +63,166 @@ const programTypes = [
   { id: "specialization", label: "Especialización" },
 ];
 
+const FilterContent = ({
+  areas,
+  selectedAreas,
+  selectedProgramTypes,
+  selectedModalities,
+  maxPrice,
+  activeFiltersCount,
+  toggleArea,
+  toggleProgramType,
+  toggleModality,
+  setMaxPrice,
+  setCurrentPage,
+  clearFilters,
+}: FilterContentProps) => (
+  <div className="space-y-2">
+    <Accordion type="multiple" defaultValue={["area"]} className="w-full">
+      {/* Areas */}
+      <AccordionItem value="area" className="border-none">
+        <AccordionTrigger className="hover:no-underline py-3 px-1">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-accent" />
+            <span className="font-semibold text-foreground">Área de Estudio</span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="pt-2 pb-4 px-1">
+          <div className="space-y-3">
+            {areas.map((area) => (
+              <label
+                key={area.id}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <Checkbox
+                  checked={selectedAreas.includes(area.id)}
+                  onCheckedChange={() => toggleArea(area.id)}
+                />
+                <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
+                  {area.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+
+      {/* Grouped Secondary Filters */}
+      <AccordionItem value="advanced" className="border-none">
+        <AccordionTrigger className="hover:no-underline py-3 px-1">
+          <div className="flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">Refinar Búsqueda</span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="pt-2 pb-4 px-1 space-y-6">
+          {/* Program Type */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tipo</h4>
+            </div>
+            <div className="space-y-3">
+              {programTypes.map((type) => (
+                <label
+                  key={type.id}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <Checkbox
+                    checked={selectedProgramTypes.includes(type.id)}
+                    onCheckedChange={() => toggleProgramType(type.id)}
+                  />
+                  <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
+                    {type.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Modality */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Modalidad</h4>
+            </div>
+            <div className="space-y-3">
+              {modalities.map((modality) => (
+                <label
+                  key={modality.id}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <Checkbox
+                    checked={selectedModalities.includes(modality.id)}
+                    onCheckedChange={() => toggleModality(modality.id)}
+                  />
+                  <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
+                    {modality.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Price Range */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <BadgeDollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Inversión</h4>
+            </div>
+            <RadioGroup
+              value={maxPrice.toString()}
+              onValueChange={(val) => {
+                setMaxPrice(Number(val));
+                setCurrentPage(1);
+              }}
+              className="space-y-2.5"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="10000" id="price-all" />
+                <label htmlFor="price-all" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                  Todos
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="100" id="price-100" />
+                <label htmlFor="price-100" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                  Menos de S/100
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="300" id="price-300" />
+                <label htmlFor="price-300" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                  Menos de S/300
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="500" id="price-500" />
+                <label htmlFor="price-500" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
+                  Menos de S/500
+                </label>
+              </div>
+            </RadioGroup>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+
+    {/* Clear Filters */}
+    {activeFiltersCount > 0 && (
+      <div className="pt-4 border-t border-border mt-4">
+        <Button variant="ghost" onClick={clearFilters} className="w-full text-xs text-muted-foreground hover:text-destructive h-8">
+          Limpiar todos los filtros ({activeFiltersCount})
+        </Button>
+      </div>
+    )}
+  </div>
+);
+
 const Catalogo = () => {
   const { settings } = useSiteSettings();
+  const location = useLocation();
+  const { categories } = useCategories();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -76,10 +240,12 @@ const Catalogo = () => {
       setSearchQuery(q);
     }
 
-    if (area && areas.some(a => a.id === area)) {
-      setSelectedAreas([area]);
+    if (area && categories.length > 0) {
+      // Match by id (UUID) or by slug (for legacy links like ?area=health)
+      const match = categories.find(c => c.id === area || c.slug === area);
+      if (match) setSelectedAreas([match.id]);
     }
-  }, [location.search]);
+  }, [location.search, categories]);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [selectedProgramTypes, setSelectedProgramTypes] = useState<string[]>([]);
   const [selectedModalities, setSelectedModalities] = useState<string[]>([]);
@@ -93,35 +259,62 @@ const Catalogo = () => {
     queryFn: courseService.getPublished,
   });
 
+  // Lookup maps: UUID → label (built once per categories load)
+  const categoryLabelMap = useMemo(() =>
+    new Map(categories.map(c => [c.id, c.label])),
+    [categories]
+  );
+  const specialtyLabelMap = useMemo(() =>
+    new Map(categories.flatMap(c => c.specialties.map(s => [s.id, s.label]))),
+    [categories]
+  );
+
   // Filter and sort courses
   const filteredCourses = useMemo(() => {
     if (!courses) return [];
 
-    const normalize = (val: string | undefined | null) => 
+    const normalize = (val: string | undefined | null) =>
       (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-    let result = courses.filter((course: any) => {
-      // Basic validation - is_archived is already filtered by service, but double check doesn't hurt
-      if (!course.published) return false;
+    // Split query into words (min 2 chars) for flexible multi-word matching
+    const queryWords = searchQuery.trim()
+      ? normalize(searchQuery).split(/\s+/).filter(w => w.length >= 2)
+      : [];
+
+    // Score a course against the search query (higher = more relevant)
+    const scoreMatch = (course: any): number => {
+      if (!queryWords.length) return 0;
+      const categoryLabel = normalize(categoryLabelMap.get(course.category) || "");
+      const specialtyLabel = normalize(specialtyLabelMap.get(course.specialty || "") || "");
+      const title = normalize(course.title);
+      const subtitle = normalize(course.subtitle);
+      const description = normalize(course.description);
+
+      let score = 0;
+      for (const word of queryWords) {
+        if (title.includes(word)) score += 10;
+        else if (categoryLabel.includes(word)) score += 6;
+        else if (specialtyLabel.includes(word)) score += 5;
+        else if (subtitle.includes(word)) score += 3;
+        else if (description.includes(word)) score += 1;
+        else return -1; // word not found anywhere → exclude course
+      }
+      return score;
+    };
+
+    const scored: { course: any; score: number }[] = [];
+
+    for (const course of courses) {
+      if (!course.published) continue;
 
       // Search filter
-      if (searchQuery) {
-        const q = normalize(searchQuery);
-        const matchesTitle = normalize(course.title).includes(q);
-        const matchesSubtitle = normalize(course.subtitle).includes(q);
-        const matchesDescription = normalize(course.description).includes(q);
-        const matchesCategory = normalize(course.category).includes(q);
-        const matchesSpecialty = normalize(course.specialty).includes(q);
-
-        if (!matchesTitle && !matchesSubtitle && !matchesDescription && !matchesCategory && !matchesSpecialty) {
-          return false;
-        }
+      if (queryWords.length > 0) {
+        const s = scoreMatch(course);
+        if (s < 0) continue; // at least one word missing → skip
       }
 
       // Area filter
-      if (selectedAreas.length > 0 && !selectedAreas.includes(course.category)) {
-        return false;
-      }
+      if (selectedAreas.length > 0 && !selectedAreas.includes(course.category)) continue;
 
       // Program Type filter
       if (selectedProgramTypes.length > 0) {
@@ -131,77 +324,67 @@ const Catalogo = () => {
         } else if (typeof course.metadata === 'object' && course.metadata !== null) {
           type = course.metadata.program_type || 'course';
         }
-        
-        if (!selectedProgramTypes.includes(type)) {
-          return false;
-        }
+        if (!selectedProgramTypes.includes(type)) continue;
       }
 
       // Modality filter
-      if (selectedModalities.length > 0) {
-        // Map 'recorded' UI filter to 'async' DB value if needed, or just use 'async' in the filter definition
-        // We will update the filter definition constant to match DB ('async' instead of 'recorded')
-        if (!selectedModalities.includes(course.modality || 'async')) {
-          return false;
-        }
-      }
+      if (selectedModalities.length > 0 && !selectedModalities.includes(course.modality || 'async')) continue;
 
       // Price filter
       const coursePrice = typeof course.price === 'number' ? course.price : parseFloat(course.price || '0');
-      if (coursePrice > maxPrice) {
-        return false;
-      }
-      return true;
-    });
+      if (coursePrice > maxPrice) continue;
 
-    // Sort
-    switch (sortBy) {
-      case "price-low":
-        result.sort((a: any, b: any) => (a.price || 0) - (b.price || 0));
-        break;
-      case "price-high":
-        result.sort((a: any, b: any) => (b.price || 0) - (a.price || 0));
-        break;
-      case "newest":
-      default:
-        result.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      scored.push({ course, score: queryWords.length ? scoreMatch(course) : 0 });
     }
 
-    return result;
-  }, [courses, searchQuery, selectedAreas, selectedModalities, selectedProgramTypes, maxPrice, sortBy]);
+    // Sort
+    if (sortBy === "price-low") {
+      scored.sort((a, b) => (a.course.price || 0) - (b.course.price || 0));
+    } else if (sortBy === "price-high") {
+      scored.sort((a, b) => (b.course.price || 0) - (a.course.price || 0));
+    } else if (queryWords.length > 0) {
+      // When searching, sort by relevance score first, then by date
+      scored.sort((a, b) => b.score - a.score || new Date(b.course.created_at).getTime() - new Date(a.course.created_at).getTime());
+    } else {
+      scored.sort((a, b) => new Date(b.course.created_at).getTime() - new Date(a.course.created_at).getTime());
+    }
 
-  // Similar courses if no exact matches found (or just fallback popular)
+    return scored.map(s => s.course);
+  }, [courses, searchQuery, selectedAreas, selectedModalities, selectedProgramTypes, maxPrice, sortBy, categoryLabelMap, specialtyLabelMap]);
+
+  // Similar courses fallback when no results
   const similarCourses = useMemo(() => {
     if (!courses || filteredCourses.length > 0) return [];
-    
-    // Si hay búsqueda, intentar palabras individuales y coincidencia parcial amplia
-    if (searchQuery) {
-      const normalize = (val: string | undefined | null) => 
-        (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      
-      const words = normalize(searchQuery).split(" ").filter(w => w.length > 2);
-      
+
+    const normalize = (val: string | undefined | null) =>
+      (val || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    if (searchQuery.trim()) {
+      const words = normalize(searchQuery).split(/\s+/).filter(w => w.length >= 2);
       if (words.length > 0) {
-        const flexibleMatches = courses.filter((course: any) => {
+        const flexible = courses.filter((course: any) => {
           if (!course.published) return false;
-          
-          const textToSearch = normalize(`${course.title} ${course.subtitle || ""} ${course.category} ${course.specialty || ""}`);
-          // Match at least one word
-          return words.some(word => textToSearch.includes(word));
+          const corpus = normalize([
+            course.title,
+            course.subtitle,
+            categoryLabelMap.get(course.category),
+            specialtyLabelMap.get(course.specialty || ""),
+          ].join(" "));
+          return words.some(w => corpus.includes(w));
         });
-        
-        if (flexibleMatches.length > 0) {
-          // Add some randomness or sorting to the flexible matches? Just take top 3 newest
-          return flexibleMatches.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3);
+        if (flexible.length > 0) {
+          return flexible
+            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 3);
         }
       }
     }
-    
-    // Si aún no hay o no era búsqueda (sólo filtros estrictos), devolver los más recientes o populares
-    return [...courses].filter((c: any) => c.published).sort((a: any, b: any) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    ).slice(0, 3);
-  }, [courses, filteredCourses.length, searchQuery]);
+
+    return [...courses]
+      .filter((c: any) => c.published)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 3);
+  }, [courses, filteredCourses.length, searchQuery, categoryLabelMap, specialtyLabelMap]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
@@ -243,148 +426,20 @@ const Catalogo = () => {
   const activeFiltersCount = selectedAreas.length + selectedModalities.length + selectedProgramTypes.length +
     (maxPrice < 10000 ? 1 : 0);
 
-  const FilterContent = () => (
-    <div className="space-y-2">
-      <Accordion type="multiple" defaultValue={["area"]} className="w-full">
-        {/* Areas */}
-        <AccordionItem value="area" className="border-none">
-          <AccordionTrigger className="hover:no-underline py-3 px-1">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-accent" />
-              <span className="font-semibold text-foreground">Área de Estudio</span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="pt-2 pb-4 px-1">
-            <div className="space-y-3">
-              {areas.map((area) => (
-                <label
-                  key={area.id}
-                  className="flex items-center gap-3 cursor-pointer group"
-                >
-                  <Checkbox
-                    checked={selectedAreas.includes(area.id)}
-                    onCheckedChange={() => toggleArea(area.id)}
-                  />
-                  <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
-                    {area.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Grouped Secondary Filters */}
-        <AccordionItem value="advanced" className="border-none">
-          <AccordionTrigger className="hover:no-underline py-3 px-1">
-            <div className="flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-muted-foreground" />
-              <span className="font-semibold text-foreground">Refinar Búsqueda</span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="pt-2 pb-4 px-1 space-y-6">
-            {/* Program Type */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tipo</h4>
-              </div>
-              <div className="space-y-3">
-                {programTypes.map((type) => (
-                  <label
-                    key={type.id}
-                    className="flex items-center gap-3 cursor-pointer group"
-                  >
-                    <Checkbox
-                      checked={selectedProgramTypes.includes(type.id)}
-                      onCheckedChange={() => toggleProgramType(type.id)}
-                    />
-                    <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
-                      {type.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Modality */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Modalidad</h4>
-              </div>
-              <div className="space-y-3">
-                {modalities.map((modality) => (
-                  <label
-                    key={modality.id}
-                    className="flex items-center gap-2 cursor-pointer group"
-                  >
-                    <Checkbox
-                      checked={selectedModalities.includes(modality.id)}
-                      onCheckedChange={() => toggleModality(modality.id)}
-                    />
-                    <span className="text-sm text-foreground group-hover:text-accent transition-colors flex-1">
-                      {modality.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Price Range */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <BadgeDollarSign className="w-3.5 h-3.5 text-muted-foreground" />
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Inversión</h4>
-              </div>
-              <RadioGroup
-                value={maxPrice.toString()}
-                onValueChange={(val) => {
-                  setMaxPrice(Number(val));
-                  setCurrentPage(1);
-                }}
-                className="space-y-2.5"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="10000" id="price-all" />
-                  <label htmlFor="price-all" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-                    Todos
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="100" id="price-100" />
-                  <label htmlFor="price-100" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-                    Menos de S/100
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="300" id="price-300" />
-                  <label htmlFor="price-300" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-                    Menos de S/300
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="500" id="price-500" />
-                  <label htmlFor="price-500" className="text-sm text-foreground cursor-pointer hover:text-accent transition-colors">
-                    Menos de S/500
-                  </label>
-                </div>
-              </RadioGroup>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-
-      {/* Clear Filters */}
-      {activeFiltersCount > 0 && (
-        <div className="pt-4 border-t border-border mt-4">
-          <Button variant="ghost" onClick={clearFilters} className="w-full text-xs text-muted-foreground hover:text-destructive h-8">
-            Limpiar todos los filtros ({activeFiltersCount})
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+  const filterProps: FilterContentProps = {
+    areas: categories,
+    selectedAreas,
+    selectedProgramTypes,
+    selectedModalities,
+    maxPrice,
+    activeFiltersCount,
+    toggleArea,
+    toggleProgramType,
+    toggleModality,
+    setMaxPrice,
+    setCurrentPage,
+    clearFilters,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -481,7 +536,7 @@ const Catalogo = () => {
                     Filtros de búsqueda
                   </h2>
                 </div>
-                <FilterContent />
+                <FilterContent {...filterProps} />
               </div>
             </aside>
 
@@ -507,7 +562,7 @@ const Catalogo = () => {
                       <SheetTitle>Filtros</SheetTitle>
                     </SheetHeader>
                     <div className="mt-6">
-                      <FilterContent />
+                      <FilterContent {...filterProps} />
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -539,7 +594,7 @@ const Catalogo = () => {
               {activeFiltersCount > 0 && (
                 <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
                   {selectedAreas.map((areaId) => {
-                    const area = areas.find((a) => a.id === areaId);
+                    const area = categories.find((a) => a.id === areaId);
                     return (
                       <Badge
                         key={areaId}
