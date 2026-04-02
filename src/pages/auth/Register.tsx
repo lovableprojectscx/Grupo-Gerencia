@@ -82,6 +82,7 @@ export default function Register() {
                     <Label htmlFor="dni">DNI <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                     <Input
                         id="dni"
+                        data-idenza-ignore="true"
                         placeholder="12345678"
                         value={formData.dni}
                         onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
@@ -92,6 +93,7 @@ export default function Register() {
                     <Input
                         id="phone"
                         type="tel"
+                        data-idenza-ignore="true"
                         placeholder="900 000 000"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}

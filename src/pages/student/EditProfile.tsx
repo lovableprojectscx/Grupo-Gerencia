@@ -205,6 +205,7 @@ export default function EditProfile() {
                                     <Label htmlFor="dni">DNI / Documento de Identidad <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                                     <Input
                                         id="dni"
+                                        data-idenza-ignore="true"
                                         value={formData.dni}
                                         onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                                     />
@@ -218,6 +219,7 @@ export default function EditProfile() {
                                     <Input
                                         id="phone"
                                         type="tel"
+                                        data-idenza-ignore="true"
                                         placeholder="900 000 000"
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}

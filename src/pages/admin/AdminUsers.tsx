@@ -298,6 +298,7 @@ export default function AdminUsers() {
                                 <Input
                                     className="col-span-3"
                                     type="email"
+                                    data-idenza-ignore="true"
                                     value={editData.email}
                                     onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                                 />
@@ -306,6 +307,7 @@ export default function AdminUsers() {
                                 <Label className="text-right">DNI</Label>
                                 <Input
                                     className="col-span-3"
+                                    data-idenza-ignore="true"
                                     value={editData.dni}
                                     onChange={(e) => setEditData({ ...editData, dni: e.target.value })}
                                 />
@@ -314,6 +316,7 @@ export default function AdminUsers() {
                                 <Label className="text-right">Celular</Label>
                                 <Input
                                     className="col-span-3"
+                                    data-idenza-ignore="true"
                                     value={editData.phone}
                                     onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
                                 />
