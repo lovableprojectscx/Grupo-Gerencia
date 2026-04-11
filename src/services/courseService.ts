@@ -63,7 +63,7 @@ export const courseService = {
     async getAll() {
         const { data, error } = await supabase
             .from('courses')
-            .select('*, instructors(*)')
+            .select('*, instructors!course_instructors(*)')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -74,7 +74,7 @@ export const courseService = {
     async getPublished() {
         const { data, error } = await supabase
             .from('courses')
-            .select('*, instructors(*)')
+            .select('*, instructors!course_instructors(*)')
             .eq('published', true)
             .eq('is_archived', false) // Explicitly exclude archived
             .order('created_at', { ascending: false });
@@ -86,7 +86,7 @@ export const courseService = {
     async getRelatedCourses(currentCourseId: string, category: string, limit = 3) {
         let query = supabase
             .from('courses')
-            .select('*, instructors(*), enrollments(user_id)')
+            .select('*, instructors!course_instructors(*), enrollments(user_id)')
             .eq('category', category)
             .eq('published', true)
             .eq('is_archived', false) // Exclude archived
@@ -106,7 +106,7 @@ export const courseService = {
             .from('courses')
             .select(`
             *,
-            instructors (*),
+            instructors!course_instructors (*),
             modules (
                 *,
                 lessons (*)
