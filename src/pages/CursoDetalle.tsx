@@ -384,8 +384,7 @@ const CursoDetalle = () => {
               <div className="pt-4 mt-2 border-t border-white/10">
                 <p className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-3">Plana Docente</p>
                 <div className="flex flex-wrap gap-3">
-                  {(course.instructors && course.instructors.length > 0 ? course.instructors : [course.instructor]).map((inst: any, idx: number) => {
-                    if (!inst) return null;
+                  {(course.instructors && course.instructors.length > 0 ? course.instructors : [course.instructor || {}]).map((inst: any, idx: number) => {
                     return (
                       <div key={inst.id || idx} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl pr-4 p-1.5 backdrop-blur-md hover:bg-white/10 transition-colors">
                         <img
