@@ -34,7 +34,15 @@ Para reducir la fricción de lectura y mostrar abudancia de contenido:
 ## 5. Archivos Clave Modificados
 
 - `src/pages/CursoDetalle.tsx`: Controla toda la interfaz de la página de detalle del producto. 
-- Contiene los cálculos de precios, diseño de Hero, Sidebar, Mobile Sticky CTA, Acordeón de Contenido (Módulos y Lecciones), y visualización de cursos recomendados.
+- Contiene los cálculos de precios, diseño de Hero, Sidebar, Mobile Sticky CTA, Acordeón de Contenido (Módulos y Lecciones), y la nueva Sección de Plana Docente (N:N).
+- `src/services/courseService.ts`: Actualizado para resolver ambigüedad de joins y soportar relación muchos-a-muchos.
+
+## 6. Nueva Sección: Plana Docente (Multi-Docente)
+
+Se ha reemplazado el selector de instructor único por una sección de "Plana Docente" de alta gama:
+- **Arquitectura N:N:** El sistema ahora permite asignar infinitos docentes a un mismo curso mediante una tabla intermedia.
+- **Diseño Glass:** Cada docente se presenta en una placa de cristal (`bg-white/5`, `backdrop-blur-md`) con su avatar circular iluminado.
+- **Resiliencia:** Si el curso no tiene docentes asignados en la base de datos, el sistema muestra automáticamente un marcador de posición ("Docente Especialista") para nunca dejar el diseño roto o vacío.
 
 ---
-*Gerencia y Desarrollo Global - Documentación de UI/UX v1.2*
+*Gerencia y Desarrollo Global - Documentación de UI/UX v1.3*

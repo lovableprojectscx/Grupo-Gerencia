@@ -21,6 +21,7 @@ Para mantener una interfaz limpia y profesional ("Menos es Más"), los filtros s
 ### Filtros Principales
 - **Búsqueda por Texto**: Permite buscar por título, subtítulo o descripción del curso.
 - **Área de Estudio**: Filtro primario visible mediante un sistema de checkboxes para una selección rápida.
+- **Visualización de Docentes**: Las tarjetas de curso (CourseCards) ahora muestran automáticamente a todos los docentes asignados separados por comas.
 
 ### Filtros Avanzados (Acordeón)
 Para evitar la redundancia visual, los filtros secundarios se agrupan en un panel colapsable llamado **"Refinar Búsqueda"**:
@@ -47,4 +48,4 @@ El sistema de ordenamiento utiliza terminología premium para mejorar la percepc
 2.  Agregar el ID y Label en la constante `areas` dentro de `src/pages/Catalogo.tsx` (para el filtro público).
 
 ---
-*Gerencia y Desarrollo Global - Documentación Interna v1.1*
+*Gerencia y Desarrollo Global - Documentación Interna v1.2 (Actualizado)*

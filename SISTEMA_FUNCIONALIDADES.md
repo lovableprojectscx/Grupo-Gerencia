@@ -236,8 +236,8 @@
 | Crear/editar curso | ✅ | — |
 | Módulos y lecciones CRUD | ✅ | — |
 | Upload de imagen portada | ✅ | Supabase Storage |
-| Instructor: asignar o crear nuevo | ✅ | — |
-| Metadata adicional (live URL, fecha) | ✅ | — |
+| Instructor: asignar múltiples docentes o crear nuevo | ✅ | Se implementó arquitectura Muchos-a-Muchos usando la tabla `course_instructors` |
+| Fallback de imagen de docente | ✅ | Si no hay docentes, muestra la tarjeta predeterminada de "Docente Especialista" |
 | Generación automática de slug | ✅ | Con manejo de tildes/ñ |
 
 ### 10.4 Gestión de Inscripciones (`AdminEnrollments.tsx`)
@@ -287,6 +287,8 @@
 | `certificates` | Usuario ve los suyos; Público si `metadata.public=true` | ✅ |
 | `user_progress` | Usuario gestiona solo el suyo | ✅ |
 | `courses` | Publicados visibles para todos; Admin ve borradores | ✅ |
+| `course_instructors` | Tabla intermedia para relación N:N de docentes | ✅ |
+| `instructors` | Datos de plana docente; lectura pública permitida | ✅ |
 
 ### Funciones/RPCs de base de datos
 | Función | Estado | Problema |
@@ -351,20 +353,13 @@
 1. `AdminSidebar.tsx` — Implementar `signOut()` real
 2. `AdminSettings.tsx` — Agregar `logo_url` al `.update()`
 3. `AdminEnrollments.tsx` — Mover filtros de tab al query de Supabase
-4. `AdminEnrollments.tsx` — Agregar `.ilike()` a la búsqueda SQL
+7. `AdminEnrollments.tsx` — Agregar `.ilike()` a la búsqueda SQL (⚠️ Pendiente de validación final)
 
-**Fase 2 — Experiencia del Estudiante:**
-5. `Dashboard.tsx` — Mostrar inscripciones pendientes
-6. `Dashboard.tsx` — Contar certificados reales con el join existente
-7. `Checkout.tsx` — Validar `file.size > 5MB` antes del upload
-
-**Fase 3 — UX y Calidad:**
-8. `Classroom.tsx` — Implementar búsqueda de lecciones
-9. `Catalogo.tsx` — Pasar `course.duration` en lugar de "Flexible"
-10. `AdminDashboard.tsx` — Ordenar meses del gráfico cronológicamente
-11. `AdminSidebar.tsx` — `startsWith()` para active state en subrutas
-12. `AuthContext.tsx` — Usar solo `profiles.role` para determinar admin
-13. `EditProfile.tsx` / `CursoDetalle.tsx` / `Classroom.tsx` / `Checkout.tsx` — Migrar a `useAuth()`
+**Fase 4 — Arquitectura Multi-Docente (COMPLETADO):**
+14. `course_instructors` — Creación de tabla intermedia y migración de datos existentes.
+15. `courseService.ts` — Actualización de CRUD para sincronización de docentes por ID.
+16. `CourseBuilder.tsx` — Nuevo selector de docentes tipo Badges dinámicos.
+17. `CursoDetalle.tsx` — Rediseño de sección "Plana Docente" con Glassmorphism.
 
 ---
-*Auditoría completa — Gerencia y Desarrollo Global — Marzo 2026*
+*Auditoría completa — Gerencia y Desarrollo Global — Abril 2026 (Actualizado v1.3)*
