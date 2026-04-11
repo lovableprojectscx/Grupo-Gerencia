@@ -173,8 +173,9 @@ export const courseService = {
         if (error) throw error;
         
         if (instructor_ids && instructor_ids.length > 0) {
-            const junctionData = instructor_ids.map(id => ({ course_id: data.id, instructor_id: id }));
-            await supabase.from('course_instructors').insert(junctionData);
+            const junctionData = instructor_ids.map((instId: string) => ({ course_id: data.id, instructor_id: instId }));
+            const { error: insError } = await supabase.from('course_instructors').insert(junctionData);
+            if (insError) throw insError;
         }
 
         return data as Course;
@@ -201,10 +202,13 @@ export const courseService = {
         if (error) throw error;
 
         if (instructor_ids !== undefined) {
-            await supabase.from('course_instructors').delete().eq('course_id', id);
+            const { error: delError } = await supabase.from('course_instructors').delete().eq('course_id', id);
+            if (delError) throw delError;
+
             if (instructor_ids.length > 0) {
                 const junctionData = instructor_ids.map((instId: string) => ({ course_id: id, instructor_id: instId }));
-                await supabase.from('course_instructors').insert(junctionData);
+                const { error: insError } = await supabase.from('course_instructors').insert(junctionData);
+                if (insError) throw insError;
             }
         }
 
