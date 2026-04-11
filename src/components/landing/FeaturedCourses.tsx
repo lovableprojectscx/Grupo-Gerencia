@@ -116,7 +116,7 @@ export const FeaturedCourses = () => {
                     id={course.slug || course.id}
                     image={course.image_url || "/placeholder-course.jpg"}
                     title={course.title}
-                    instructor={course.instructor?.name || "Instructor"}
+                    instructor={course.instructors && course.instructors.length > 0 ? course.instructors.map((i: any) => i.name).join(", ") : (course.instructor?.name || "Instructor")}
                     price={course.price}
                     originalPrice={course.original_price}
                     rating={5.0}

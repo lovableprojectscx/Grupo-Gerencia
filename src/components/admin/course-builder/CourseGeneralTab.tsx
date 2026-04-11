@@ -87,23 +87,57 @@ export function CourseGeneralTab({
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Seleccionar Instructor</Label>
-                        <Select
-                            value={course.instructor_id || ""}
-                            onValueChange={(val) => setCourse({ ...course, instructor_id: val })}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccione un instructor" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {instructors.map((inst) => (
-                                    <SelectItem key={inst.id} value={inst.id}>
-                                        {inst.name} ({inst.title})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="space-y-4">
+                        <Label>Docentes Asignados</Label>
+                        
+                        <div className="flex flex-wrap gap-2 mb-2 min-h-[32px] items-center">
+                            {(course.instructor_ids || []).map((id: string) => {
+                                const inst = instructors.find(i => i.id === id);
+                                if (!inst) return null;
+                                return (
+                                    <div key={id} className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+                                        <span className="font-medium">{inst.name}</span>
+                                        <button 
+                                            onClick={() => setCourse({ ...course, instructor_ids: course.instructor_ids.filter((i: string) => i !== id) })}
+                                            className="hover:text-destructive transition-colors flex items-center justify-center p-0.5"
+                                        >
+                                            <XCircle className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )
+                            })}
+                            {(!course.instructor_ids || course.instructor_ids.length === 0) && (
+                                <span className="text-sm text-muted-foreground italic">Ningún docente asignado.</span>
+                            )}
+                        </div>
+
+                         <div className="space-y-2">
+                             <Select
+                                value=""
+                                onValueChange={(val) => {
+                                    if (!val) return;
+                                    const currentIds = course.instructor_ids || [];
+                                    if (!currentIds.includes(val)) {
+                                        setCourse({ ...course, instructor_ids: [...currentIds, val] });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Agregar un docente..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {instructors.filter(inst => !(course.instructor_ids || []).includes(inst.id)).length === 0 ? (
+                                        <div className="p-2 text-sm text-muted-foreground text-center">No hay más docentes disponibles</div>
+                                    ) : (
+                                        instructors.filter(inst => !(course.instructor_ids || []).includes(inst.id)).map((inst) => (
+                                            <SelectItem key={inst.id} value={inst.id}>
+                                                {inst.name} ({inst.title})
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                         </div>
                     </div>
                 </CardContent>
             </Card>

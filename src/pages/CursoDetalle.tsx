@@ -380,17 +380,26 @@ const CursoDetalle = () => {
                 </div>
               </div>
 
-              {/* Instructor */}
-              <div className="flex items-center gap-3 pt-3 border-t border-white/10">
-                <img
-                  src={course.instructor?.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
-                  alt={course.instructor?.name || "Instructor"}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-accent/50 flex-shrink-0"
-                />
-                <div>
-                  <p className="text-white/40 text-xs mb-0.5">Impartido por</p>
-                  <p className="text-white font-semibold text-sm">{course.instructor?.name || "Docente Especialista"}</p>
-                  <p className="text-accent text-xs">{course.instructor?.title || "Experto en la materia"}</p>
+              {/* Instructors */}
+              <div className="pt-4 mt-2 border-t border-white/10">
+                <p className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-3">Plana Docente</p>
+                <div className="flex flex-wrap gap-3">
+                  {(course.instructors && course.instructors.length > 0 ? course.instructors : [course.instructor]).map((inst: any, idx: number) => {
+                    if (!inst) return null;
+                    return (
+                      <div key={inst.id || idx} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl pr-4 p-1.5 backdrop-blur-md hover:bg-white/10 transition-colors">
+                        <img
+                          src={inst.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
+                          alt={inst.name || "Instructor"}
+                          className="w-10 h-10 rounded-full object-cover ring-1 ring-accent/50 flex-shrink-0 shadow-lg shadow-black/20"
+                        />
+                        <div>
+                          <p className="text-white font-semibold text-sm leading-tight">{inst.name || "Docente Especialista"}</p>
+                          <p className="text-accent text-[11px] leading-tight mt-0.5">{inst.title || "Experto en la materia"}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </motion.div>
@@ -716,7 +725,9 @@ const CursoDetalle = () => {
                     duration={relatedCourse.duration || "Flexible"}
                     category={relatedCourse.category}
                     level={relatedCourse.level}
-                    instructor={relatedCourse.instructor?.name || "Instructor"}
+                    instructor={relatedCourse.instructors && relatedCourse.instructors.length > 0
+                      ? relatedCourse.instructors.map((i: any) => i.name).join(", ")
+                      : (relatedCourse.instructor?.name || "Instructor")}
                   />
                 ))}
               </div>

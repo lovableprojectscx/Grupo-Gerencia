@@ -650,7 +650,7 @@ const Catalogo = () => {
                       key={course.id}
                       id={course.slug || course.id}
                       title={course.title}
-                      instructor={course.instructor?.name || "Gerencia Educativa"}
+                      instructor={course.instructors && course.instructors.length > 0 ? course.instructors.map((i: any) => i.name).join(", ") : (course.instructor?.name || "Gerencia Educativa")}
                       image={course.image_url}
                       price={course.price}
                       originalPrice={course.original_price}
@@ -698,7 +698,7 @@ const Catalogo = () => {
                             key={course.id}
                             id={course.slug || course.id}
                             title={course.title}
-                            instructor={course.instructor?.name || "Gerencia Educativa"}
+                            instructor={course.instructors && course.instructors.length > 0 ? course.instructors.map((i: any) => i.name).join(", ") : (course.instructor?.name || "Gerencia Educativa")}
                             image={course.image_url}
                             price={course.price}
                             originalPrice={course.original_price}

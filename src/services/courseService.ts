@@ -17,13 +17,15 @@ export interface Course {
     published: boolean;
     is_archived?: boolean; // Added for clarity
     slug: string;
-    instructor_id?: string;
+    instructor_id?: string; // deprecated
+    instructor_ids?: string[]; // for creating/updating
     modality?: 'live' | 'async' | 'hybrid';
     duration?: string;
     metadata?: any; // JSONB
     students?: number;
     modules?: Module[];
-    instructor?: Instructor;
+    instructor?: Instructor; // fallback
+    instructors?: Instructor[];
 }
 
 export interface Module {
@@ -61,7 +63,7 @@ export const courseService = {
     async getAll() {
         const { data, error } = await supabase
             .from('courses')
-            .select('*, instructor:instructors(name)')
+            .select('*, instructors(*)')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -72,7 +74,7 @@ export const courseService = {
     async getPublished() {
         const { data, error } = await supabase
             .from('courses')
-            .select('*, instructor:instructors(name)')
+            .select('*, instructors(*)')
             .eq('published', true)
             .eq('is_archived', false) // Explicitly exclude archived
             .order('created_at', { ascending: false });
@@ -84,7 +86,7 @@ export const courseService = {
     async getRelatedCourses(currentCourseId: string, category: string, limit = 3) {
         let query = supabase
             .from('courses')
-            .select('*, instructor:instructors(name), enrollments(user_id)')
+            .select('*, instructors(*), enrollments(user_id)')
             .eq('category', category)
             .eq('published', true)
             .eq('is_archived', false) // Exclude archived
@@ -104,7 +106,7 @@ export const courseService = {
             .from('courses')
             .select(`
             *,
-            instructor:instructors!instructor_id (*),
+            instructors (*),
             modules (
                 *,
                 lessons (*)
@@ -148,7 +150,7 @@ export const courseService = {
 
         // Sanitize payload: remove derived/joined fields that don't exist in 'courses' table
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { students, instructor_id, ...courseData } = course;
+        const { students, instructor_id, instructor_ids, ...courseData } = course;
         // Note: we can't destructure strict types easily if they aren't there, but 'modules' etc aren't in Partial<Course> usually
         // if we stick to the interface. However, if 'course' comes from a form with extra props, we need to be careful.
         // We will assume input is Partial<Course> which shouldn't have 'modules' or 'enrollments' if strict.
@@ -160,6 +162,7 @@ export const courseService = {
         delete payload.modules;
         delete payload.enrollments;
         delete payload.instructor; // if explicitly populated
+        delete payload.instructors;
 
         const { data, error } = await supabase
             .from('courses')
@@ -168,16 +171,24 @@ export const courseService = {
             .single();
 
         if (error) throw error;
+        
+        if (instructor_ids && instructor_ids.length > 0) {
+            const junctionData = instructor_ids.map(id => ({ course_id: data.id, instructor_id: id }));
+            await supabase.from('course_instructors').insert(junctionData);
+        }
+
         return data as Course;
     },
 
     async update(id: string, updates: Partial<Course>) {
         // Sanitize payload
-        const payload = { ...updates } as any;
+        const { instructor_ids, ...payload } = { ...updates } as any;
         delete payload.modules;
         delete payload.enrollments;
         delete payload.instructor;
+        delete payload.instructors;
         delete payload.students;
+        delete payload.instructor_id;
 
         const { data, error } = await supabase
             .from('courses')
@@ -188,6 +199,15 @@ export const courseService = {
 
 
         if (error) throw error;
+
+        if (instructor_ids !== undefined) {
+            await supabase.from('course_instructors').delete().eq('course_id', id);
+            if (instructor_ids.length > 0) {
+                const junctionData = instructor_ids.map((instId: string) => ({ course_id: id, instructor_id: instId }));
+                await supabase.from('course_instructors').insert(junctionData);
+            }
+        }
+
         return data as Course;
     },
 
@@ -547,6 +567,7 @@ const mapCourseWithStudentCount = (course: any): Course & { students: number } =
 
     return {
         ...rest,
-        students: displayStudents
+        students: displayStudents,
+        instructor: course.instructors && course.instructors.length > 0 ? course.instructors[0] : course.instructor
     } as Course & { students: number };
 };

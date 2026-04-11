@@ -76,7 +76,7 @@ export default function CourseBuilder() {
         published: false,
         specialty: "",
         modality: "async",
-        instructor_id: "",
+        instructor_ids: [],
         modules: []
     });
 
@@ -306,7 +306,7 @@ export default function CourseBuilder() {
                 avatar_url: newInstructor.photo_url
             });
             setInstructors([...instructors, created]);
-            setCourse({ ...course, instructor_id: created.id }); // Auto-select
+            setCourse({ ...course, instructor_ids: [...(course.instructor_ids || []), created.id] }); // Auto-select
             setIsInstructorDialogOpen(false);
             setNewInstructor({ name: "", title: "", photo_url: "" });
             toast.success("Instructor creado");
@@ -368,7 +368,10 @@ export default function CourseBuilder() {
 
     useEffect(() => {
         if (fetchedCourse) {
-            setCourse(fetchedCourse);
+            setCourse({
+                ...fetchedCourse,
+                instructor_ids: fetchedCourse.instructors?.map((i: any) => i.id) || (fetchedCourse.instructor_id ? [fetchedCourse.instructor_id] : [])
+            });
         }
     }, [fetchedCourse]);
 
