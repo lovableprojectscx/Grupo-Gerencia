@@ -49,6 +49,19 @@ export interface Lesson {
     is_free_preview: boolean;
 }
 
+export interface CourseResource {
+    id: string;
+    course_id: string;
+    title: string;
+    description?: string;
+    file_url: string;
+    file_name: string;
+    file_type: 'pdf' | 'ppt' | 'pptx' | 'doc' | 'docx' | 'other';
+    file_size?: number;
+    order: number;
+    created_at?: string;
+}
+
 export interface Instructor {
     id: string;
     name: string;
@@ -539,6 +552,45 @@ export const courseService = {
 
         if (error) throw error;
         return !!data;
+    },
+
+    // --- Course Resources ---
+    async getResources(courseId: string) {
+        const { data, error } = await supabase
+            .from('course_resources')
+            .select('*')
+            .eq('course_id', courseId)
+            .order('order', { ascending: true });
+        if (error) throw error;
+        return data as CourseResource[];
+    },
+
+    async createResource(resource: Omit<CourseResource, 'id' | 'created_at'>) {
+        const { data, error } = await supabase
+            .from('course_resources')
+            .insert([resource])
+            .select()
+            .single();
+        if (error) throw error;
+        return data as CourseResource;
+    },
+
+    async updateResource(id: string, updates: Partial<CourseResource>) {
+        const { data, error } = await supabase
+            .from('course_resources')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data as CourseResource;
+    },
+
+    async deleteResource(id: string, filePath: string) {
+        // Borrar el archivo del storage primero
+        await supabase.storage.from('course-content').remove([filePath]);
+        const { error } = await supabase.from('course_resources').delete().eq('id', id);
+        if (error) throw error;
     },
 
     async getStudentFavorites(userId: string) {

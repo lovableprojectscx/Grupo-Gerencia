@@ -15,7 +15,7 @@ import {
 import {
     Play, CheckCircle, ChevronLeft, Menu, GraduationCap,
     Loader2, Award, Clock, BookOpen, ArrowRight, ArrowLeft,
-    ListChecks, Download, PlayCircle, ChevronRight
+    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -61,6 +61,12 @@ export default function Classroom() {
             return data;
         },
         enabled: !!userId && !!courseId,
+    });
+
+    const { data: resources = [] } = useQuery({
+        queryKey: ["course-resources", courseId],
+        queryFn: () => courseService.getResources(courseId!),
+        enabled: !!courseId,
     });
 
     const { data: certificate } = useQuery({
@@ -407,6 +413,45 @@ export default function Classroom() {
                                 </Card>
                             </div>
                         </div>
+                        {/* Resources Section */}
+                        {resources.length > 0 && (
+                            <Card className="border-border">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                        <Download className="w-4 h-4 text-accent" />
+                                        Materiales Descargables
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 pt-0">
+                                    {resources.map((resource: any) => {
+                                        const icons: Record<string, React.ReactNode> = {
+                                            pdf: <FileText className="w-4 h-4 text-red-500" />,
+                                            ppt: <Presentation className="w-4 h-4 text-orange-500" />,
+                                            pptx: <Presentation className="w-4 h-4 text-orange-500" />,
+                                            doc: <File className="w-4 h-4 text-blue-500" />,
+                                            docx: <File className="w-4 h-4 text-blue-500" />,
+                                        };
+                                        return (
+                                            <a
+                                                key={resource.id}
+                                                href={resource.file_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                download={resource.file_name}
+                                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group border border-transparent hover:border-border"
+                                            >
+                                                {icons[resource.file_type] ?? <File className="w-4 h-4 text-muted-foreground" />}
+                                                <span className="flex-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                                    {resource.title}
+                                                </span>
+                                                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                                            </a>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
+                        )}
+
                     </div>
                 </main>
 

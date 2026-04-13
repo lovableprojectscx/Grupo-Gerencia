@@ -105,6 +105,7 @@
 | Compartir en redes/copiar link | ✅ | — |
 | Meta tags Open Graph dinámicos | ✅ | — |
 | Cursos relacionados (misma categoría) | ✅ | — |
+| **Sección "Materiales del Curso"** | ✅ | Muestra recursos descargables (PDF/PPT/Word) del curso. Grid responsivo. Visible para todos (sin requerir inscripción). Se renderiza solo si el curso tiene recursos. |
 | ⚠️ Usa `getUser()` en lugar de `useAuth()` | ⚠️ | `CursoDetalle.tsx` dentro de `useEffect`: llama `supabase.auth.getUser()` y guarda resultado en estado local, aunque `AuthContext` ya tiene esta info. Genera un fetch extra por visita |
 
 ---
@@ -173,6 +174,7 @@
 | Cursos en vivo: mostrar enlace y fecha | ✅ | Lee `metadata` |
 | Sidebar colapsable (desktop) | ✅ | — |
 | Sidebar como Sheet (móvil) | ✅ | — |
+| **Sección "Materiales Descargables"** | ✅ | Muestra recursos del curso (PDF/PPT/Word). Se renderiza solo si el curso tiene recursos. Íconos por tipo, descarga directa. |
 | ❌ Búsqueda de lecciones en sidebar | ❌ | **`Classroom.tsx` alrededor de línea 473: el `<input placeholder="Buscar lección...">` no tiene `value`, `onChange`, ni lógica de filtrado. Es completamente decorativo.** |
 | ⚠️ Usa `getUser()` en lugar de `useAuth()` | ⚠️ | Fetch adicional al servidor en lugar de usar el contexto |
 
@@ -239,6 +241,7 @@
 | Instructor: asignar múltiples docentes o crear nuevo | ✅ | Se implementó arquitectura Muchos-a-Muchos usando la tabla `course_instructors` |
 | Fallback de imagen de docente | ✅ | Si no hay docentes, muestra la tarjeta predeterminada de "Docente Especialista" |
 | Generación automática de slug | ✅ | Con manejo de tildes/ñ |
+| **Recursos descargables (PDF/PPT/Word)** | ✅ | Pestaña "Recursos" en CourseBuilder. Sube a `course-content/resources/`. Máx. 20 MB. Elimina archivo del Storage al borrar. |
 
 ### 10.4 Gestión de Inscripciones (`AdminEnrollments.tsx`)
 | Función | Estado | Problema |
@@ -289,6 +292,7 @@
 | `courses` | Publicados visibles para todos; Admin ve borradores | ✅ |
 | `course_instructors` | Tabla intermedia para relación N:N de docentes | ✅ |
 | `instructors` | Datos de plana docente; lectura pública permitida | ✅ |
+| **`course_resources`** | **Lectura: cualquier autenticado. Escritura/borrado: solo admin** | ✅ |
 
 ### Funciones/RPCs de base de datos
 | Función | Estado | Problema |
@@ -361,5 +365,13 @@
 16. `CourseBuilder.tsx` — Nuevo selector de docentes tipo Badges dinámicos.
 17. `CursoDetalle.tsx` — Rediseño de sección "Plana Docente" con Glassmorphism.
 
+**Fase 5 — Recursos Descargables (COMPLETADO — 12/04/2026):**
+18. `supabase/migrations/20260412_course_resources.sql` — Nueva tabla `course_resources` con RLS completo. Aplicada en producción.
+19. `courseService.ts` — Interface `CourseResource` + métodos `getResources`, `createResource`, `updateResource`, `deleteResource`.
+20. `CourseResourcesTab.tsx` — Nuevo componente admin para subir/gestionar archivos (PDF, PPT, Word).
+21. `CourseBuilder.tsx` — Pestaña "Recursos" agregada al editor de cursos.
+22. `Classroom.tsx` — Sección "Materiales Descargables" en el aula virtual.
+23. `CursoDetalle.tsx` — Sección "Materiales del Curso" en la página pública del curso.
+
 ---
-*Auditoría completa — Gerencia y Desarrollo Global — Abril 2026 (Actualizado v1.3)*
+*Auditoría completa — Gerencia y Desarrollo Global — Abril 2026 (Actualizado v1.4)*

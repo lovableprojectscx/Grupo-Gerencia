@@ -18,6 +18,8 @@ import {
   Mail,
   Loader2,
   FileText,
+  File,
+  Presentation,
   Sparkles,
   Check,
   Globe,
@@ -142,6 +144,12 @@ const CursoDetalle = () => {
     queryKey: ["related-courses", id, course?.category],
     queryFn: () => courseService.getRelatedCourses(id!, course!.category),
     enabled: !!id && !!course?.category
+  });
+
+  const { data: resources = [] } = useQuery({
+    queryKey: ["course-resources", course?.id],
+    queryFn: () => courseService.getResources(course!.id),
+    enabled: !!course?.id
   });
 
   const { mutate: toggleFavorite, isPending: isTogglingFavorite } = useMutation({
@@ -695,6 +703,65 @@ const CursoDetalle = () => {
           </div>
         </div>
       </section>
+
+      {/* Recursos Descargables */}
+      {resources.length > 0 && (
+        <section className="py-16 border-t border-border">
+          <div className="container-custom">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Download className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Materiales del Curso</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(resources as any[]).map((resource) => {
+                  const fileIcons: Record<string, React.ReactNode> = {
+                    pdf: <FileText className="w-6 h-6 text-red-500" />,
+                    ppt: <Presentation className="w-6 h-6 text-orange-500" />,
+                    pptx: <Presentation className="w-6 h-6 text-orange-500" />,
+                    doc: <File className="w-6 h-6 text-blue-500" />,
+                    docx: <File className="w-6 h-6 text-blue-500" />,
+                  };
+                  const fileLabels: Record<string, string> = {
+                    pdf: "PDF", ppt: "PowerPoint", pptx: "PowerPoint",
+                    doc: "Word", docx: "Word", other: "Archivo",
+                  };
+                  return (
+                    <a
+                      key={resource.id}
+                      href={resource.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={resource.file_name}
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all group"
+                    >
+                      <div className="p-2.5 rounded-xl bg-secondary shrink-0 group-hover:scale-110 transition-transform">
+                        {fileIcons[resource.file_type] ?? <File className="w-6 h-6 text-muted-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                          {resource.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {fileLabels[resource.file_type] ?? "Archivo"}
+                        </p>
+                      </div>
+                      <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                    </a>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Recommended Courses */}
       {

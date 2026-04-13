@@ -30,6 +30,7 @@ import { CourseSettingsTab } from "@/components/admin/course-builder/CourseSetti
 import { SyllabusDialogs } from "@/components/admin/course-builder/SyllabusDialogs";
 import { InstructorManagerDialogs } from "@/components/admin/course-builder/InstructorManagerDialogs";
 import { CategoryManagerDialogs } from "@/components/admin/course-builder/CategoryManagerDialogs";
+import { CourseResourcesTab } from "@/components/admin/course-builder/CourseResourcesTab";
 import {
     Dialog,
     DialogContent,
@@ -110,8 +111,10 @@ export default function CourseBuilder() {
     const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
     const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
     const [descriptorInput, setDescriptorInput] = useState(""); // Title
-    const [descriptorUrl, setDescriptorUrl] = useState(""); // Content URL
+    const [descriptorUrl, setDescriptorUrl] = useState(""); // Content URL (Video or Material)
     const [descriptorDuration, setDescriptorDuration] = useState(""); // Duration
+    const [lessonType, setLessonType] = useState<'video' | 'pdf'>('video');
+    const [isMaterialUploading, setIsMaterialUploading] = useState(false);
 
 
 
@@ -135,6 +138,7 @@ export default function CourseBuilder() {
 
     const openCreateLessonDialog = (moduleId: string) => {
         setModuleDialogMode('create-lesson');
+        setLessonType('video');
         setDescriptorInput("");
         setDescriptorUrl("");
         setDescriptorDuration("");
@@ -142,14 +146,59 @@ export default function CourseBuilder() {
         setIsModuleDialogOpen(true);
     }
 
-    const openEditLessonDialog = (lesson: any, moduleId: string) => { // moduleId kept for reference if needed
-        setModuleDialogMode('edit-lesson');
-        setDescriptorInput(lesson.title);
+    const openCreateMaterialDialog = (moduleId: string) => {
+        setModuleDialogMode('create-lesson');
+        setLessonType('pdf');
+        setDescriptorInput("");
         setDescriptorUrl("");
         setDescriptorDuration("");
+        setCurrentModuleId(moduleId);
+        setIsModuleDialogOpen(true);
+    };
+
+    const openEditLessonDialog = (lesson: any, moduleId: string) => { // moduleId kept for reference if needed
+        setModuleDialogMode('edit-lesson');
+        setLessonType(lesson.type === 'pdf' ? 'pdf' : 'video');
+        setDescriptorInput(lesson.title);
+        setDescriptorUrl(lesson.content_url || "");
+        setDescriptorDuration(lesson.duration || "");
         setCurrentLessonId(lesson.id);
         setIsModuleDialogOpen(true);
     }
+
+    const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsMaterialUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop() || 'pdf';
+            const fileName = `material-${Math.random()}.${fileExt}`;
+            const filePath = `materials/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('course-content')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('course-content')
+                .getPublicUrl(filePath);
+
+            setDescriptorUrl(data.publicUrl);
+            if (!descriptorInput) {
+                // Auto-set title if empty
+                setDescriptorInput(file.name.split('.')[0]);
+            }
+            toast.success("Material subido correctamente");
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al subir material");
+        } finally {
+            setIsMaterialUploading(false);
+        }
+    };
 
     const handleDialogSubmit = async () => {
         if (!descriptorInput.trim()) return;
@@ -178,18 +227,23 @@ export default function CourseBuilder() {
                     await courseService.createLesson({
                         module_id: currentModuleId,
                         title: descriptorInput,
-                        type: 'video',
+                        type: lessonType,
+                        content_url: descriptorUrl || undefined,
+                        duration: descriptorDuration || undefined,
                         order: (course.modules?.find((m: any) => m.id === currentModuleId)?.lessons?.length || 0) + 1,
                         is_free_preview: false
                     });
-                    toast.success("Lección agregada");
+                    toast.success(lessonType === 'pdf' ? "Material agregado" : "Lección agregada");
                 }
             } else if (moduleDialogMode === 'edit-lesson') {
                 if (currentLessonId) {
                     await courseService.updateLesson(currentLessonId, {
                         title: descriptorInput,
+                        type: lessonType,
+                        content_url: descriptorUrl || undefined,
+                        duration: descriptorDuration || undefined,
                     });
-                    toast.success("Lección actualizada");
+                    toast.success(lessonType === 'pdf' ? "Material actualizado" : "Lección actualizada");
                 }
             }
 
@@ -491,6 +545,7 @@ export default function CourseBuilder() {
                     <TabsTrigger value="general" className="px-6">Información General</TabsTrigger>
                     <TabsTrigger value="syllabus" className="px-6">Plan de Estudios</TabsTrigger>
                     <TabsTrigger value="certificate" className="px-6">Diseño Certificado</TabsTrigger>
+                    <TabsTrigger value="resources" className="px-6">Recursos</TabsTrigger>
                     <TabsTrigger value="settings" className="px-6">Configuración</TabsTrigger>
                 </TabsList>
 
@@ -516,6 +571,7 @@ export default function CourseBuilder() {
                         openCreateModuleDialog={openCreateModuleDialog}
                         openEditModuleDialog={openEditModuleDialog}
                         openCreateLessonDialog={openCreateLessonDialog}
+                        openCreateMaterialDialog={openCreateMaterialDialog}
                         openEditLessonDialog={openEditLessonDialog}
                         setModuleToDelete={setModuleToDelete}
                         setLessonToDelete={setLessonToDelete}
@@ -549,6 +605,27 @@ export default function CourseBuilder() {
                     )}
                 </TabsContent>
 
+                {/* Resources Tab */}
+                <TabsContent value="resources">
+                    {isEditing ? (
+                        <CourseResourcesTab courseId={id!} />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-4 border-2 border-dashed rounded-xl bg-card/50">
+                            <div className="p-4 bg-primary/10 rounded-full">
+                                <Save className="w-8 h-8 text-primary" />
+                            </div>
+                            <h3 className="text-lg font-medium">Guarda el curso primero</h3>
+                            <p className="text-muted-foreground text-center max-w-md">
+                                Crea el curso para poder subir recursos descargables.
+                            </p>
+                            <Button onClick={handleSave}>
+                                <Save className="w-4 h-4 mr-2" />
+                                Guardar Borrador y Continuar
+                            </Button>
+                        </div>
+                    )}
+                </TabsContent>
+
                 {/* Settings Tab */}
                 <TabsContent value="settings">
                     <CourseSettingsTab
@@ -568,6 +645,10 @@ export default function CourseBuilder() {
                 setDescriptorUrl={setDescriptorUrl}
                 descriptorDuration={descriptorDuration}
                 setDescriptorDuration={setDescriptorDuration}
+                lessonType={lessonType}
+                setLessonType={setLessonType}
+                isMaterialUploading={isMaterialUploading}
+                handleMaterialUpload={handleMaterialUpload}
                 handleDialogSubmit={handleDialogSubmit}
                 moduleToDelete={moduleToDelete}
                 setModuleToDelete={setModuleToDelete}
