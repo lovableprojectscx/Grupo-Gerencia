@@ -160,6 +160,7 @@ export function SyllabusDialogs({
                                                 className="hidden"
                                                 onChange={handleMaterialUpload}
                                                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                                                multiple
                                             />
                                             <Button 
                                                 type="button"

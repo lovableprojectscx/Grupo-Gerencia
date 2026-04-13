@@ -167,34 +167,64 @@ export default function CourseBuilder() {
     }
 
     const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
         setIsMaterialUploading(true);
+        const fileArray = Array.from(files);
+        let successCount = 0;
+
         try {
-            const fileExt = file.name.split('.').pop() || 'pdf';
-            const fileName = `material-${Math.random()}.${fileExt}`;
-            const filePath = `materials/${fileName}`;
+            for (const file of fileArray) {
+                const fileExt = file.name.split('.').pop() || 'pdf';
+                const fileName = `material-${Math.random()}.${fileExt}`;
+                const filePath = `materials/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('course-content')
-                .upload(filePath, file);
+                toast.loading(`Subiendo ${file.name}...`, { id: `upload-${file.name}` });
 
-            if (uploadError) throw uploadError;
+                const { error: uploadError } = await supabase.storage
+                    .from('course-content')
+                    .upload(filePath, file);
 
-            const { data } = supabase.storage
-                .from('course-content')
-                .getPublicUrl(filePath);
+                if (uploadError) {
+                    toast.error(`Error al subir ${file.name}`, { id: `upload-${file.name}` });
+                    continue;
+                }
 
-            setDescriptorUrl(data.publicUrl);
-            if (!descriptorInput) {
-                // Auto-set title if empty
-                setDescriptorInput(file.name.split('.')[0]);
+                const { data } = supabase.storage
+                    .from('course-content')
+                    .getPublicUrl(filePath);
+
+                // If adding multiple files, we create the lessons immediately
+                if (fileArray.length > 1) {
+                    await courseService.createLesson({
+                        module_id: currentModuleId!,
+                        title: file.name.split('.')[0],
+                        type: 'pdf',
+                        content_url: data.publicUrl,
+                        order: (course.modules?.find((m: any) => m.id === currentModuleId)?.lessons?.length || 0) + successCount + 1,
+                        is_free_preview: false
+                    });
+                    successCount++;
+                    toast.success(`${file.name} listo`, { id: `upload-${file.name}` });
+                } else {
+                    // Single file: just set the URL and let handleDialogSubmit handle it
+                    setDescriptorUrl(data.publicUrl);
+                    if (!descriptorInput) {
+                        setDescriptorInput(file.name.split('.')[0]);
+                    }
+                    toast.success("Material listo", { id: `upload-${file.name}` });
+                }
             }
-            toast.success("Material subido correctamente");
+
+            if (fileArray.length > 1) {
+                queryClient.invalidateQueries({ queryKey: ["course", id] });
+                toast.success(`${successCount} materiales agregados correctamente`);
+                setIsModuleDialogOpen(false); // Close since they were created
+            }
         } catch (error) {
             console.error(error);
-            toast.error("Error al subir material");
+            toast.error("Error en la carga masiva");
         } finally {
             setIsMaterialUploading(false);
         }

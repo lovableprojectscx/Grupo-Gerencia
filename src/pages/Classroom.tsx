@@ -299,6 +299,53 @@ export default function Classroom() {
                             </div>
                         </div>
 
+                        {/* Module Materials (Lessons of type 'pdf') */}
+                        {activeModule?.lessons?.some((l: any) => l.type === 'pdf') && (
+                            <Card className="border-accent/20 bg-accent/5 overflow-hidden">
+                                <CardHeader className="py-3 px-4 bg-accent/10 flex flex-row items-center justify-between border-b border-accent/10">
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-accent" />
+                                        <CardTitle className="text-sm font-bold uppercase tracking-wider text-accent">
+                                            Materiales del Módulo
+                                        </CardTitle>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-accent/20 text-accent border-none text-[10px]">
+                                        {activeModule.lessons.filter((l: any) => l.type === 'pdf').length} Archivos
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <div className="grid grid-cols-1 divide-y divide-accent/10">
+                                        {activeModule.lessons
+                                            .filter((l: any) => l.type === 'pdf')
+                                            .map((lesson: any) => (
+                                                <a
+                                                    key={lesson.id}
+                                                    href={lesson.content_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 p-4 hover:bg-accent/10 transition-all group"
+                                                >
+                                                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-transform">
+                                                        <FileText className="w-5 h-5 text-accent" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors truncate">
+                                                            {lesson.title}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-medium">
+                                                            Documento PDF / Recurso
+                                                        </p>
+                                                    </div>
+                                                    <Button size="sm" variant="ghost" className="h-8 w-8 rounded-full p-0 text-accent group-hover:bg-accent group-hover:text-white transition-all">
+                                                        <Download className="w-4 h-4" />
+                                                    </Button>
+                                                </a>
+                                            ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Two column layout: Temario + Navigation */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Temario */}
