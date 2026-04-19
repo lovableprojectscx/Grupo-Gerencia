@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { BrowserWindow } from "@/components/ui/BrowserWindow";
 import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 interface CourseSettingsTabProps {
     course: any;
@@ -19,6 +19,7 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
     const [certSequence, setCertSequence] = useState<string>("");
     const [isLoadingSeq, setIsLoadingSeq] = useState(false);
     const [isSavingSeq, setIsSavingSeq] = useState(false);
+    const [isResyncing, setIsResyncing] = useState(false);
 
     useEffect(() => {
         if (course?.id) {
@@ -64,6 +65,28 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
             }
         } finally {
             setIsSavingSeq(false);
+        }
+    };
+
+    const handleResyncSequence = async () => {
+        if (!course?.id) return;
+        if (!confirm("¿Resincronizar la secuencia al MAX real de certificados emitidos? Esta acción es segura: nunca genera duplicados y solo corrige huecos por borrados previos.")) {
+            return;
+        }
+        setIsResyncing(true);
+        try {
+            const result = await courseService.resyncCertificateSequence(course.id);
+            if (result.changed) {
+                toast.success(`Secuencia resincronizada: ${result.previous_last} → ${result.new_last}. Próximo número: ${result.next_number}.`);
+            } else {
+                toast.info(`La secuencia ya estaba alineada. Próximo número: ${result.next_number}.`);
+            }
+            loadSequence();
+        } catch (error: any) {
+            console.error("Error resyncing sequence", error);
+            toast.error("Error al resincronizar la secuencia. Inténtalo de nuevo.");
+        } finally {
+            setIsResyncing(false);
         }
     };
 
@@ -121,17 +144,38 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
                                             placeholder="Ej. 100, 200..."
                                             value={certSequence}
                                             onChange={(e) => setCertSequence(e.target.value)}
-                                            disabled={isLoadingSeq || isSavingSeq}
+                                            disabled={isLoadingSeq || isSavingSeq || isResyncing}
                                         />
                                     </div>
                                     <Button
                                         variant="secondary"
                                         onClick={handleUpdateSequence}
-                                        disabled={isLoadingSeq || isSavingSeq}
+                                        disabled={isLoadingSeq || isSavingSeq || isResyncing}
                                     >
                                         {isSavingSeq ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                                         Actualizar
                                     </Button>
+                                </div>
+                                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md max-w-xl">
+                                    <RefreshCw className="w-4 h-4 mt-0.5 text-amber-700 shrink-0" />
+                                    <div className="flex-1 space-y-2">
+                                        <p className="text-sm text-amber-900">
+                                            <strong>Resincronizar secuencia</strong><br />
+                                            Si eliminaste certificados y la numeración quedó con huecos (ej. el contador está en 120 pero solo existe el 101), pulsa este botón para alinear automáticamente la secuencia al último número realmente emitido. Es seguro: nunca crea duplicados.
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleResyncSequence}
+                                            disabled={isLoadingSeq || isSavingSeq || isResyncing}
+                                            className="bg-white"
+                                        >
+                                            {isResyncing
+                                                ? <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                : <RefreshCw className="w-4 h-4 mr-2" />}
+                                            Resincronizar ahora
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}

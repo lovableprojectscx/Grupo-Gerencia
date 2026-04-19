@@ -524,6 +524,27 @@ export const courseService = {
         return data as { success: boolean, new_last_number: number };
     },
 
+    /**
+     * Resincroniza la secuencia de numeración de certificados de un curso
+     * al MAX(registration_number) real existente. Úsalo después de borrar
+     * certificados intermedios que dejan el contador desfasado.
+     * Nunca genera duplicados y nunca baja por debajo de 100.
+     */
+    async resyncCertificateSequence(courseId: string) {
+        const { data, error } = await supabase.rpc('resync_course_certificate_sequence', {
+            p_course_id: courseId
+        });
+
+        if (error) throw error;
+        return data as {
+            course_id: string;
+            previous_last: number;
+            new_last: number;
+            next_number: number;
+            changed: boolean;
+        };
+    },
+
     // --- Favorites ---
     async toggleFavorite(userId: string, courseId: string, isFavorite: boolean) {
         if (isFavorite) {
