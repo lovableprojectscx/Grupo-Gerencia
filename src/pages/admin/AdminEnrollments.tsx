@@ -10,7 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays, QrCode, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Search, Eye, Loader2, FileImage, Award, CalendarDays, QrCode, Trash2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +32,21 @@ import { Label } from "@/components/ui/label";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/**
+ * Mirror cliente de la función SQL `_certificate_template_is_usable`.
+ * Una plantilla es utilizable si tiene `fields` no vacíos, o `bgImageFront`/`bgImage`.
+ */
+const isTemplateUsable = (tpl: any): boolean => {
+    if (!tpl) return false;
+    if (Array.isArray(tpl)) return tpl.length > 0;
+    if (typeof tpl !== "object") return false;
+    if (Array.isArray(tpl.fields) && tpl.fields.length > 0) return true;
+    if ((tpl.bgImageFront && tpl.bgImageFront.length > 0) ||
+        (tpl.bgImage && tpl.bgImage.length > 0)) return true;
+    return false;
+};
 
 export default function AdminEnrollments() {
     const queryClient = useQueryClient();
@@ -43,6 +58,7 @@ export default function AdminEnrollments() {
     const [selectedVoucher, setSelectedVoucher] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<string | null>(null);
     const [certDialogEnrollmentId, setCertDialogEnrollmentId] = useState<string | null>(null);
+    const [certDialogCourse, setCertDialogCourse] = useState<any | null>(null);
     const [certYear, setCertYear] = useState<number>(new Date().getFullYear());
 
     // Debounce search term — evita queries en cada tecla
@@ -77,7 +93,7 @@ export default function AdminEnrollments() {
                 .select(`
                     *,
                     profiles:user_id (full_name, dni, phone),
-                    courses:course_id (title, price),
+                    courses:course_id (id, title, price, certificate_template),
                     certificates(id, registration_number, metadata)
                 `, { count: 'exact' });
 
@@ -103,6 +119,27 @@ export default function AdminEnrollments() {
             return { enrollments: data as any[], count: count || 0 };
         }
     });
+
+    // Query: plantilla por defecto del sitio (fallback global)
+    // Se cachea ampliamente; raramente cambia.
+    const { data: siteDefaultTemplate } = useQuery({
+        queryKey: ["site-default-certificate-template"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('site_settings')
+                .select('default_certificate_template')
+                .maybeSingle();
+            if (error) {
+                // No bloqueamos la UI si falla; simplemente se comporta como "sin default"
+                console.warn("No se pudo cargar site_settings.default_certificate_template:", error);
+                return null;
+            }
+            return data?.default_certificate_template ?? null;
+        },
+        staleTime: 5 * 60 * 1000, // 5 min
+    });
+
+    const siteDefaultUsable = isTemplateUsable(siteDefaultTemplate);
 
 
     // Mutations
@@ -137,12 +174,25 @@ export default function AdminEnrollments() {
 
     const handleGenerateCertificate = async () => {
         if (!certDialogEnrollmentId) return;
+
+        // Guardia doble en cliente antes de llamar al RPC — evita crear un
+        // certificado con snapshot vacío si algún estado local estaba desincronizado.
+        const courseTplUsable = isTemplateUsable(certDialogCourse?.certificate_template);
+        if (!courseTplUsable && !siteDefaultUsable) {
+            toast.error(
+                "Este curso no tiene plantilla de certificado y tampoco existe una plantilla por defecto. " +
+                "Configura una antes de generar."
+            );
+            return;
+        }
+
         setIsGenerating(certDialogEnrollmentId);
         try {
             await courseService.generateCertificate(certDialogEnrollmentId, {}, certYear);
             toast.success(`Certificado generado — N° de registro con año ${certYear}`);
             queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
             setCertDialogEnrollmentId(null);
+            setCertDialogCourse(null);
         } catch (e: any) {
             toast.error("Error: " + e.message);
         } finally {
@@ -281,7 +331,18 @@ export default function AdminEnrollments() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {filteredEnrollments?.map((enrollment: any) => (
+                                                {filteredEnrollments?.map((enrollment: any) => {
+                                                    // Estado de plantilla del curso (por fila)
+                                                    const courseTplUsable = isTemplateUsable(enrollment.courses?.certificate_template);
+                                                    const canEmitCert = courseTplUsable || siteDefaultUsable;
+                                                    const tplFallbackNotice = !courseTplUsable && siteDefaultUsable
+                                                        ? "Este curso no tiene plantilla propia. Se usará la plantilla por defecto del sitio."
+                                                        : null;
+                                                    const tplBlockedNotice = !canEmitCert
+                                                        ? "Este curso no tiene plantilla de certificado configurada y no existe plantilla por defecto. Configura una antes de generar certificados."
+                                                        : null;
+
+                                                    return (
                                                     <TableRow key={enrollment.id}>
                                                         <TableCell className="font-medium whitespace-nowrap">
                                                             {format(new Date(enrollment.purchased_at), "dd MMM yyyy", { locale: es })}
@@ -316,8 +377,38 @@ export default function AdminEnrollments() {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
-                                                            <div className="font-medium max-w-[200px] truncate" title={enrollment.courses?.title}>
-                                                                {enrollment.courses?.title}
+                                                            <div className="flex items-center gap-2 max-w-[260px]">
+                                                                <span className="font-medium truncate" title={enrollment.courses?.title}>
+                                                                    {enrollment.courses?.title}
+                                                                </span>
+                                                                {tplBlockedNotice && (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-100 text-red-700 cursor-help flex-shrink-0">
+                                                                                    <AlertTriangle className="w-3 h-3" />
+                                                                                </span>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent className="max-w-xs">
+                                                                                <p className="text-xs">{tplBlockedNotice}</p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                )}
+                                                                {tplFallbackNotice && (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-amber-100 text-amber-700 cursor-help flex-shrink-0">
+                                                                                    <AlertTriangle className="w-3 h-3" />
+                                                                                </span>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent className="max-w-xs">
+                                                                                <p className="text-xs">{tplFallbackNotice}</p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                )}
                                                             </div>
                                                             <div className="text-xs text-muted-foreground">
                                                                 {enrollment.courses?.price ? `S/ ${enrollment.courses.price}` : "Gratis"}
@@ -418,27 +509,52 @@ export default function AdminEnrollments() {
                                                                                 })()}
                                                                             </div>
                                                                         ) : (
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                disabled={isGenerating === enrollment.id}
-                                                                                onClick={() => {
-                                                                                    setCertYear(new Date().getFullYear());
-                                                                                    setCertDialogEnrollmentId(enrollment.id);
-                                                                                }}
-                                                                                className={isGenerating === enrollment.id ? "opacity-50" : ""}
-                                                                                title="Generar Certificado Manualmente"
-                                                                            >
-                                                                                {isGenerating === enrollment.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Award className="w-4 h-4 mr-2" />}
-                                                                                Generar
-                                                                            </Button>
+                                                                            <TooltipProvider>
+                                                                                <Tooltip>
+                                                                                    <TooltipTrigger asChild>
+                                                                                        {/* span wrapper para que el tooltip siga apareciendo cuando el botón está disabled */}
+                                                                                        <span className="inline-flex">
+                                                                                            <Button
+                                                                                                variant="outline"
+                                                                                                size="sm"
+                                                                                                disabled={isGenerating === enrollment.id || !canEmitCert}
+                                                                                                onClick={() => {
+                                                                                                    if (!canEmitCert) return;
+                                                                                                    setCertYear(new Date().getFullYear());
+                                                                                                    setCertDialogEnrollmentId(enrollment.id);
+                                                                                                    setCertDialogCourse(enrollment.courses);
+                                                                                                }}
+                                                                                                className={
+                                                                                                    (isGenerating === enrollment.id ? "opacity-50 " : "") +
+                                                                                                    (!canEmitCert ? "opacity-60 cursor-not-allowed" : "")
+                                                                                                }
+                                                                                                title={canEmitCert ? "Generar Certificado Manualmente" : undefined}
+                                                                                            >
+                                                                                                {isGenerating === enrollment.id
+                                                                                                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                                                    : !canEmitCert
+                                                                                                        ? <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
+                                                                                                        : <Award className="w-4 h-4 mr-2" />
+                                                                                                }
+                                                                                                Generar
+                                                                                            </Button>
+                                                                                        </span>
+                                                                                    </TooltipTrigger>
+                                                                                    {!canEmitCert && (
+                                                                                        <TooltipContent className="max-w-xs">
+                                                                                            <p className="text-xs">{tplBlockedNotice}</p>
+                                                                                        </TooltipContent>
+                                                                                    )}
+                                                                                </Tooltip>
+                                                                            </TooltipProvider>
                                                                         )}
                                                                     </>
                                                                 )}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
-                                                ))}
+                                                    );
+                                                })}
                                                 {!isLoading && (!filteredEnrollments || filteredEnrollments.length === 0) && (
                                                     <TableRow>
                                                         <TableCell colSpan={6} className="h-24 text-center">
@@ -482,7 +598,12 @@ export default function AdminEnrollments() {
             </div>
 
             {/* Dialog: Seleccionar año para el certificado */}
-            <Dialog open={!!certDialogEnrollmentId} onOpenChange={(open) => !open && setCertDialogEnrollmentId(null)}>
+            <Dialog open={!!certDialogEnrollmentId} onOpenChange={(open) => {
+                if (!open) {
+                    setCertDialogEnrollmentId(null);
+                    setCertDialogCourse(null);
+                }
+            }}>
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -494,20 +615,37 @@ export default function AdminEnrollments() {
                             Ejemplo: <span className="font-semibold text-foreground">101 - {certYear}</span>
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
-                        <Label htmlFor="cert-year" className="mb-2 block">Año del certificado</Label>
-                        <Input
-                            id="cert-year"
-                            type="number"
-                            min={2020}
-                            max={2099}
-                            value={certYear}
-                            onChange={(e) => setCertYear(Number(e.target.value))}
-                            className="text-lg font-semibold"
-                        />
+                    <div className="py-4 space-y-3">
+                        <div>
+                            <Label htmlFor="cert-year" className="mb-2 block">Año del certificado</Label>
+                            <Input
+                                id="cert-year"
+                                type="number"
+                                min={2020}
+                                max={2099}
+                                value={certYear}
+                                onChange={(e) => setCertYear(Number(e.target.value))}
+                                className="text-lg font-semibold"
+                            />
+                        </div>
+                        {certDialogCourse && !isTemplateUsable(certDialogCourse.certificate_template) && siteDefaultUsable && (
+                            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="font-medium">Este curso no tiene plantilla propia.</p>
+                                    <p>El certificado se emitirá con la <strong>plantilla por defecto del sitio</strong>. Podrás refrescarlo después si subes una plantilla específica al curso.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setCertDialogEnrollmentId(null)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setCertDialogEnrollmentId(null);
+                                setCertDialogCourse(null);
+                            }}
+                        >
                             Cancelar
                         </Button>
                         <Button

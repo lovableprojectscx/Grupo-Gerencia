@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { BrowserWindow } from "@/components/ui/BrowserWindow";
 import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, FileBadge } from "lucide-react";
 
 interface CourseSettingsTabProps {
     course: any;
@@ -20,6 +20,7 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
     const [isLoadingSeq, setIsLoadingSeq] = useState(false);
     const [isSavingSeq, setIsSavingSeq] = useState(false);
     const [isResyncing, setIsResyncing] = useState(false);
+    const [isRefreshingCerts, setIsRefreshingCerts] = useState(false);
 
     useEffect(() => {
         if (course?.id) {
@@ -87,6 +88,42 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
             toast.error("Error al resincronizar la secuencia. Inténtalo de nuevo.");
         } finally {
             setIsResyncing(false);
+        }
+    };
+
+    const handleRefreshCourseCertificates = async () => {
+        if (!course?.id) return;
+        const ok = confirm(
+            "¿Refrescar los certificados ya emitidos de este curso con la plantilla actual?\n\n" +
+            "Esta acción reescribe el `template_snapshot` de cada certificado (lo que se usa para renderizar el PDF). " +
+            "Sirve cuando subiste la plantilla DESPUÉS de haber emitido certificados y los alumnos ven un certificado vacío.\n\n" +
+            "No cambia número ni fecha de emisión; solo la apariencia visual."
+        );
+        if (!ok) return;
+
+        setIsRefreshingCerts(true);
+        try {
+            const result = await courseService.refreshCourseCertificatesTemplate(course.id);
+            if (result.total === 0) {
+                toast.info("No hay certificados emitidos para este curso todavía.");
+            } else {
+                toast.success(
+                    `Refresco completado: ${result.updated} de ${result.total} certificados actualizados ` +
+                    `(fuente: ${result.template_source === 'course' ? 'plantilla del curso' : 'plantilla por defecto del sitio'}).`
+                );
+            }
+        } catch (error: any) {
+            console.error("Error refreshing certificates", error);
+            if (error?.message?.toLowerCase?.().includes("no hay plantilla")) {
+                toast.error(
+                    "No se puede refrescar: ni el curso ni el sitio tienen una plantilla utilizable. " +
+                    "Sube una plantilla al curso o configura una por defecto en el sitio."
+                );
+            } else {
+                toast.error("Error al refrescar certificados: " + (error?.message || "inténtalo de nuevo."));
+            }
+        } finally {
+            setIsRefreshingCerts(false);
         }
     };
 
@@ -174,6 +211,29 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
                                                 ? <Loader2 className="w-4 h-4 animate-spin mr-2" />
                                                 : <RefreshCw className="w-4 h-4 mr-2" />}
                                             Resincronizar ahora
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Refrescar certificados emitidos con la plantilla actual */}
+                                <div className="flex items-start gap-3 p-3 bg-sky-50 border border-sky-200 rounded-md max-w-xl">
+                                    <FileBadge className="w-4 h-4 mt-0.5 text-sky-700 shrink-0" />
+                                    <div className="flex-1 space-y-2">
+                                        <p className="text-sm text-sky-900">
+                                            <strong>Refrescar certificados emitidos</strong><br />
+                                            Si <u>subiste la plantilla del certificado después</u> de emitir certificados (o cambiaste el diseño), los alumnos pueden ver un certificado vacío o antiguo. Pulsa este botón para actualizar el <code>template_snapshot</code> de todos los certificados ya emitidos de este curso con la plantilla actual. <strong>No cambia</strong> número ni fecha, solo la apariencia.
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleRefreshCourseCertificates}
+                                            disabled={isLoadingSeq || isSavingSeq || isResyncing || isRefreshingCerts}
+                                            className="bg-white"
+                                        >
+                                            {isRefreshingCerts
+                                                ? <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                : <FileBadge className="w-4 h-4 mr-2" />}
+                                            Refrescar certificados emitidos
                                         </Button>
                                     </div>
                                 </div>

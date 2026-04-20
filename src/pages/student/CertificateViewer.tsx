@@ -28,6 +28,21 @@ import fontkit from '@pdf-lib/fontkit';
 
 // ... (imports)
 
+/**
+ * Mirror cliente de la función SQL `_certificate_template_is_usable`.
+ * Una plantilla es utilizable si tiene `fields` no vacíos, o `bgImageFront`/`bgImage`.
+ * Se usa para detectar snapshots vacíos y caer al fallback del curso / site default.
+ */
+const isTemplateUsable = (tpl: any): boolean => {
+    if (!tpl) return false;
+    if (Array.isArray(tpl)) return tpl.length > 0;
+    if (typeof tpl !== "object") return false;
+    if (Array.isArray(tpl.fields) && tpl.fields.length > 0) return true;
+    if ((tpl.bgImageFront && tpl.bgImageFront.length > 0) ||
+        (tpl.bgImage && tpl.bgImage.length > 0)) return true;
+    return false;
+};
+
 interface CertificateDetails {
     id: string;
     code: string;
@@ -290,11 +305,41 @@ export default function CertificateViewer() {
         enabled: !!id
     });
 
+    // Query: plantilla por defecto del sitio (fallback global)
+    // Sólo se lee si ninguno de los otros fallbacks es utilizable.
+    const { data: siteDefaultTemplate } = useQuery({
+        queryKey: ["public-site-default-certificate-template"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('site_settings')
+                .select('default_certificate_template')
+                .maybeSingle();
+            if (error) return null;
+            return data?.default_certificate_template ?? null;
+        },
+        staleTime: 10 * 60 * 1000,
+    });
+
     // Derived values for Hooks
-    // template_snapshot preserva el diseño en el momento de emisión; fallback al template actual del curso
-    const template = certificate?.metadata?.template_snapshot
-        || certificate?.enrollment?.course?.certificate_template
-        || {};
+    //
+    // Cadena de fallback del template usado para renderizar/descargar:
+    //   1. metadata.template_snapshot      → diseño en el momento de emisión (preferido por auditoría)
+    //   2. course.certificate_template      → plantilla actual del curso (si el snapshot está vacío)
+    //   3. site_settings.default_certificate_template → plantilla global por defecto
+    //   4. {}                               → objeto vacío; la UI mostrará un mensaje al intentar descargar
+    //
+    // Antes solo usábamos `||`, lo que fallaba cuando el snapshot era un objeto no-nulo
+    // pero sin campos ni fondo (p.ej. el curso se emitió sin plantilla y tras subirla,
+    // el snapshot quedó `{}`). Ahora verificamos utilizabilidad real.
+    const snapshot = certificate?.metadata?.template_snapshot;
+    const courseTpl = certificate?.enrollment?.course?.certificate_template;
+    const template = isTemplateUsable(snapshot)
+        ? snapshot
+        : isTemplateUsable(courseTpl)
+            ? courseTpl
+            : isTemplateUsable(siteDefaultTemplate)
+                ? siteDefaultTemplate
+                : {};
     const adminHoursType = template?.hoursType || 'academic';
 
     // State for hours mode
@@ -479,12 +524,18 @@ export default function CertificateViewer() {
         const toastId = toast.loading("Generando PDF Vectorial de alta calidad...");
 
         try {
-            // Verificar que la plantilla tenga contenido real
+            // Verificar que la plantilla tenga contenido real.
+            // Tras la cadena de fallback (snapshot → curso → site default), si aun así
+            // el template está vacío significa que NINGUNA capa tiene plantilla configurada.
             const hasRealBackground = !!(template.bgImageFront || template.bgImage);
             const hasFields = template.fields && template.fields.length > 0;
             if (!hasRealBackground && !hasFields) {
                 toast.dismiss(toastId);
-                toast.error("Este curso no tiene plantilla de certificado configurada. Contacta al administrador.", { duration: 8000 });
+                toast.error(
+                    "Este certificado no tiene una plantilla de diseño disponible. " +
+                    "Por favor, contacta al administrador para que configure la plantilla del curso.",
+                    { duration: 8000 }
+                );
                 return;
             }
             if (!hasRealBackground) {

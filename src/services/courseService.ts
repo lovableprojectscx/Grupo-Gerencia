@@ -545,6 +545,64 @@ export const courseService = {
         };
     },
 
+    /**
+     * Pregunta al backend si un curso puede emitir certificados:
+     * - si el curso tiene plantilla propia usable, o
+     * - si el sitio tiene una plantilla por defecto usable.
+     * Útil para deshabilitar el botón "Generar" antes de intentar emitir.
+     */
+    async courseHasUsableCertificateTemplate(courseId: string) {
+        const { data, error } = await supabase.rpc('course_has_usable_certificate_template', {
+            p_course_id: courseId
+        });
+
+        if (error) throw error;
+        return data as {
+            course_id: string;
+            course_usable: boolean;
+            site_usable: boolean;
+            can_emit: boolean;
+            preferred_source: 'course' | 'site_default' | 'none';
+        };
+    },
+
+    /**
+     * Refresca el template_snapshot de UN certificado emitido, trayendo la
+     * plantilla actual del curso (o la site default si no hay del curso).
+     * Útil cuando el admin subió la plantilla DESPUÉS de emitir el cert.
+     */
+    async refreshCertificateTemplateSnapshot(certificateId: string) {
+        const { data, error } = await supabase.rpc('refresh_certificate_template_snapshot', {
+            p_certificate_id: certificateId
+        });
+
+        if (error) throw error;
+        return data as {
+            certificate_id: string;
+            template_source: 'course' | 'site_default';
+            refreshed: boolean;
+        };
+    },
+
+    /**
+     * Refresca el template_snapshot de TODOS los certificados de un curso en
+     * una sola operación. Ideal para cuando se acaba de subir/modificar la
+     * plantilla del curso y ya existen certificados emitidos.
+     */
+    async refreshCourseCertificatesTemplate(courseId: string) {
+        const { data, error } = await supabase.rpc('refresh_course_certificates_template', {
+            p_course_id: courseId
+        });
+
+        if (error) throw error;
+        return data as {
+            course_id: string;
+            template_source: 'course' | 'site_default';
+            total: number;
+            updated: number;
+        };
+    },
+
     // --- Favorites ---
     async toggleFavorite(userId: string, courseId: string, isFavorite: boolean) {
         if (isFavorite) {

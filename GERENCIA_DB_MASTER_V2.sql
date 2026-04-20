@@ -6,10 +6,10 @@
 -- ╚██████╔╝███████╗██║  ██║███████╗██║ ╚████║╚██████╗██║██║  ██║  ╚████╔╝ ███████╗
 --  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝╚═╝  ╚═╝   ╚═══╝  ╚══════╝
 --
--- SCRIPT MAESTRO: BD del Grupo Gerencia (Academia) - VERSION 2.0 (FIXED)
+-- SCRIPT MAESTRO: BD del Grupo Gerencia (Academia) - VERSION 2.1 (STABLE)
 -- Proyecto: lovableprojectscx/remix-of-global-reach-academy
 -- Fecha de Generación: 2026-04-19
--- Status: Sincronizado con Supabase (Incluye Fix de Certificados)
+-- Status: Sincronizado con Supabase (Incluye Fallback de Plantillas y Refresco)
 -- ==============================================================================
 
 -- ==============================================================================
@@ -179,7 +179,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3-B. Trigger: Crear perfil al registrarse nuevo usuario
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -332,20 +331,67 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- 3-F. Funciones de Admin (Gestión de Usuarios)
-CREATE OR REPLACE FUNCTION public.get_users_for_admin()
-RETURNS TABLE (id uuid, email text, full_name text, dni text, phone text, role text, avatar_url text, created_at timestamptz)
+-- 3-F. RPC: Refrescar snapshots de certificados
+CREATE OR REPLACE FUNCTION public.refresh_certificate_template_snapshot(p_certificate_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
+DECLARE
+    v_course_id uuid; v_course_template jsonb; v_site_default jsonb; v_new_template jsonb; v_source text;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin') THEN
-        RAISE EXCEPTION 'Acceso denegado';
+    IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin') THEN RAISE EXCEPTION 'Admin only'; END IF;
+    SELECT e.course_id INTO v_course_id FROM certificates c JOIN enrollments e ON e.id = c.enrollment_id WHERE c.id = p_certificate_id;
+    SELECT certificate_template INTO v_course_template FROM courses WHERE id = v_course_id;
+    IF public._certificate_template_is_usable(v_course_template) THEN v_new_template := v_course_template; v_source := 'course';
+    ELSE
+        SELECT default_certificate_template INTO v_site_default FROM site_settings LIMIT 1;
+        IF public._certificate_template_is_usable(v_site_default) THEN v_new_template := v_site_default; v_source := 'site_default';
+        ELSE RAISE EXCEPTION 'No usable template found'; END IF;
     END IF;
-    RETURN QUERY
-    SELECT p.id, u.email::text, p.full_name, p.dni, p.phone, p.role, p.avatar_url, p.created_at
-    FROM profiles p JOIN auth.users u ON u.id = p.id
-    ORDER BY p.created_at DESC;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+    UPDATE certificates SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('template_snapshot', v_new_template, 'template_source', v_source, 'refreshed_at', now()) WHERE id = p_certificate_id;
+    RETURN jsonb_build_object('refreshed', true, 'source', v_source);
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.refresh_course_certificates_template(p_course_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_course_template jsonb; v_site_default jsonb; v_new_template jsonb; v_source text; v_updated integer;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin') THEN RAISE EXCEPTION 'Admin only'; END IF;
+    SELECT certificate_template INTO v_course_template FROM courses WHERE id = p_course_id;
+    IF public._certificate_template_is_usable(v_course_template) THEN v_new_template := v_course_template; v_source := 'course';
+    ELSE
+        SELECT default_certificate_template INTO v_site_default FROM site_settings LIMIT 1;
+        IF public._certificate_template_is_usable(v_site_default) THEN v_new_template := v_site_default; v_source := 'site_default';
+        ELSE RAISE EXCEPTION 'No usable template found'; END IF;
+    END IF;
+    WITH upd AS ( UPDATE certificates c SET metadata = COALESCE(c.metadata, '{}'::jsonb) || jsonb_build_object('template_snapshot', v_new_template, 'template_source', v_source, 'refreshed_at', now()) FROM enrollments e WHERE c.enrollment_id = e.id AND e.course_id = p_course_id RETURNING c.id )
+    SELECT COUNT(*)::integer INTO v_updated FROM upd;
+    RETURN jsonb_build_object('updated', v_updated, 'source', v_source);
+END; $$;
+
+-- 3-G. RPC: Verificar disponibilidad de plantilla
+CREATE OR REPLACE FUNCTION public.course_has_usable_certificate_template(p_course_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_course_ok boolean; v_site_ok boolean;
+BEGIN
+    SELECT public._certificate_template_is_usable(certificate_template) INTO v_course_ok FROM courses WHERE id = p_course_id;
+    SELECT public._certificate_template_is_usable(default_certificate_template) INTO v_site_ok FROM site_settings LIMIT 1;
+    RETURN jsonb_build_object('course_usable', v_course_ok, 'site_usable', v_site_ok, 'can_emit', v_course_ok OR v_site_ok);
+END; $$;
+
+-- 3-H. Funciones de Admin (Gestión de Usuarios)
 
 -- 3-G. Utilidades y Progreso
 CREATE OR REPLACE FUNCTION public.update_enrollment_progress(p_course_id uuid, p_progress integer, p_status text DEFAULT NULL::text)
@@ -412,6 +458,9 @@ USING (
 GRANT EXECUTE ON FUNCTION public.resync_course_certificate_sequence(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_users_for_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_certificate_v2(uuid, jsonb, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.refresh_certificate_template_snapshot(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.refresh_course_certificates_template(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.course_has_usable_certificate_template(uuid) TO authenticated;
 
 -- ==============================================================================
 -- §6 — CONFIGURACION FINAL (TRIGGERS)
