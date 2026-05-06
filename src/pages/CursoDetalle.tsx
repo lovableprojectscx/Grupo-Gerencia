@@ -59,6 +59,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Helper: fuerza la descarga de un archivo remoto como Blob (resuelve el
+// problema de que el atributo `download` es ignorado por navegadores en URLs
+// cross-origin, como las de Supabase Storage).
+const forceDownload = async (url: string, fileName: string) => {
+  const toastId = toast.loading(`Descargando ${fileName}...`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+    toast.success(`${fileName} descargado`, { id: toastId });
+  } catch (err) {
+    console.error('Error al descargar:', err);
+    toast.error('No se pudo descargar el archivo. Intenta de nuevo.', { id: toastId });
+  }
+};
+
 const CursoDetalle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -734,13 +758,10 @@ const CursoDetalle = () => {
                     doc: "Word", docx: "Word", other: "Archivo",
                   };
                   return (
-                    <a
+                    <button
                       key={resource.id}
-                      href={resource.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={resource.file_name}
-                      className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all group"
+                      onClick={() => forceDownload(resource.file_url, resource.file_name)}
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all group w-full text-left cursor-pointer"
                     >
                       <div className="p-2.5 rounded-xl bg-secondary shrink-0 group-hover:scale-110 transition-transform">
                         {fileIcons[resource.file_type] ?? <File className="w-6 h-6 text-muted-foreground" />}
@@ -754,7 +775,7 @@ const CursoDetalle = () => {
                         </p>
                       </div>
                       <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
-                    </a>
+                    </button>
                   );
                 })}
               </div>

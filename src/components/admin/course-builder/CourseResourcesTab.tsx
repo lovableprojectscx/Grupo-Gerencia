@@ -14,8 +14,30 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import { Upload, Trash2, FileText, File, Presentation, Loader2, Download, Plus } from "lucide-react";
+import { toast } from "sonner";
+
+// Helper: fuerza la descarga real del archivo sin importar CORS ni Content-Disposition
+const forceDownload = async (url: string, fileName: string) => {
+  const toastId = toast.loading(`Descargando ${fileName}...`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+    toast.success(`${fileName} descargado`, { id: toastId });
+  } catch (err) {
+    console.error('Error al descargar:', err);
+    toast.error('No se pudo descargar. Intenta de nuevo.', { id: toastId });
+  }
+};
 
 interface Props {
     courseId: string;
@@ -211,11 +233,10 @@ export function CourseResourcesTab({ courseId }: Props) {
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                            asChild
+                                            onClick={() => forceDownload(resource.file_url, resource.file_name)}
+                                            title="Descargar"
                                         >
-                                            <a href={resource.file_url} target="_blank" rel="noopener noreferrer" download={resource.file_name}>
-                                                <Download className="w-4 h-4" />
-                                            </a>
+                                            <Download className="w-4 h-4" />
                                         </Button>
                                         <Button
                                             variant="ghost"
