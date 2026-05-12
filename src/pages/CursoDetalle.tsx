@@ -58,30 +58,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { forceDownload } from "@/utils/downloadUtils";
 
-// Helper: fuerza la descarga de un archivo remoto como Blob (resuelve el
-// problema de que el atributo `download` es ignorado por navegadores en URLs
-// cross-origin, como las de Supabase Storage).
-const forceDownload = async (url: string, fileName: string) => {
-  const toastId = toast.loading(`Descargando ${fileName}...`);
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
-    toast.success(`${fileName} descargado`, { id: toastId });
-  } catch (err) {
-    console.error('Error al descargar:', err);
-    toast.error('No se pudo descargar el archivo. Intenta de nuevo.', { id: toastId });
-  }
-};
 
 const CursoDetalle = () => {
   const { id } = useParams();

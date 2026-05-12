@@ -468,7 +468,13 @@ export default function CertificateViewer() {
     // Esto evita el problema de pdf-lib copyPages() que produce páginas en blanco
     // con muchos PDFs de Supabase Storage (XObjects, fuentes no embebidas, etc.)
     const loadBgAsPng = async (url: string, pageNum: number = 1): Promise<{ bytes: ArrayBuffer; width: number; height: number }> => {
-        const res = await fetch(url);
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token && url.includes(import.meta.env.VITE_SUPABASE_URL)) {
+            headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
+        const res = await fetch(url, { headers });
         if (!res.ok) throw new Error(`HTTP ${res.status} al cargar el fondo`);
         const contentType = res.headers.get('content-type') || '';
         const rawBytes = await res.arrayBuffer();

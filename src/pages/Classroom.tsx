@@ -23,6 +23,7 @@ import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { forceDownload } from "@/utils/downloadUtils";
 
 export default function Classroom() {
     const { courseId } = useParams();
@@ -318,12 +319,10 @@ export default function Classroom() {
                                         {activeModule.lessons
                                             .filter((l: any) => l.type === 'pdf')
                                             .map((lesson: any) => (
-                                                <a
+                                                <button
                                                     key={lesson.id}
-                                                    href={lesson.content_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-3 p-4 hover:bg-accent/10 transition-all group"
+                                                    onClick={() => forceDownload(lesson.content_url, lesson.title + '.pdf')}
+                                                    className="flex items-center gap-3 p-4 hover:bg-accent/10 transition-all group w-full text-left cursor-pointer"
                                                 >
                                                     <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-transform">
                                                         <FileText className="w-5 h-5 text-accent" />
@@ -336,10 +335,10 @@ export default function Classroom() {
                                                             Documento PDF / Recurso
                                                         </p>
                                                     </div>
-                                                    <Button size="sm" variant="ghost" className="h-8 w-8 rounded-full p-0 text-accent group-hover:bg-accent group-hover:text-white transition-all">
+                                                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all">
                                                         <Download className="w-4 h-4" />
-                                                    </Button>
-                                                </a>
+                                                    </div>
+                                                </button>
                                             ))}
                                     </div>
                                 </CardContent>
@@ -479,20 +478,17 @@ export default function Classroom() {
                                             docx: <File className="w-4 h-4 text-blue-500" />,
                                         };
                                         return (
-                                            <a
+                                            <button
                                                 key={resource.id}
-                                                href={resource.file_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                download={resource.file_name}
-                                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group border border-transparent hover:border-border"
+                                                onClick={() => forceDownload(resource.file_url, resource.file_name)}
+                                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group border border-transparent hover:border-border w-full text-left"
                                             >
                                                 {icons[resource.file_type] ?? <File className="w-4 h-4 text-muted-foreground" />}
                                                 <span className="flex-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                                                     {resource.title}
                                                 </span>
                                                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
-                                            </a>
+                                            </button>
                                         );
                                     })}
                                 </CardContent>

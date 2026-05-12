@@ -16,28 +16,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Upload, Trash2, FileText, File, Presentation, Loader2, Download, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { forceDownload } from "@/utils/downloadUtils";
 
-// Helper: fuerza la descarga real del archivo sin importar CORS ni Content-Disposition
-const forceDownload = async (url: string, fileName: string) => {
-  const toastId = toast.loading(`Descargando ${fileName}...`);
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
-    toast.success(`${fileName} descargado`, { id: toastId });
-  } catch (err) {
-    console.error('Error al descargar:', err);
-    toast.error('No se pudo descargar. Intenta de nuevo.', { id: toastId });
-  }
-};
 
 interface Props {
     courseId: string;
