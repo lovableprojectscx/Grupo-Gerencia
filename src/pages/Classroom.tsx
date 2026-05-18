@@ -15,7 +15,7 @@ import {
 import {
     Play, CheckCircle, ChevronLeft, Menu, GraduationCap,
     Loader2, Award, Clock, BookOpen, ArrowRight, ArrowLeft,
-    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation
+    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation, Hourglass
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -301,24 +301,27 @@ export default function Classroom() {
                         </div>
 
                         {/* Module Materials (Lessons of type 'pdf') */}
-                        {activeModule?.lessons?.some((l: any) => l.type === 'pdf') && (
-                            <Card className="border-accent/20 bg-accent/5 overflow-hidden">
-                                <CardHeader className="py-3 px-4 bg-accent/10 flex flex-row items-center justify-between border-b border-accent/10">
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-accent" />
-                                        <CardTitle className="text-sm font-bold uppercase tracking-wider text-accent">
-                                            Materiales del Módulo
-                                        </CardTitle>
-                                    </div>
-                                    <Badge variant="secondary" className="bg-accent/20 text-accent border-none text-[10px]">
-                                        {activeModule.lessons.filter((l: any) => l.type === 'pdf').length} Archivos
-                                    </Badge>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <div className="grid grid-cols-1 divide-y divide-accent/10">
-                                        {activeModule.lessons
-                                            .filter((l: any) => l.type === 'pdf')
-                                            .map((lesson: any) => (
+                        {activeModule?.lessons?.some((l: any) => l.type === 'pdf') && (() => {
+                            const pdfLessons = activeModule.lessons.filter((l: any) => l.type === 'pdf');
+                            const available = pdfLessons.filter((l: any) => !!l.content_url);
+                            const pending   = pdfLessons.filter((l: any) => !l.content_url);
+                            return (
+                                <Card className="border-accent/20 bg-accent/5 overflow-hidden">
+                                    <CardHeader className="py-3 px-4 bg-accent/10 flex flex-row items-center justify-between border-b border-accent/10">
+                                        <div className="flex items-center gap-2">
+                                            <FileText className="w-5 h-5 text-accent" />
+                                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-accent">
+                                                Materiales del Módulo
+                                            </CardTitle>
+                                        </div>
+                                        <Badge variant="secondary" className="bg-accent/20 text-accent border-none text-[10px]">
+                                            {available.length} / {pdfLessons.length} Disponibles
+                                        </Badge>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <div className="grid grid-cols-1 divide-y divide-accent/10">
+                                            {/* Archivos con URL → descargables */}
+                                            {available.map((lesson: any) => (
                                                 <button
                                                     key={lesson.id}
                                                     onClick={() => forceDownload(lesson.content_url, lesson.title + '.pdf')}
@@ -340,10 +343,34 @@ export default function Classroom() {
                                                     </div>
                                                 </button>
                                             ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                                            {/* Archivos sin URL → próximamente */}
+                                            {pending.map((lesson: any) => (
+                                                <div
+                                                    key={lesson.id}
+                                                    className="flex items-center gap-3 p-4 opacity-50 cursor-not-allowed select-none"
+                                                    title="Este material aún no ha sido subido por el instructor"
+                                                >
+                                                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center border border-border">
+                                                        <Hourglass className="w-5 h-5 text-muted-foreground" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-muted-foreground truncate">
+                                                            {lesson.title}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground/70 uppercase font-medium">
+                                                            Próximamente disponible
+                                                        </p>
+                                                    </div>
+                                                    <Badge variant="secondary" className="text-[10px] shrink-0">
+                                                        Pendiente
+                                                    </Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })()}
 
                         {/* Two column layout: Temario + Navigation */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
