@@ -14,9 +14,9 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2, FileText, File, Presentation, Loader2, Download, Plus } from "lucide-react";
+import { Upload, Trash2, FileText, File, Presentation, Loader2, Download, Plus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { forceDownload } from "@/utils/downloadUtils";
+import { forceDownload, isExternalUrl } from "@/utils/downloadUtils";
 
 
 interface Props {
@@ -209,15 +209,32 @@ export function CourseResourcesTab({ courseId }: Props) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                            onClick={() => forceDownload(resource.file_url, resource.file_name)}
-                                            title="Descargar"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                        </Button>
+                                         {(() => {
+                                             const isExternal = isExternalUrl(resource.file_url);
+                                             return isExternal ? (
+                                                 <Button
+                                                     variant="ghost"
+                                                     size="icon"
+                                                     className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                     asChild
+                                                     title="Abrir recurso externo"
+                                                 >
+                                                     <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
+                                                         <ExternalLink className="w-4 h-4" />
+                                                     </a>
+                                                 </Button>
+                                             ) : (
+                                                 <Button
+                                                     variant="ghost"
+                                                     size="icon"
+                                                     className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                     onClick={() => forceDownload(resource.file_url, resource.file_name)}
+                                                     title="Descargar"
+                                                 >
+                                                     <Download className="w-4 h-4" />
+                                                 </Button>
+                                             );
+                                         })()}
                                         <Button
                                             variant="ghost"
                                             size="icon"

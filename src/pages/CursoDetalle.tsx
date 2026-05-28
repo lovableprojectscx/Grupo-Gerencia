@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Video,
   Download,
+  ExternalLink,
   Share2,
   Heart,
   Shield,
@@ -58,7 +59,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { forceDownload } from "@/utils/downloadUtils";
+import { forceDownload, isExternalUrl } from "@/utils/downloadUtils";
 
 
 const CursoDetalle = () => {
@@ -221,6 +222,9 @@ const CursoDetalle = () => {
   }
 
   const duration = course.duration || course.metadata?.find((m: any) => m.key.match(/duraci[oó]n/i))?.value || "A tu ritmo";
+
+  const isHealthCourse = course.category === "b2a95c47-3a81-424a-9b7e-967a5b3a69a1" || 
+                         categories.find(c => c.id === course.category)?.slug === "health";
 
   const totalLessons = course.modules?.reduce((acc: number, module: any) => acc + (module.lessons?.length || 0), 0) || 0;
 
@@ -701,6 +705,120 @@ const CursoDetalle = () => {
                   </Accordion>
                 </div>
               </motion.div>
+
+              {/* Opiniones de Alumnos */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="space-y-6 pt-6"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <MessageSquare className="w-6 h-6 text-accent" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">Opiniones de Alumnos</h2>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(() => {
+                    const courseReviews: Record<string, { name: string; role: string; content: string; rating: number }[]> = {
+                      health: [
+                        {
+                          name: "María Elena Torres",
+                          role: "Enfermera - Hospital Regional",
+                          content: "Excelente metodología y docentes de primer nivel. Muy recomendado para quienes buscan actualizar sus conocimientos clínicos y potenciar su perfil profesional.",
+                          rating: 5,
+                        },
+                        {
+                          name: "Dr. Jorge Luis Rojas",
+                          role: "Médico de Emergencias",
+                          content: "El temario del curso de soporte vital es excelente y muy didáctico. Muy rápido el proceso de certificación con validación QR.",
+                          rating: 5,
+                        }
+                      ],
+                      engineering: [
+                        {
+                          name: "Carlos Mendoza",
+                          role: "Ingeniero Civil - Municipalidad",
+                          content: "Excelente capacitación en liquidación de obras. Casos prácticos y reales de la gestión pública actual. Muy recomendado.",
+                          rating: 5,
+                        },
+                        {
+                          name: "Ing. Roberto Benavides",
+                          role: "Residente de Obra",
+                          content: "Muy completo. Los materiales descargables (modelos de actas, liquidaciones) son de gran utilidad para el día a día laboral.",
+                          rating: 5,
+                        }
+                      ],
+                      environmental: [
+                        {
+                          name: "Diana Carolina Ruiz",
+                          role: "Especialista Ambiental - Consultora",
+                          content: "La combinación de teoría con el uso práctico de herramientas SIG/ArcGIS fue ideal. El tutor responde todas las dudas rápidamente.",
+                          rating: 5,
+                        }
+                      ],
+                      veterinary: [
+                        {
+                          name: "Dra. Patricia Valdivia",
+                          role: "Médico Veterinario Zootecnista",
+                          content: "Un curso muy completo sobre inspección en mataderos. La normatividad sanitaria vigente se explica con total claridad.",
+                          rating: 5,
+                        }
+                      ],
+                      management: [
+                        {
+                          name: "Lic. Andrea Paz",
+                          role: "Administradora Gubernamental",
+                          content: "Excelente curso sobre Invierte.pe. Logré despejar muchas dudas sobre las fases de los proyectos de inversión pública.",
+                          rating: 5,
+                        }
+                      ]
+                    };
+
+                    const categorySlug = categories.find(c => c.id === course.category)?.slug || "";
+                    const reviewsList = courseReviews[categorySlug] || [
+                      {
+                        name: "Juan Francisco Silva",
+                        role: "Egresado del Programa",
+                        content: "Excelente nivel de enseñanza y gran soporte por parte de los coordinadores. Una gran inversión para el crecimiento profesional.",
+                        rating: 5,
+                      },
+                      {
+                        name: "Lic. Sonia Quispe",
+                        role: "Profesional Independiente",
+                        content: "La plataforma de estudio es muy amigable y el contenido está disponible 24/7. Altamente recomendado.",
+                        rating: 5,
+                      }
+                    ];
+
+                    return reviewsList.map((review, idx) => (
+                      <div key={idx} className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                        <div>
+                          <div className="flex gap-0.5 mb-3">
+                            {[...Array(review.rating)].map((_, i) => (
+                              <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                            ))}
+                          </div>
+                          <p className="text-muted-foreground text-sm italic leading-relaxed mb-4">
+                            "{review.content}"
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 pt-3 border-t border-border/40 mt-auto">
+                          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center font-bold text-accent text-xs">
+                            {review.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-foreground text-xs">{review.name}</h4>
+                            <p className="text-muted-foreground text-[10px]">{review.role}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -735,10 +853,16 @@ const CursoDetalle = () => {
                     pdf: "PDF", ppt: "PowerPoint", pptx: "PowerPoint",
                     doc: "Word", docx: "Word", other: "Archivo",
                   };
+                  const isExternal = isExternalUrl(resource.file_url);
+                  const Element = isExternal ? 'a' : 'button';
+                  const extraProps = isExternal
+                    ? { href: resource.file_url, target: "_blank", rel: "noopener noreferrer" }
+                    : { onClick: () => forceDownload(resource.file_url, resource.file_name) };
+
                   return (
-                    <button
+                    <Element
                       key={resource.id}
-                      onClick={() => forceDownload(resource.file_url, resource.file_name)}
+                      {...extraProps}
                       className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all group w-full text-left cursor-pointer"
                     >
                       <div className="p-2.5 rounded-xl bg-secondary shrink-0 group-hover:scale-110 transition-transform">
@@ -752,8 +876,12 @@ const CursoDetalle = () => {
                           {fileLabels[resource.file_type] ?? "Archivo"}
                         </p>
                       </div>
-                      <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
-                    </button>
+                      {isExternal ? (
+                        <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                      ) : (
+                        <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                      )}
+                    </Element>
                   );
                 })}
               </div>

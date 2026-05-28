@@ -15,7 +15,7 @@ import {
 import {
     Play, CheckCircle, ChevronLeft, Menu, GraduationCap,
     Loader2, Award, Clock, BookOpen, ArrowRight, ArrowLeft,
-    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation, Hourglass
+    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation, Hourglass, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +23,7 @@ import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { forceDownload } from "@/utils/downloadUtils";
+import { forceDownload, isExternalUrl, getDownloadFileName } from "@/utils/downloadUtils";
 
 export default function Classroom() {
     const { courseId } = useParams();
@@ -321,28 +321,40 @@ export default function Classroom() {
                                     <CardContent className="p-0">
                                         <div className="grid grid-cols-1 divide-y divide-accent/10">
                                             {/* Archivos con URL → descargables */}
-                                            {available.map((lesson: any) => (
-                                                <button
-                                                    key={lesson.id}
-                                                    onClick={() => forceDownload(lesson.content_url, lesson.title + '.pdf')}
-                                                    className="flex items-center gap-3 p-4 hover:bg-accent/10 transition-all group w-full text-left cursor-pointer"
-                                                >
-                                                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-transform">
-                                                        <FileText className="w-5 h-5 text-accent" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors truncate">
-                                                            {lesson.title}
-                                                        </p>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-medium">
-                                                            Documento PDF / Recurso
-                                                        </p>
-                                                    </div>
-                                                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all">
-                                                        <Download className="w-4 h-4" />
-                                                    </div>
-                                                </button>
-                                            ))}
+                                            {available.map((lesson: any) => {
+                                                const isExternal = isExternalUrl(lesson.content_url);
+                                                const Element = isExternal ? 'a' : 'button';
+                                                const extraProps = isExternal
+                                                    ? { href: lesson.content_url, target: "_blank", rel: "noopener noreferrer" }
+                                                    : { onClick: () => forceDownload(lesson.content_url, getDownloadFileName(lesson.title, lesson.content_url, 'pdf')) };
+
+                                                return (
+                                                    <Element
+                                                        key={lesson.id}
+                                                        {...extraProps}
+                                                        className="flex items-center gap-3 p-4 hover:bg-accent/10 transition-all group w-full text-left cursor-pointer"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-transform">
+                                                            <FileText className="w-5 h-5 text-accent" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors truncate">
+                                                                {lesson.title}
+                                                            </p>
+                                                            <p className="text-[10px] text-muted-foreground uppercase font-medium">
+                                                                Documento PDF / Recurso
+                                                            </p>
+                                                        </div>
+                                                        <div className="h-8 w-8 rounded-full flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all">
+                                                            {isExternal ? (
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            ) : (
+                                                                <Download className="w-4 h-4" />
+                                                            )}
+                                                        </div>
+                                                    </Element>
+                                                );
+                                            })}
                                             {/* Archivos sin URL → próximamente */}
                                             {pending.map((lesson: any) => (
                                                 <div
@@ -504,18 +516,28 @@ export default function Classroom() {
                                             doc: <File className="w-4 h-4 text-blue-500" />,
                                             docx: <File className="w-4 h-4 text-blue-500" />,
                                         };
+                                        const isExternal = isExternalUrl(resource.file_url);
+                                        const Element = isExternal ? 'a' : 'button';
+                                        const extraProps = isExternal
+                                            ? { href: resource.file_url, target: "_blank", rel: "noopener noreferrer" }
+                                            : { onClick: () => forceDownload(resource.file_url, resource.file_name) };
+
                                         return (
-                                            <button
+                                            <Element
                                                 key={resource.id}
-                                                onClick={() => forceDownload(resource.file_url, resource.file_name)}
-                                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group border border-transparent hover:border-border w-full text-left"
+                                                {...extraProps}
+                                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group border border-transparent hover:border-border w-full text-left cursor-pointer"
                                             >
                                                 {icons[resource.file_type] ?? <File className="w-4 h-4 text-muted-foreground" />}
-                                                <span className="flex-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                                <span className="flex-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
                                                     {resource.title}
                                                 </span>
-                                                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
-                                            </button>
+                                                {isExternal ? (
+                                                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                                                ) : (
+                                                    <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                                                )}
+                                            </Element>
                                         );
                                     })}
                                 </CardContent>

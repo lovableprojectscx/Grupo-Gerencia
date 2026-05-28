@@ -27,9 +27,11 @@ const categoryDot: Record<string, string> = {
   veterinary: "bg-pink-500",
   engineering: "bg-orange-500",
   environmental: "bg-emerald-500",
+  "agronomy-": "bg-lime-600",
   agronomy: "bg-lime-600",
   management: "bg-blue-500",
   law: "bg-purple-500",
+  "ingenieria-forestales": "bg-green-800",
   forestry: "bg-green-800",
   default: "bg-slate-400",
 };
@@ -65,9 +67,9 @@ export const CourseCard = ({
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
-  const dotColor = categoryDot[category] ?? categoryDot.default;
   const { categories } = useCategories();
   const categoryObj = categories.find(c => c.id === category);
+  const dotColor = categoryDot[categoryObj?.slug || ""] ?? categoryDot[category] ?? categoryDot.default;
   const categoryLabel = specialty
     ? categoryObj?.specialties?.find(s => s.id === specialty)?.label || specialty
     : categoryObj?.label || category;

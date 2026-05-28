@@ -14,22 +14,59 @@ import { toast } from "sonner";
  *  2. Si es una URL externa (Google Drive, etc.) → abrir en nueva pestaña.
  *  3. Si falla el signed URL → intentar descarga directa via fetch + Blob.
  */
+export const isExternalUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return !url.includes('.supabase.co/storage/');
+};
+
+export const getFileExtension = (url: string | null | undefined): string => {
+    if (!url) return '';
+    try {
+        const urlWithoutQuery = url.split('?')[0];
+        const parts = urlWithoutQuery.split('.');
+        if (parts.length > 1) {
+            const ext = parts[parts.length - 1].toLowerCase();
+            if (ext && ext.length <= 5) {
+                return ext;
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+    return '';
+};
+
+export const getDownloadFileName = (title: string, url: string | null | undefined, defaultExt: string = 'pdf'): string => {
+    const ext = getFileExtension(url) || defaultExt;
+    const cleanTitle = title.trim();
+    if (cleanTitle.toLowerCase().endsWith(`.${ext}`)) {
+        return cleanTitle;
+    }
+    return `${cleanTitle}.${ext}`;
+};
+
 export const forceDownload = async (url: string, fileName: string) => {
     if (!url) {
         toast.error("Este material no tiene un archivo asignado todavía.");
         return;
     }
 
+    // ── Caso: URL externa (Google Drive, etc.) ────────────────────────
+    // Realizar la apertura de inmediato para que se considere un contexto
+    // de interacción de usuario directo y el navegador no bloquee el popup.
+    if (isExternalUrl(url)) {
+        const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!newWin) {
+            toast.error("El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio.");
+        } else {
+            toast.success("Abriendo material externo...");
+        }
+        return;
+    }
+
     const toastId = toast.loading(`Preparando descarga de ${fileName}...`);
 
     try {
-        // ── Caso: URL externa (Google Drive, etc.) ────────────────────────
-        const isSupabaseStorage = url.includes('.supabase.co/storage/');
-        if (!isSupabaseStorage) {
-            toast.info(`Abriendo material externo...`, { id: toastId });
-            window.open(url, '_blank', 'noopener,noreferrer');
-            return;
-        }
 
         // ── Extraer el path relativo dentro del bucket ────────────────────
         const filePath = extractStoragePath(url);

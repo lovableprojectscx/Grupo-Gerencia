@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { useRef, useEffect, useState } from "react";
+import { useCategories } from "@/hooks/useCategories";
 
 // Force sync schools: 2026-02-19 15:40
 
@@ -50,13 +51,13 @@ const schoolsConfig = [
   },
   {
     id: "agronomia",
-    categoryKey: "agronomy",
+    categoryKey: "agronomia-",
     name: "Agronomía",
     description: "Agroindustria, zootecnia y desarrollo rural sostenible",
     image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop",
     color: "school-agronomy",
     borderColor: "border-school-agronomy/20", // Assuming this color exists or falls back safely
-    href: "/catalogo?area=agronomy",
+    href: "/catalogo?area=agronomia-",
   },
   {
     id: "gestion",
@@ -70,13 +71,13 @@ const schoolsConfig = [
   },
   {
     id: "forestal",
-    categoryKey: "forestry",
+    categoryKey: "ingenieria-forestales",
     name: "Gestión y Manejo Forestal",
     description: "Silvicultura, tecnología de la madera y conservación de recursos forestales",
     image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=800&auto=format&fit=crop",
     color: "school-forestry",
     borderColor: "border-school-forestry/20",
-    href: "/catalogo?area=forestry",
+    href: "/catalogo?area=ingenieria-forestales",
   },
 ];
 
@@ -90,9 +91,13 @@ export const SchoolsSection = () => {
     queryFn: courseService.getPublished,
   });
 
+  const { categories } = useCategories();
+
   const getCourseCount = (categoryKey: string) => {
-    if (!courses) return 0;
-    return courses.filter((c: any) => c.category === categoryKey).length;
+    if (!courses || !categories) return 0;
+    const category = categories.find(cat => cat.slug === categoryKey);
+    if (!category) return 0;
+    return courses.filter((c: any) => c.category === category.id || c.category === categoryKey).length;
   };
 
   useEffect(() => {
