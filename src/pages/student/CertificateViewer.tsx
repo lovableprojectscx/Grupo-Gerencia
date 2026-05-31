@@ -243,7 +243,7 @@ export default function CertificateViewer() {
     const { data: certificate, isLoading, error } = useQuery<CertificateDetails>({
         queryKey: ["certificate", id],
         queryFn: async () => {
-            // Reemplazo de la función RPC faltante por una consulta directa equitativa
+            // Consulta directa equitativa
             const { data: rawData, error } = await supabase
                 .from('certificates')
                 .select(`
@@ -260,10 +260,29 @@ export default function CertificateViewer() {
             if (!rawData) throw new Error("Certificate not found");
 
             // Mapear la data para que coincida exactamente con la interfaz CertificateDetails esperada
-            // handle the fact that joins might return arrays or single objects depending on relationship definition
             const enrollmentData = Array.isArray(rawData.enrollment) ? rawData.enrollment[0] : rawData.enrollment;
             const studentData = enrollmentData ? (Array.isArray(enrollmentData.student) ? enrollmentData.student[0] : enrollmentData.student) : null;
             const courseData = enrollmentData ? (Array.isArray(enrollmentData.course) ? enrollmentData.course[0] : enrollmentData.course) : null;
+
+            // FALLBACK: Si studentData o courseData es null debido a políticas RLS restrictivas para usuarios no autenticados,
+            // llamamos al RPC 'verify_certificate_search' que corre con SECURITY DEFINER y tiene acceso para validar la autenticidad
+            let fallbackStudentName = "";
+            let fallbackCourseTitle = "";
+
+            if (!studentData?.full_name || !courseData?.title) {
+                try {
+                    const { data: rpcData } = await supabase.rpc('verify_certificate_search', {
+                        search_code: id
+                    });
+                    if (rpcData && rpcData.length > 0) {
+                        const info = rpcData[0];
+                        fallbackStudentName = info.student_name;
+                        fallbackCourseTitle = info.course_title;
+                    }
+                } catch (rpcErr) {
+                    console.error("Error al ejecutar fallback verify_certificate_search RPC:", rpcErr);
+                }
+            }
 
             const data: CertificateDetails = {
                 id: rawData.id,
@@ -273,11 +292,11 @@ export default function CertificateViewer() {
                 metadata: rawData.metadata || {},
                 enrollment: {
                     student: {
-                        full_name: studentData?.full_name,
-                        dni: studentData?.dni
+                        full_name: studentData?.full_name || fallbackStudentName || undefined,
+                        dni: studentData?.dni || undefined
                     },
                     course: {
-                        title: courseData?.title,
+                        title: courseData?.title || fallbackCourseTitle || undefined,
                         certificate_template: courseData?.certificate_template,
                         metadata: courseData?.metadata
                     }
@@ -424,15 +443,21 @@ export default function CertificateViewer() {
 
         switch (field.id) {
             case "studentName":
-            case "studentName-back":
-                return certificate.metadata?.student_name || student?.full_name || "Estudiante";
+            case "studentName-back": {
+                const snapshotVal = field.value && !field.value.startsWith("[") ? field.value : null;
+                return certificate.metadata?.student_name || student?.full_name || snapshotVal || "Estudiante";
+            }
             case "studentDni":
-            case "studentDni-back":
-                const dni = certificate.metadata?.student_dni || student?.dni;
-                return dni ? `DNI: ${dni}` : "DNI: --------";
+            case "studentDni-back": {
+                const snapshotDni = field.value && !field.value.startsWith("[") ? field.value : null;
+                const dni = certificate.metadata?.student_dni || student?.dni || snapshotDni;
+                return dni ? (dni.toUpperCase().startsWith("DNI:") ? dni : `DNI: ${dni}`) : "DNI: --------";
+            }
             case "courseName":
-            case "courseName-back":
-                return course?.title || "Curso";
+            case "courseName-back": {
+                const snapshotCourse = field.value && !field.value.startsWith("[") ? field.value : null;
+                return course?.title || snapshotCourse || "Curso";
+            }
             case "date":
             case "date-back":
                 return issued_at ? format(new Date(issued_at), "d 'de' MMMM, yyyy", { locale: es }) : "Fecha desconocida";
@@ -445,9 +470,8 @@ export default function CertificateViewer() {
             }
             case "qrCode":
             case "qrCode-back": {
-                // Apunta directo al visor del certificado (/verify/:id) para que al escanear
-                // el QR se abra la descarga directa, no la página de búsqueda.
-                return `${window.location.origin}/verify/${certificate.id}`;
+                // Apunta a la página pública de verificación para que se muestre el estado verificado
+                return `${window.location.origin}/verificar?code=${certificate.code || certificate.id}`;
             }
             default:
                 if (field.id.startsWith('meta-')) {
