@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, CheckCircle, XCircle, Award, Calendar, Clock, User, QrCode, Shield, BadgeCheck, IdCard, Download } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 
 const Verificar = () => {
   const navigate = useNavigate();
+  const { code: routeCode } = useParams<{ code?: string }>();
   const [searchCode, setSearchCode] = useState("");
   const [searchResult, setSearchResult] = useState<{
     searched: boolean;
@@ -20,15 +21,16 @@ const Verificar = () => {
   }>({ searched: false, certificates: [], error: false });
   const [isSearching, setIsSearching] = useState(false);
 
-  // Auto-search if code is in URL
+  // Auto-search if code is in URL path or query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
+    const queryCode = params.get('code');
+    const code = routeCode || queryCode;
     if (code) {
       setSearchCode(code);
       performSearch(code);
     }
-  }, []);
+  }, [routeCode]);
 
   const performSearch = async (codeToSearch: string) => {
     if (!codeToSearch.trim()) return;
@@ -269,7 +271,7 @@ const Verificar = () => {
                         <Button
                           className="w-full mb-3 shadow-md h-12 md:h-14 text-base md:text-lg"
                           size="lg"
-                          onClick={() => navigate(`/verify/${cert.credentialId}`)}
+                          onClick={() => navigate(`/certificate/${cert.credentialId}`)}
                         >
                           <Download className="w-5 h-5 mr-2" />
                           Ver y Descargar PDF

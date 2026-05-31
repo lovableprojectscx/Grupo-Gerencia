@@ -316,7 +316,7 @@ const Dashboard = () => {
                                       className="h-8 text-xs text-green-600 border-green-200 bg-green-50 hover:bg-green-100 flex-1 sm:flex-none"
                                       onClick={() => {
                                         const certId = Array.isArray(enrollment.certificate) ? enrollment.certificate[0].id : enrollment.certificate.id;
-                                        navigate(`/verify/${certId}`);
+                                        navigate(`/certificate/${certId}`);
                                       }}
                                     >
                                       <Award className="w-3 h-3 mr-1" />
@@ -376,7 +376,7 @@ const Dashboard = () => {
                                   className="w-full bg-green-600 hover:bg-green-700 shadow-sm"
                                   onClick={() => {
                                     const certId = Array.isArray(enrollment.certificate) ? enrollment.certificate[0].id : enrollment.certificate.id;
-                                    navigate(`/verify/${certId}`);
+                                    navigate(`/certificate/${certId}`);
                                   }}
                                 >
                                   <Award className="w-4 h-4 mr-2" />

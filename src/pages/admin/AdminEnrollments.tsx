@@ -202,7 +202,7 @@ export default function AdminEnrollments() {
 
     const handleDownloadQR = async (certificateId: string, enrollmentName: string) => {
         try {
-            const verificationUrl = `${window.location.origin}/verificar?code=${certificateId}`;
+            const verificationUrl = `${window.location.origin}/verify/${certificateId}`;
             const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
                 width: 400,
                 margin: 2,
@@ -467,7 +467,7 @@ export default function AdminEnrollments() {
                                                                                         variant="outline"
                                                                                         size="sm"
                                                                                         className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                                                                                        onClick={() => window.open(`/verify/${enrollment.certificatesList[0].id}`, '_blank')}
+                                                                                        onClick={() => window.open(`/certificate/${enrollment.certificatesList[0].id}`, '_blank')}
                                                                                     >
                                                                                         <Award className="w-4 h-4 mr-2" />
                                                                                         Ver Certificado

@@ -180,7 +180,7 @@ export default function Classroom() {
                             size="sm"
                             variant="outline"
                             className="hidden md:flex bg-accent/10 border-accent/30 text-accent hover:bg-accent/20 font-semibold"
-                            onClick={() => navigate(`/verify/${certificate.id}`)}
+                            onClick={() => navigate(`/certificate/${certificate.id}`)}
                         >
                             <Award className="w-4 h-4 mr-2" />
                             Mi Certificado
@@ -488,7 +488,7 @@ export default function Classroom() {
                                             <Button
                                                 variant="outline"
                                                 className="w-full border-accent text-accent hover:bg-accent/10 font-semibold mt-1"
-                                                onClick={() => navigate(`/verify/${certificate.id}`)}
+                                                onClick={() => navigate(`/certificate/${certificate.id}`)}
                                             >
                                                 <Award className="w-4 h-4 mr-2" />
                                                 Ver mi Certificado
@@ -607,7 +607,7 @@ export default function Classroom() {
                                         toast.success("¡Certificado generado con éxito!");
                                         queryClient.invalidateQueries({ queryKey: ["my-certificate"] });
                                         setIsCertDialogOpen(false);
-                                        navigate(`/verify/${cert.id}`);
+                                        navigate(`/certificate/${cert.id}`);
                                     }
                                 } catch (error: any) {
                                     console.error("Error generating certificate:", error);

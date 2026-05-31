@@ -54,10 +54,11 @@ const App = () => {
             <Route path="/catalogo" element={<Catalogo />} />
             <Route path="/nosotros" element={<Nosotros />} />
             <Route path="/verificar" element={<Verificar />} />
+            <Route path="/verify/:code" element={<Verificar />} />
+            <Route path="/certificate/:id" element={<CertificateViewer />} />
             <Route path="/faq" element={<FAQ />} />
 
             <Route path="/curso/:id" element={<CursoDetalle />} />
-            <Route path="/verify/:id" element={<CertificateViewer />} />
 
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
@@ -73,7 +74,6 @@ const App = () => {
               <Route path="/checkout/success" element={<PaymentSuccess />} />
               <Route path="/profile/edit" element={<EditProfile />} />
               <Route path="/instructor/:id" element={<InstructorProfile />} />
-              <Route path="/certificate/:id" element={<CertificateViewer />} />
             </Route>
 
             {/* Protected Admin Routes */}

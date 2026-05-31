@@ -471,7 +471,7 @@ export default function CertificateViewer() {
             case "qrCode":
             case "qrCode-back": {
                 // Apunta a la página pública de verificación para que se muestre el estado verificado
-                return `${window.location.origin}/verificar?code=${certificate.code || certificate.id}`;
+                return `${window.location.origin}/verify/${certificate.code || certificate.id}`;
             }
             default:
                 if (field.id.startsWith('meta-')) {
