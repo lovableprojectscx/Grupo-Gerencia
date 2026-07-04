@@ -25,7 +25,7 @@ Para mantener una interfaz limpia y profesional ("Menos es Más"), los filtros s
 
 ### Filtros Avanzados (Acordeón)
 Para evitar la redundancia visual, los filtros secundarios se agrupan en un panel colapsable llamado **"Refinar Búsqueda"**:
-- **Tipo de Programa**: Filtra por Curso Especializado, Diplomado o Especialización.
+- **Tipo de Programa**: Filtra por Curso de Capacitación, Diplomado o Especialización.
 - **Modalidad**: Permite elegir entre cursos "En Vivo" o "Autoestudio" (Grabados).
 - **Inversión (Precio)**: Filtros por rangos de precio predefinidos.
 

@@ -58,7 +58,7 @@ const modalities = [
 ];
 
 const programTypes = [
-  { id: "course", label: "Curso Especializado" },
+  { id: "course", label: "Curso de Capacitación" },
   { id: "diploma", label: "Diplomado" },
   { id: "specialization", label: "Especialización" },
 ];

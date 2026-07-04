@@ -205,7 +205,7 @@ export function CourseGeneralTab({
                                 <SelectValue placeholder="Seleccione tipo" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="course">Curso Especializado</SelectItem>
+                                <SelectItem value="course">Curso de Capacitación</SelectItem>
                                 <SelectItem value="diploma">Diplomado</SelectItem>
                                 <SelectItem value="specialization">Especialización</SelectItem>
                             </SelectContent>

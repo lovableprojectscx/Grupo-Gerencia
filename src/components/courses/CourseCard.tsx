@@ -43,7 +43,7 @@ const levelLabel: Record<string, string> = {
 };
 
 const programTypeLabel: Record<string, string> = {
-  course: "Curso",
+  course: "Curso de Capacitación",
   diploma: "Diplomado",
   specialization: "Especialización",
 };
