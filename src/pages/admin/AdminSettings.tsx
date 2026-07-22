@@ -11,6 +11,7 @@ import { Save, Upload, Building, Smartphone, QrCode, FileImage, LayoutTemplate, 
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { compressAndConvertToWebP } from "@/utils/imageUtils";
 import { PaymentMethodsManager } from "@/components/admin/PaymentMethodsManager";
 import { CertificateBuilder } from "@/components/admin/CertificateBuilder";
 import { Loader2 } from "lucide-react";
@@ -109,13 +110,14 @@ export default function AdminSettings() {
 
         try {
             setUploadingLogo(true);
-            const fileExt = file.name.split('.').pop();
+            const compressedFile = await compressAndConvertToWebP(file);
+            const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `logo-${Date.now()}.${fileExt}`;
             const filePath = `${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('site-content')
-                .upload(filePath, file, { upsert: true });
+                .upload(filePath, compressedFile, { upsert: true });
 
             if (uploadError) throw uploadError;
 

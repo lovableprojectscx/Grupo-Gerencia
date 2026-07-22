@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, GraduationCap, Clock, Award, PlayCircle, CheckCircle, Download, ExternalLink, LogOut, Loader2, Heart, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,7 +85,7 @@ const Dashboard = () => {
                 {/* Mobile: horizontal compacto | Desktop: centrado vertical */}
                 <div className="flex flex-row md:flex-col items-center gap-3 md:gap-0 md:space-y-4 md:text-center">
                   <Avatar className="w-14 h-14 md:w-24 md:h-24 shrink-0">
-                    <AvatarImage src={profile?.avatar_url || "https://github.com/shadcn.png"} />
+                    <AvatarImage src={getOptimizedImageUrl(profile?.avatar_url, 200) || "https://github.com/shadcn.png"} />
                     <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 md:text-center">
@@ -217,8 +218,9 @@ const Dashboard = () => {
                               <div key={enrollment.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
                                 <div className="flex items-center gap-3">
                                   <img
-                                    src={enrollment.course?.image_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
+                                    src={getOptimizedImageUrl(enrollment.course?.image_url, 200) || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
                                     alt={enrollment.course?.title}
+                                    loading="lazy"
                                     className="w-10 h-10 rounded object-cover shrink-0"
                                   />
                                   <div>
@@ -237,8 +239,9 @@ const Dashboard = () => {
                           <Card key={enrollment.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border group">
                             <div className="aspect-video relative overflow-hidden">
                               <img
-                                src={enrollment.course?.image_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
+                                src={getOptimizedImageUrl(enrollment.course?.image_url, 500) || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
                                 alt={enrollment.course?.title}
+                                loading="lazy"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -289,8 +292,9 @@ const Dashboard = () => {
                           <Card key={enrollment.id} className="flex flex-col sm:flex-row overflow-hidden border-border transition-shadow hover:shadow-md">
                             <div className="w-full sm:w-32 h-32 sm:h-auto relative shrink-0">
                               <img
-                                src={enrollment.course?.image_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
+                                src={getOptimizedImageUrl(enrollment.course?.image_url, 400) || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
                                 alt={enrollment.course?.title}
+                                loading="lazy"
                                 className="w-full h-full object-cover"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent sm:hidden" />
@@ -420,8 +424,9 @@ const Dashboard = () => {
                       <Card key={course.id} className="group hover:shadow-lg transition-all border-border overflow-hidden">
                         <div className="aspect-video relative overflow-hidden">
                           <img
-                            src={course.image_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
+                            src={getOptimizedImageUrl(course.image_url, 500) || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60"}
                             alt={course.title}
+                            loading="lazy"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute top-2 right-2">

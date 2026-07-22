@@ -358,7 +358,7 @@ const CursoDetalle = () => {
               {/* Imagen solo en mobile */}
               <div className="block lg:hidden rounded-xl overflow-hidden aspect-video shadow-2xl border border-white/10">
                 <img
-                  src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
+                  src={getOptimizedImageUrl(course.image_url, 800) || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
                   alt={course.title}
                   className="w-full h-full object-cover"
                 />
@@ -402,7 +402,7 @@ const CursoDetalle = () => {
                     return (
                       <div key={inst.id || idx} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl pr-4 p-1.5 backdrop-blur-md hover:bg-white/10 transition-colors">
                         <img
-                          src={inst.avatar_url || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
+                          src={getOptimizedImageUrl(inst.avatar_url, 200) || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
                           alt={inst.name || "Instructor"}
                           className="w-10 h-10 rounded-full object-cover ring-1 ring-accent/50 flex-shrink-0 shadow-lg shadow-black/20"
                         />
@@ -426,7 +426,7 @@ const CursoDetalle = () => {
             >
               <div className="relative rounded-2xl overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.5)] border border-white/10 aspect-video">
                 <img
-                  src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
+                  src={getOptimizedImageUrl(course.image_url, 1200) || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=450&fit=crop"}
                   alt={course.title}
                   className="w-full h-full object-cover"
                 />

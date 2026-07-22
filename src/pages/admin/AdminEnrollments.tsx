@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -669,7 +669,7 @@ export default function AdminEnrollments() {
                     {selectedVoucher && (
                         <div className="mt-4 flex justify-center bg-black/5 rounded-lg p-4">
                             <img
-                                src={selectedVoucher}
+                                src={getOptimizedImageUrl(selectedVoucher, 800) || ""}
                                 alt="Comprobante"
                                 className="max-w-full h-auto rounded shadow-sm object-contain"
                             />

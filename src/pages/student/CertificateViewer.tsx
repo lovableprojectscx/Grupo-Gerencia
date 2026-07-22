@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Document, Page, pdfjs } from 'react-pdf';
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 import QRCode from 'qrcode';
 
 // Setup PDF worker - use local bundled worker for reliability
@@ -1045,7 +1046,7 @@ export default function CertificateViewer() {
                                                 </div>
                                             ) : (
                                                 <img
-                                                    src={bgImageFront}
+                                                    src={getOptimizedImageUrl(bgImageFront, 1200) || ""}
                                                     alt="Certificate Background Front"
                                                     className="w-full h-auto object-cover pointer-events-none block"
                                                     onLoad={(e) => setAspectRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
@@ -1104,7 +1105,7 @@ export default function CertificateViewer() {
                                                             <Page pageNumber={bgImageBack === bgImageFront ? 2 : 1} width={containerWidth} renderTextLayer={false} renderAnnotationLayer={false} />
                                                         </Document>
                                                     </div>
-                                                ) : <img src={bgImageBack} className="absolute inset-0 w-full h-full object-cover" />
+                                                ) : <img src={getOptimizedImageUrl(bgImageBack, 1200) || ""} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                                             )}
 
                                             {/* Fields Back */}

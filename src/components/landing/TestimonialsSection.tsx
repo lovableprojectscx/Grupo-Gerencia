@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Star, Quote, Building2, Stethoscope, Landmark, Briefcase, Building } from "lucide-react";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 const testimonials = [
   {
@@ -87,8 +88,9 @@ export const TestimonialsSection = () => {
               {/* Author */}
               <div className="flex items-center gap-4">
                 <img
-                  src={testimonial.avatar}
+                  src={getOptimizedImageUrl(testimonial.avatar, 200) || ""}
                   alt={testimonial.name}
+                  loading="lazy"
                   className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-accent/20"
                 />
                 <div>

@@ -11,6 +11,8 @@ import { Move, Type, Calendar, Image as ImageIcon, Save, Plus, XCircle, Loader2 
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Document, Page } from "react-pdf";
+import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
+
 
 interface FieldPosition {
     id: string;
@@ -216,13 +218,14 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
+            const compressedFile = await compressAndConvertToWebP(file);
+            const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `certificates/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('course-content')
-                .upload(filePath, file);
+                .upload(filePath, compressedFile);
 
             if (uploadError) throw uploadError;
 
@@ -542,7 +545,7 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
                         {currentBg && !isPdf && (
                             <img
-                                src={currentBg}
+                                src={getOptimizedImageUrl(currentBg, 1200) || ""}
                                 alt="Certificate Template"
                                 className="w-full h-auto object-cover pointer-events-none block"
                                 onLoad={(e) => {

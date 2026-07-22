@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { GripVertical, Plus, Image as ImageIcon, Loader2, Upload, XCircle } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 interface CourseGeneralTabProps {
     course: any;
@@ -362,7 +363,7 @@ export function CourseGeneralTab({
                         </div>
                         <div className="aspect-video bg-secondary/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer overflow-hidden">
                             {course.image_url ? (
-                                <img src={course.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                <img src={getOptimizedImageUrl(course.image_url, 500) || ""} alt="Preview" className="w-full h-full object-cover" />
                             ) : (
                                 <>
                                     <ImageIcon className="w-10 h-10 text-muted-foreground mb-2" />

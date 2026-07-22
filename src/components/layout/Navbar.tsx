@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 const areas = [
   { id: "health", label: "Salud" },
@@ -173,7 +174,7 @@ export const Navbar = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || "User"} />
+                        <AvatarImage src={getOptimizedImageUrl(profile?.avatar_url, 200) || ""} alt={profile?.full_name || "User"} />
                         <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
                       </Avatar>
                     </Button>
@@ -290,7 +291,7 @@ export const Navbar = () => {
                       <>
                         <div className="flex items-center gap-3 px-2 py-2">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={profile?.avatar_url || ""} />
+                            <AvatarImage src={getOptimizedImageUrl(profile?.avatar_url, 200) || ""} />
                             <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
                           </Avatar>
                           <div>

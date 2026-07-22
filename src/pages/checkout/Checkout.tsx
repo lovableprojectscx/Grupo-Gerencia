@@ -30,7 +30,7 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { motion } from "framer-motion";
 import { PaymentMethod } from "@/types";
-import imageCompression from 'browser-image-compression';
+import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
 import { handleDbError } from "@/utils/errorHandler";
 
 export default function Checkout() {
@@ -158,25 +158,8 @@ export default function Checkout() {
             // 1.5 Upload Voucher if exists
             let voucherUrl = null;
             if (file) {
-                let fileToUpload = file;
-                // Si es imagen, comprimirla antes de subirla
-                if (file.type.startsWith('image/')) {
-                    toast.loading("Procesando imagen...", { id: "compressToast" });
-                    try {
-                        fileToUpload = await imageCompression(file, {
-                            maxSizeMB: 1, // Límite de 1MB para vouchers
-                            maxWidthOrHeight: 1280, // No necesitamos vouchers gigantes
-                            useWebWorker: true,
-                        });
-                    } catch (compError) {
-                        console.warn("Fallo al comprimir, usando original", compError);
-                    } finally {
-                        toast.dismiss("compressToast");
-                    }
-                }
-
-                // Asegurar que fileToUpload tenga la extensión correcta tras compresión
-                const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
+                const fileToUpload = await compressAndConvertToWebP(file);
+                const fileExt = fileToUpload.name.split('.').pop() || 'webp';
                 const fileName = `${user.id}-${Date.now()}.${fileExt}`;
                 const filePath = `receipts/${fileName}`;
 
@@ -310,7 +293,7 @@ export default function Checkout() {
                                                 {selectedMethod.type === 'qr' && selectedMethod.qr_url ? (
                                                     <div className="aspect-square relative overflow-hidden rounded-lg">
                                                         <img
-                                                            src={selectedMethod.qr_url}
+                                                            src={getOptimizedImageUrl(selectedMethod.qr_url, 400) || ""}
                                                             alt={`QR ${selectedMethod.name}`}
                                                             className="w-full h-full object-cover"
                                                         />
@@ -465,7 +448,7 @@ export default function Checkout() {
                                     {/* Course Item */}
                                     <div className="flex gap-4">
                                         <img
-                                            src={course.image_url || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=100&h=100&fit=crop"}
+                                            src={getOptimizedImageUrl(course.image_url, 200) || "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=100&h=100&fit=crop"}
                                             alt={course.title}
                                             className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md border border-border shadow-sm shrink-0"
                                         />

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 import { useState } from "react";
 import {
     Select,
@@ -163,8 +164,9 @@ export default function AdminCourses() {
                                         <div className="flex items-center gap-3">
                                             {course.image_url && (
                                                 <img
-                                                    src={course.image_url}
+                                                    src={getOptimizedImageUrl(course.image_url, 200) || ""}
                                                     alt={course.title}
+                                                    loading="lazy"
                                                     className={`w-12 h-12 rounded-md object-cover ${course.is_archived ? "grayscale" : ""}`}
                                                 />
                                             )}

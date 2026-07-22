@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,7 @@ export default function InstructorProfile() {
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                         <Avatar className="w-40 h-40 border-4 border-background shadow-xl">
-                            <AvatarImage src={instructor.avatar} />
+                            <AvatarImage src={getOptimizedImageUrl(instructor.avatar, 200) || ""} />
                             <AvatarFallback>{instructor.name.charAt(0)}</AvatarFallback>
                         </Avatar>
 
@@ -119,7 +120,7 @@ export default function InstructorProfile() {
                                 {instructor.courses.map((course) => (
                                     <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
                                         <div className="aspect-video relative overflow-hidden">
-                                            <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                            <img src={getOptimizedImageUrl(course.image, 500) || ""} alt={course.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <PlayCircle className="w-12 h-12 text-white" />
                                             </div>

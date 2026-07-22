@@ -56,7 +56,7 @@ import { courseService } from "@/services/courseService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Upload } from "lucide-react";
-import imageCompression from 'browser-image-compression';
+import { compressAndConvertToWebP } from "@/utils/imageUtils";
 
 export default function CourseBuilder() {
     const { id } = useParams();
@@ -291,23 +291,8 @@ export default function CourseBuilder() {
 
         setUploading(true);
         try {
-            let fileToUpload = file;
-            if (file.type.startsWith('image/')) {
-                toast.loading("Optimizando imagen de portada...", { id: "compressCoverToast" });
-                try {
-                    fileToUpload = await imageCompression(file, {
-                        maxSizeMB: 0.5, // 500KB para portadas
-                        maxWidthOrHeight: 1280,
-                        useWebWorker: true,
-                    });
-                } catch (compError) {
-                    console.warn("Fallo al comprimir, usando original", compError);
-                } finally {
-                    toast.dismiss("compressCoverToast");
-                }
-            }
-
-            const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
+            const fileToUpload = await compressAndConvertToWebP(file);
+            const fileExt = fileToUpload.name.split('.').pop() || 'webp';
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `covers/${fileName}`;
 
@@ -337,23 +322,8 @@ export default function CourseBuilder() {
 
         setInstructorUploading(true);
         try {
-            let fileToUpload = file;
-            if (file.type.startsWith('image/')) {
-                toast.loading("Optimizando foto...", { id: "compressAvatarToast" });
-                try {
-                    fileToUpload = await imageCompression(file, {
-                        maxSizeMB: 0.2, // 200KB para avatares
-                        maxWidthOrHeight: 500, // Avatares pequeños
-                        useWebWorker: true,
-                    });
-                } catch (compError) {
-                    console.warn("Fallo al comprimir, usando original", compError);
-                } finally {
-                    toast.dismiss("compressAvatarToast");
-                }
-            }
-
-            const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
+            const fileToUpload = await compressAndConvertToWebP(file);
+            const fileExt = fileToUpload.name.split('.').pop() || 'webp';
             const fileName = `instructor-${Math.random()}.${fileExt}`;
             const filePath = `instructors/${fileName}`;
 

@@ -264,7 +264,7 @@ export function CourseSettingsTab({ course, setCourse }: CourseSettingsTabProps)
                                 <div className="border rounded-xl overflow-hidden shadow-lg bg-card max-w-[320px] mx-auto">
                                     <div className="aspect-video bg-muted relative">
                                         {course.image_url ? (
-                                            <img src={course.image_url} alt="Cover" className="w-full h-full object-cover" />
+                                            <img src={getOptimizedImageUrl(course.image_url, 500) || ""} alt="Cover" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="flex items-center justify-center h-full text-muted-foreground">Sin Imagen</div>
                                         )}

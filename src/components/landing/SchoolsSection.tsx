@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/services/courseService";
 import { useRef, useEffect, useState } from "react";
 import { useCategories } from "@/hooks/useCategories";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 // Force sync schools: 2026-02-19 15:40
 
@@ -201,8 +202,9 @@ export const SchoolsSection = () => {
                     <div className="relative h-40 md:h-48 overflow-hidden">
                       <div className={`absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors z-10`} />
                       <img
-                        src={school.image}
+                        src={getOptimizedImageUrl(school.image, 500) || ""}
                         alt={school.name}
+                        loading="lazy"
                         className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
                       />
                     </div>

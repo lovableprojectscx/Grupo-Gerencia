@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Save, User, UploadCloud } from "lucide-react";
 import { useRef } from "react";
+import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
 
 export default function EditProfile() {
     const navigate = useNavigate();
@@ -114,14 +115,15 @@ export default function EditProfile() {
                 return;
             }
 
-            const fileExt = file.name.split('.').pop();
+            const compressedFile = await compressAndConvertToWebP(file);
+            const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `${formData.id}-${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;
 
             // Upload a bucket 'avatars'
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, file, { upsert: true });
+                .upload(filePath, compressedFile, { upsert: true });
 
             if (uploadError) throw uploadError;
 
@@ -169,7 +171,7 @@ export default function EditProfile() {
                             <CardContent className="space-y-6">
                                 <div className="flex flex-col items-center gap-4 mb-6">
                                     <Avatar className="w-24 h-24">
-                                        <AvatarImage src={formData.avatar_url} />
+                                        <AvatarImage src={getOptimizedImageUrl(formData.avatar_url, 200) || ""} />
                                         <AvatarFallback><User className="w-12 h-12" /></AvatarFallback>
                                     </Avatar>
                                     <input

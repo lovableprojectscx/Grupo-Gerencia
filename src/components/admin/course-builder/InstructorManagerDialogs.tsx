@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, Trash2 } from "lucide-react";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 interface InstructorManagerDialogsProps {
     isInstructorDialogOpen: boolean;
@@ -55,7 +56,7 @@ export function InstructorManagerDialogs({
                         <div className="flex justify-center">
                             <div className="relative w-24 h-24 rounded-full overflow-hidden bg-secondary border-2 border-dashed border-muted-foreground/30 flex items-center justify-center group cursor-pointer">
                                 {newInstructor.photo_url ? (
-                                    <img src={newInstructor.photo_url} alt="Preview" className="w-full h-full object-cover" />
+                                    <img src={getOptimizedImageUrl(newInstructor.photo_url, 200) || ""} alt="Preview" className="w-full h-full object-cover" />
                                 ) : (
                                     <Upload className="w-8 h-8 text-muted-foreground" />
                                 )}
@@ -117,7 +118,7 @@ export function InstructorManagerDialogs({
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-secondary overflow-hidden">
                                             {instructor.avatar_url ? (
-                                                <img src={instructor.avatar_url} alt={instructor.name} className="w-full h-full object-cover" />
+                                                <img src={getOptimizedImageUrl(instructor.avatar_url, 200) || ""} alt={instructor.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-xs font-bold">
                                                     {instructor.name.charAt(0)}

@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
@@ -281,7 +282,7 @@ export default function AdminUsers() {
                         <div className="grid gap-4 py-4">
                             <div className="flex justify-center mb-4">
                                 <Avatar className="h-24 w-24">
-                                    <AvatarImage src={selectedUser.avatar_url} />
+                                    <AvatarImage src={getOptimizedImageUrl(selectedUser.avatar_url, 200) || ""} />
                                     <AvatarFallback className="text-2xl">{selectedUser.full_name?.charAt(0) || "U"}</AvatarFallback>
                                 </Avatar>
                             </div>

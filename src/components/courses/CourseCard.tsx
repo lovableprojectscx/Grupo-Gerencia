@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCategories } from "@/hooks/useCategories";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 interface CourseCardProps {
   id: string;
@@ -88,8 +89,9 @@ export const CourseCard = ({
           {/* ── Imagen ── */}
           <div className="relative aspect-video overflow-hidden bg-muted flex-shrink-0">
             <img
-              src={image}
+              src={getOptimizedImageUrl(image, 500) || ""}
               alt={title}
+              loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
 

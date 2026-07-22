@@ -9,6 +9,7 @@ import { Plus, Trash, Edit, Save, X, QrCode, University, Upload, Image as ImageI
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { PaymentMethod } from "@/types";
+import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,13 +145,14 @@ export function PaymentMethodsManager() {
 
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
+            const compressedFile = await compressAndConvertToWebP(file);
+            const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `qr-${Math.random()}.${fileExt}`;
             const filePath = `payment-methods/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('course-content')
-                .upload(filePath, file);
+                .upload(filePath, compressedFile);
 
             if (uploadError) throw uploadError;
 
@@ -276,7 +278,7 @@ export function PaymentMethodsManager() {
                                     </div>
                                     {formData.qr_url && (
                                         <div className="mt-2 relative w-full h-40 bg-secondary/20 rounded-lg border overflow-hidden flex items-center justify-center">
-                                            <img src={formData.qr_url} alt="QR Preview" className="h-full object-contain" />
+                                            <img src={getOptimizedImageUrl(formData.qr_url, 400) || ""} alt="QR Preview" className="h-full object-contain" />
                                         </div>
                                     )}
                                     <p className="text-xs text-muted-foreground">Sube una imagen o pega la URL.</p>
