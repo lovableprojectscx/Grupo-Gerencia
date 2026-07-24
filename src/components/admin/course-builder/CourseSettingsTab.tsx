@@ -9,6 +9,7 @@ import { BrowserWindow } from "@/components/ui/BrowserWindow";
 import { courseService } from "@/services/courseService";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, FileBadge } from "lucide-react";
+import { getOptimizedImageUrl } from "@/utils/imageUtils";
 
 interface CourseSettingsTabProps {
     course: any;
