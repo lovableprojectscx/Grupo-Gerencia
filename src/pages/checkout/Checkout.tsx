@@ -85,13 +85,7 @@ export default function Checkout() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const selectedFile = e.target.files[0];
-            if (selectedFile.size > MAX_FILE_SIZE) {
-                toast.error(`El archivo es demasiado grande. Máximo permitido: ${MAX_FILE_SIZE_MB}MB`);
-                e.target.value = ''; // Limpiar el input
-                return;
-            }
-            setFile(selectedFile);
+            setFile(e.target.files[0]);
         }
     };
 
@@ -109,22 +103,12 @@ export default function Checkout() {
         e.preventDefault();
         setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const droppedFile = e.dataTransfer.files[0];
-            if (droppedFile.size > MAX_FILE_SIZE) {
-                toast.error(`El archivo es demasiado grande. Máximo permitido: ${MAX_FILE_SIZE_MB}MB`);
-                return;
-            }
-            setFile(droppedFile);
+            setFile(e.dataTransfer.files[0]);
         }
     };
 
     const handleSubmit = async () => {
         if (!user) return;
-        // Validación de tamaño defensiva antes de subir
-        if (file && file.size > MAX_FILE_SIZE) {
-            toast.error(`El comprobante supera el tamaño máximo de ${MAX_FILE_SIZE_MB}MB. Por favor, sube una imagen más pequeña.`);
-            return;
-        }
         setLoading(true);
         try {
             // Resolver el UUID real del curso.

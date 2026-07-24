@@ -41,7 +41,7 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 };
 
 const ACCEPTED_TYPES = ".pdf,.ppt,.pptx,.doc,.docx";
-const MAX_SIZE_MB = 20;
+const MAX_SIZE_MB = 100;
 
 function getFileType(filename: string): CourseResource['file_type'] {
     const ext = filename.split('.').pop()?.toLowerCase() ?? '';

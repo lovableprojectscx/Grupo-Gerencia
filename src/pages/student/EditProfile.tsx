@@ -109,12 +109,6 @@ export default function EditProfile() {
             const file = e.target.files?.[0];
             if (!file) return;
 
-            // Validación de 5MB
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error("La imagen no puede pesar más de 5MB");
-                return;
-            }
-
             // Eliminar avatar anterior para no dejar archivos huérfanos en Storage
             if (formData.avatar_url) {
                 await deleteStorageFileFromUrl(formData.avatar_url, 'avatars');

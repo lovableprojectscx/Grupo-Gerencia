@@ -102,12 +102,6 @@ export default function AdminSettings() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("El archivo no puede exceder los 5MB");
-            if (logoInputRef.current) logoInputRef.current.value = "";
-            return;
-        }
-
         try {
             setUploadingLogo(true);
             if (formData.logo_url) {
