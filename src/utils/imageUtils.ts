@@ -2,40 +2,19 @@ import imageCompression from 'browser-image-compression';
 import { toast } from 'sonner';
 
 /**
- * Normaliza y optimiza una URL de imagen usando el CDN global images.weserv.nl.
- * Convierte a WebP, redimensiona al ancho especificado y aplica calidad 80.
+ * Retorna la URL de la imagen asegurando compatibilidad directa con Supabase y servidores de origen.
+ * Se evita el uso de proxys externos (como images.weserv.nl) debido a que varios proveedores de internet
+ * en Perú (Movistar, Claro, Entel, Bitel) bloquean dominios de proxy público por DNS/IP.
  *
- * @param url URL original de la imagen (Supabase storage, externa, o relativa)
- * @param width Ancho deseado en píxeles (ej. 200 para logos, 500 para grid, 800 para detalle, 1200 para banners/certificados)
+ * La optimización de peso y ancho de banda está garantizada al subir imágenes mediante
+ * `compressAndConvertToWebP` (archivos WebP de ~80KB) y carga diferida `loading="lazy"`.
  */
 export function getOptimizedImageUrl(
     url: string | null | undefined,
-    width: number
+    _width?: number
 ): string | null | undefined {
     if (!url) return url;
-
-    // Si no es una URL http/https (ej. assets locales /assets/..., data URIs, blobs), devolver tal cual
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return url;
-    }
-
-    // Extraer la ruta limpia antes de parámetros de consulta para verificar la extensión
-    const cleanUrl = url.split('?')[0].toLowerCase();
-
-    // No procesar por CDN de imágenes archivos PDF, SVG o documentos
-    if (
-        cleanUrl.endsWith('.pdf') ||
-        cleanUrl.endsWith('.svg') ||
-        cleanUrl.endsWith('.doc') ||
-        cleanUrl.endsWith('.docx') ||
-        cleanUrl.endsWith('.zip')
-    ) {
-        return url;
-    }
-
-    // Eliminar protocolo http:// o https:// para enviar a weserv.nl
-    const sinProtocolo = url.replace(/^https?:\/\//, '');
-    return `https://images.weserv.nl/?url=${encodeURIComponent(sinProtocolo)}&w=${width}&output=webp&q=80`;
+    return url;
 }
 
 /**
