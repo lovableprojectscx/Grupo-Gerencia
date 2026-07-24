@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { getStudentCount } from "@/utils/courseUtils";
+import { deleteStorageFileFromUrl } from "@/utils/imageUtils";
 
 
 export interface Course {
@@ -261,6 +262,11 @@ export const courseService = {
     },
 
     async deleteInstructor(id: string) {
+        const { data: inst } = await supabase.from('instructors').select('avatar_url, photo_url').eq('id', id).maybeSingle();
+        if (inst) {
+            if (inst.avatar_url) await deleteStorageFileFromUrl(inst.avatar_url, 'course-content');
+            if (inst.photo_url) await deleteStorageFileFromUrl(inst.photo_url, 'course-content');
+        }
         const { error } = await supabase.from('instructors').delete().eq('id', id);
         if (error) throw error;
     },
@@ -477,6 +483,16 @@ export const courseService = {
     },
 
     async rejectEnrollment(id: string) {
+        const { data: enrollment } = await supabase
+            .from('enrollments')
+            .select('voucher_url')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (enrollment?.voucher_url) {
+            await deleteStorageFileFromUrl(enrollment.voucher_url, 'course-content');
+        }
+
         const { error } = await supabase
             .from('enrollments')
             .update({ status: 'rejected' })

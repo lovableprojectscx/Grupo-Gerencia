@@ -9,7 +9,7 @@ import { Plus, Trash, Edit, Save, X, QrCode, University, Upload, Image as ImageI
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { PaymentMethod } from "@/types";
-import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
+import { compressAndConvertToWebP, getOptimizedImageUrl, deleteStorageFileFromUrl } from "@/utils/imageUtils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,7 +145,11 @@ export function PaymentMethodsManager() {
 
         setUploading(true);
         try {
-            const compressedFile = await compressAndConvertToWebP(file);
+            if (formData.qr_url) {
+                await deleteStorageFileFromUrl(formData.qr_url, 'course-content');
+            }
+
+            const compressedFile = await compressAndConvertToWebP(file, 'qr');
             const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `qr-${Math.random()}.${fileExt}`;
             const filePath = `payment-methods/${fileName}`;

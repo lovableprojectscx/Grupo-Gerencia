@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Save, User, UploadCloud } from "lucide-react";
 import { useRef } from "react";
-import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
+import { compressAndConvertToWebP, getOptimizedImageUrl, deleteStorageFileFromUrl } from "@/utils/imageUtils";
 
 export default function EditProfile() {
     const navigate = useNavigate();
@@ -115,7 +115,12 @@ export default function EditProfile() {
                 return;
             }
 
-            const compressedFile = await compressAndConvertToWebP(file);
+            // Eliminar avatar anterior para no dejar archivos huérfanos en Storage
+            if (formData.avatar_url) {
+                await deleteStorageFileFromUrl(formData.avatar_url, 'avatars');
+            }
+
+            const compressedFile = await compressAndConvertToWebP(file, 'avatar');
             const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `${formData.id}-${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;

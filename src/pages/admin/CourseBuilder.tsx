@@ -56,7 +56,7 @@ import { courseService } from "@/services/courseService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Upload } from "lucide-react";
-import { compressAndConvertToWebP } from "@/utils/imageUtils";
+import { compressAndConvertToWebP, deleteStorageFileFromUrl } from "@/utils/imageUtils";
 
 export default function CourseBuilder() {
     const { id } = useParams();
@@ -291,7 +291,12 @@ export default function CourseBuilder() {
 
         setUploading(true);
         try {
-            const fileToUpload = await compressAndConvertToWebP(file);
+            // Eliminar portada anterior si existe para evitar archivos huérfanos
+            if (course.image_url) {
+                await deleteStorageFileFromUrl(course.image_url, 'course-content');
+            }
+
+            const fileToUpload = await compressAndConvertToWebP(file, 'cover');
             const fileExt = fileToUpload.name.split('.').pop() || 'webp';
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `covers/${fileName}`;
@@ -322,7 +327,12 @@ export default function CourseBuilder() {
 
         setInstructorUploading(true);
         try {
-            const fileToUpload = await compressAndConvertToWebP(file);
+            // Eliminar foto anterior si existe
+            if (newInstructor.photo_url) {
+                await deleteStorageFileFromUrl(newInstructor.photo_url, 'course-content');
+            }
+
+            const fileToUpload = await compressAndConvertToWebP(file, 'instructor');
             const fileExt = fileToUpload.name.split('.').pop() || 'webp';
             const fileName = `instructor-${Math.random()}.${fileExt}`;
             const filePath = `instructors/${fileName}`;

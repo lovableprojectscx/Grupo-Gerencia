@@ -11,7 +11,7 @@ import { Save, Upload, Building, Smartphone, QrCode, FileImage, LayoutTemplate, 
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { compressAndConvertToWebP } from "@/utils/imageUtils";
+import { compressAndConvertToWebP, deleteStorageFileFromUrl } from "@/utils/imageUtils";
 import { PaymentMethodsManager } from "@/components/admin/PaymentMethodsManager";
 import { CertificateBuilder } from "@/components/admin/CertificateBuilder";
 import { Loader2 } from "lucide-react";
@@ -110,7 +110,11 @@ export default function AdminSettings() {
 
         try {
             setUploadingLogo(true);
-            const compressedFile = await compressAndConvertToWebP(file);
+            if (formData.logo_url) {
+                await deleteStorageFileFromUrl(formData.logo_url, 'site-content');
+            }
+
+            const compressedFile = await compressAndConvertToWebP(file, 'logo');
             const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `logo-${Date.now()}.${fileExt}`;
             const filePath = `${fileName}`;

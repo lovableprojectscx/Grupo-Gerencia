@@ -11,7 +11,7 @@ import { Move, Type, Calendar, Image as ImageIcon, Save, Plus, XCircle, Loader2 
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Document, Page } from "react-pdf";
-import { compressAndConvertToWebP, getOptimizedImageUrl } from "@/utils/imageUtils";
+import { compressAndConvertToWebP, getOptimizedImageUrl, deleteStorageFileFromUrl } from "@/utils/imageUtils";
 
 
 interface FieldPosition {
@@ -218,7 +218,12 @@ export function CertificateBuilder({ courseId, defaultMetadata = [], template, o
 
         setUploading(true);
         try {
-            const compressedFile = await compressAndConvertToWebP(file);
+            const currentBg = activePage === 'front' ? bgImageFront : bgImageBack;
+            if (currentBg) {
+                await deleteStorageFileFromUrl(currentBg, 'course-content');
+            }
+
+            const compressedFile = await compressAndConvertToWebP(file, 'certificate');
             const fileExt = compressedFile.name.split('.').pop() || 'webp';
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `certificates/${fileName}`;

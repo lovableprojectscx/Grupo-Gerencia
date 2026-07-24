@@ -158,7 +158,7 @@ export default function Checkout() {
             // 1.5 Upload Voucher if exists
             let voucherUrl = null;
             if (file) {
-                const fileToUpload = await compressAndConvertToWebP(file);
+                const fileToUpload = await compressAndConvertToWebP(file, 'voucher');
                 const fileExt = fileToUpload.name.split('.').pop() || 'webp';
                 const fileName = `${user.id}-${Date.now()}.${fileExt}`;
                 const filePath = `receipts/${fileName}`;
