@@ -7,7 +7,7 @@ const testimonials = [
     id: 1,
     name: "María Elena Torres",
     role: "Enfermera - Hospital Regional",
-    content: "El diplomado en cuidados intensivos me permitió ascender en mi trabajo. Los certificados son reconocidos por el Ministerio de Salud.",
+    content: "El diplomado en cuidados intensivos me permitió ascender en mi trabajo. Los certificados son verificables con código QR.",
     rating: 5,
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
   },
