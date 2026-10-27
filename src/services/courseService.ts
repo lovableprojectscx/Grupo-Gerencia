@@ -298,6 +298,18 @@ export const courseService = {
         if (error) throw error;
     },
 
+    async reorderModules(moduleIdsInOrder: string[]) {
+        const updates = moduleIdsInOrder.map((id, index) =>
+            supabase
+                .from('modules')
+                .update({ order: index + 1 })
+                .eq('id', id)
+        );
+        const results = await Promise.all(updates);
+        const firstError = results.find(r => r.error)?.error;
+        if (firstError) throw firstError;
+    },
+
     // --- Lessons ---
     async createLesson(lesson: Partial<Lesson>) {
         const { data, error } = await supabase
@@ -323,6 +335,18 @@ export const courseService = {
     async deleteLesson(id: string) {
         const { error } = await supabase.from('lessons').delete().eq('id', id);
         if (error) throw error;
+    },
+
+    async reorderLessons(lessonIdsInOrder: string[]) {
+        const updates = lessonIdsInOrder.map((id, index) =>
+            supabase
+                .from('lessons')
+                .update({ order: index + 1 })
+                .eq('id', id)
+        );
+        const results = await Promise.all(updates);
+        const firstError = results.find(r => r.error)?.error;
+        if (firstError) throw firstError;
     },
 
     // --- Progress & Completions ---

@@ -285,6 +285,37 @@ export default function CourseBuilder() {
         }
     };
 
+    const handleReorderModules = async (newModules: any[]) => {
+        try {
+            setCourse((prev: any) => ({ ...prev, modules: newModules }));
+            await courseService.reorderModules(newModules.map((m: any) => m.id));
+            queryClient.invalidateQueries({ queryKey: ["course", id] });
+            toast.success("Orden de módulos actualizado");
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al reordenar módulos");
+            queryClient.invalidateQueries({ queryKey: ["course", id] });
+        }
+    };
+
+    const handleReorderLessons = async (moduleId: string, newLessons: any[]) => {
+        try {
+            setCourse((prev: any) => ({
+                ...prev,
+                modules: prev.modules.map((m: any) =>
+                    m.id === moduleId ? { ...m, lessons: newLessons } : m
+                )
+            }));
+            await courseService.reorderLessons(newLessons.map((l: any) => l.id));
+            queryClient.invalidateQueries({ queryKey: ["course", id] });
+            toast.success("Orden de lecciones actualizado");
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al reordenar lecciones");
+            queryClient.invalidateQueries({ queryKey: ["course", id] });
+        }
+    };
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -586,6 +617,8 @@ export default function CourseBuilder() {
                         setModuleToDelete={setModuleToDelete}
                         setLessonToDelete={setLessonToDelete}
                         handleSave={handleSave}
+                        onReorderModules={handleReorderModules}
+                        onReorderLessons={handleReorderLessons}
                     />
                 </TabsContent>
 
