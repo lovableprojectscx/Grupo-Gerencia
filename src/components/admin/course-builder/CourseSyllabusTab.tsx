@@ -19,7 +19,8 @@ import {
     FileText, 
     FileDown,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    ClipboardCheck
 } from "lucide-react";
 
 interface CourseSyllabusTabProps {
@@ -29,6 +30,7 @@ interface CourseSyllabusTabProps {
     openEditModuleDialog: (module: any) => void;
     openCreateLessonDialog: (moduleId: string) => void;
     openCreateMaterialDialog: (moduleId: string) => void;
+    openCreateQuizDialog?: (moduleId: string) => void;
     openEditLessonDialog: (lesson: any, moduleId: string) => void;
     setModuleToDelete: (id: string | null) => void;
     setLessonToDelete: (id: string | null) => void;
@@ -44,6 +46,7 @@ export function CourseSyllabusTab({
     openEditModuleDialog,
     openCreateLessonDialog,
     openCreateMaterialDialog,
+    openCreateQuizDialog,
     openEditLessonDialog,
     setModuleToDelete,
     setLessonToDelete,
@@ -260,13 +263,13 @@ export function CourseSyllabusTab({
                                                         </Button>
                                                     </div>
 
-                                                    <div className={`p-2 rounded-md ${lesson.type === 'pdf' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
-                                                        {lesson.type === 'pdf' ? <FileText className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                                                    <div className={`p-2 rounded-md ${lesson.type === 'pdf' ? 'bg-orange-50 text-orange-600' : lesson.type === 'quiz' ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-blue-600'}`}>
+                                                        {lesson.type === 'pdf' ? <FileText className="w-4 h-4" /> : lesson.type === 'quiz' ? <ClipboardCheck className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="font-medium text-sm">{lesson.title}</span>
                                                         <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                                                            {lesson.type === 'pdf' ? 'Material Descargable' : 'Lección de Video'}
+                                                            {lesson.type === 'pdf' ? 'Material Descargable' : lesson.type === 'quiz' ? `Examen · aprueba con ${lesson.quiz_settings?.passing_score ?? 70}%` : 'Lección de Video'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -281,13 +284,18 @@ export function CourseSyllabusTab({
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3 pt-2 mt-2 border-t border-dashed">
+                                    <div className={`grid gap-3 pt-2 mt-2 border-t border-dashed ${openCreateQuizDialog ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
                                         <Button variant="outline" size="sm" className="w-full border-dashed h-9 bg-primary/5 hover:bg-primary/10 hover:border-primary text-primary border-primary/20" onClick={() => openCreateLessonDialog(module.id)}>
                                             <PlayCircle className="w-3.5 h-3.5 mr-2" /> Agregar Lección
                                         </Button>
                                         <Button variant="outline" size="sm" className="w-full border-dashed h-9 bg-orange-50/50 hover:bg-orange-50 hover:border-orange-300 text-orange-700 border-orange-100" onClick={() => openCreateMaterialDialog(module.id)}>
                                             <FileDown className="w-3.5 h-3.5 mr-2" /> Agregar Material
                                         </Button>
+                                        {openCreateQuizDialog && (
+                                            <Button variant="outline" size="sm" className="w-full border-dashed h-9 bg-violet-50/50 hover:bg-violet-50 hover:border-violet-300 text-violet-700 border-violet-100" onClick={() => openCreateQuizDialog(module.id)}>
+                                                <ClipboardCheck className="w-3.5 h-3.5 mr-2" /> Agregar Examen
+                                            </Button>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

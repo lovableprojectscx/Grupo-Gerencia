@@ -15,7 +15,8 @@ import {
 import {
     Play, CheckCircle, ChevronLeft, Menu, GraduationCap,
     Loader2, Award, Clock, BookOpen, ArrowRight, ArrowLeft,
-    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation, Hourglass, ExternalLink
+    ListChecks, Download, PlayCircle, ChevronRight, FileText, File, Presentation, Hourglass, ExternalLink,
+    ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { forceDownload, isExternalUrl, getDownloadFileName } from "@/utils/downloadUtils";
+import { QuizPlayer } from "@/components/classroom/QuizPlayer";
 
 export default function Classroom() {
     const { courseId } = useParams();
@@ -32,6 +34,7 @@ export default function Classroom() {
     const [activeModule, setActiveModule] = useState<any>(null);
     const [isCertDialogOpen, setIsCertDialogOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [quizLessonId, setQuizLessonId] = useState<string | null>(null);
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const userId = user?.id || null;
@@ -93,12 +96,22 @@ export default function Classroom() {
                 toast.info("Este módulo no tiene tópicos secundarios que marcar.");
                 return;
             }
-            const lessonIds = mod.lessons.map((l: any) => l.id);
-            await courseService.markAllLessonsCompleted(userId, courseId, lessonIds);
+            // Los exámenes solo se completan aprobándolos
+            const lessonIds = mod.lessons.filter((l: any) => l.type !== 'quiz').map((l: any) => l.id);
+            const hasQuiz = mod.lessons.some((l: any) => l.type === 'quiz');
+            if (lessonIds.length) {
+                await courseService.markAllLessonsCompleted(userId, courseId, lessonIds);
+            }
+            return { hasQuiz };
         },
-        onSuccess: () => {
+        onSuccess: (res) => {
             queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
-            toast.success("¡Módulo completado!", { description: "Tu progreso ha sido actualizado." });
+            queryClient.invalidateQueries({ queryKey: ["enrollment-status"] });
+            if (res?.hasQuiz) {
+                toast.success("¡Contenido marcado como visto!", { description: "Aprueba el examen del módulo para completarlo." });
+            } else if (res) {
+                toast.success("¡Módulo completado!", { description: "Tu progreso ha sido actualizado." });
+            }
         },
         onError: () => toast.error("Error al actualizar el progreso"),
     });
@@ -123,6 +136,28 @@ export default function Classroom() {
         if (!activeModule?.lessons?.length) return false;
         return activeModule.lessons.every((l: any) => completedLessons.includes(l.id));
     }, [activeModule, completedLessons]);
+
+    // Contenido (no examen) del módulo ya visto, con exámenes aún pendientes
+    const isContentDone = useMemo(() => {
+        const content = activeModule?.lessons?.filter((l: any) => l.type !== 'quiz') || [];
+        return content.every((l: any) => completedLessons.includes(l.id));
+    }, [activeModule, completedLessons]);
+    const moduleQuizzes = useMemo(
+        () => activeModule?.lessons?.filter((l: any) => l.type === 'quiz') || [],
+        [activeModule]
+    );
+
+    const handleQuizSubmitted = async (result: any) => {
+        if (result?.passed_this_attempt && userId && courseId) {
+            try {
+                await courseService.recalculateProgress(userId, courseId);
+            } catch (e) {
+                console.error(e);
+            }
+            queryClient.invalidateQueries({ queryKey: ["lesson-completions"] });
+            queryClient.invalidateQueries({ queryKey: ["enrollment-status"] });
+        }
+    };
 
     const currentModuleIndex = useMemo(() =>
         course?.modules?.findIndex((m: any) => m.id === activeModule?.id) ?? -1,
@@ -283,6 +318,15 @@ export default function Classroom() {
                                         <CheckCircle className="w-5 h-5 text-green-500" />
                                         Módulo Completado
                                     </div>
+                                ) : isContentDone && moduleQuizzes.length > 0 ? (
+                                    <Button
+                                        size="lg"
+                                        className="bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-md px-8"
+                                        onClick={() => setQuizLessonId(moduleQuizzes.find((q: any) => !completedLessons.includes(q.id))?.id || moduleQuizzes[0].id)}
+                                    >
+                                        <ClipboardCheck className="w-5 h-5 mr-2" />
+                                        Rendir Examen
+                                    </Button>
                                 ) : (
                                     <Button
                                         size="lg"
@@ -383,6 +427,53 @@ export default function Classroom() {
                                 </Card>
                             );
                         })()}
+
+                        {/* Exámenes del módulo */}
+                        {moduleQuizzes.length > 0 && (
+                            <Card className="border-violet-200 bg-violet-50/40 overflow-hidden">
+                                <CardHeader className="py-3 px-4 bg-violet-100/60 flex flex-row items-center justify-between border-b border-violet-200/60">
+                                    <div className="flex items-center gap-2">
+                                        <ClipboardCheck className="w-5 h-5 text-violet-600" />
+                                        <CardTitle className="text-sm font-bold uppercase tracking-wider text-violet-700">
+                                            Evaluación del Módulo
+                                        </CardTitle>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-violet-200/60 text-violet-700 border-none text-[10px]">
+                                        {moduleQuizzes.filter((q: any) => completedLessons.includes(q.id)).length} / {moduleQuizzes.length} Aprobados
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="p-0 divide-y divide-violet-200/60">
+                                    {moduleQuizzes.map((quiz: any) => {
+                                        const passed = completedLessons.includes(quiz.id);
+                                        return (
+                                            <div key={quiz.id} className="flex items-center gap-3 p-4">
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-lg flex items-center justify-center border shrink-0",
+                                                    passed ? "bg-green-50 border-green-200 text-green-600" : "bg-background border-violet-200 text-violet-600"
+                                                )}>
+                                                    {passed ? <CheckCircle className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-foreground truncate">{quiz.title}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-medium">
+                                                        {passed ? "Aprobado" : `Nota mínima ${quiz.quiz_settings?.passing_score ?? 70}%`}
+                                                        {quiz.duration ? ` · ${quiz.duration}` : ""}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    variant={passed ? "outline" : "default"}
+                                                    className={cn(!passed && "bg-violet-600 hover:bg-violet-700 text-white")}
+                                                    onClick={() => setQuizLessonId(quiz.id)}
+                                                >
+                                                    {passed ? "Ver resultados" : "Rendir examen"}
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Two column layout: Temario + Navigation */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -571,6 +662,14 @@ export default function Classroom() {
                     }
                 </button>
             </div>
+
+            {/* Quiz Player */}
+            <QuizPlayer
+                lessonId={quizLessonId}
+                open={!!quizLessonId}
+                onOpenChange={(o) => !o && setQuizLessonId(null)}
+                onSubmitted={handleQuizSubmitted}
+            />
 
             {/* Certificate Dialog */}
             <Dialog open={isCertDialogOpen} onOpenChange={setIsCertDialogOpen}>

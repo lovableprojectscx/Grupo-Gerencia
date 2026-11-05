@@ -28,6 +28,7 @@ import { CourseGeneralTab } from "@/components/admin/course-builder/CourseGenera
 import { CourseSyllabusTab } from "@/components/admin/course-builder/CourseSyllabusTab";
 import { CourseSettingsTab } from "@/components/admin/course-builder/CourseSettingsTab";
 import { SyllabusDialogs } from "@/components/admin/course-builder/SyllabusDialogs";
+import { QuizEditorDialog } from "@/components/admin/course-builder/QuizEditorDialog";
 import { InstructorManagerDialogs } from "@/components/admin/course-builder/InstructorManagerDialogs";
 import { CategoryManagerDialogs } from "@/components/admin/course-builder/CategoryManagerDialogs";
 import { CourseResourcesTab } from "@/components/admin/course-builder/CourseResourcesTab";
@@ -115,6 +116,9 @@ export default function CourseBuilder() {
     const [descriptorDuration, setDescriptorDuration] = useState(""); // Duration
     const [lessonType, setLessonType] = useState<'video' | 'pdf'>('video');
     const [isMaterialUploading, setIsMaterialUploading] = useState(false);
+    const [quizDialog, setQuizDialog] = useState<{ open: boolean; moduleId: string | null; lesson: any | null }>({ open: false, moduleId: null, lesson: null });
+
+    const openCreateQuizDialog = (moduleId: string) => setQuizDialog({ open: true, moduleId, lesson: null });
 
 
 
@@ -157,6 +161,10 @@ export default function CourseBuilder() {
     };
 
     const openEditLessonDialog = (lesson: any, moduleId: string) => { // moduleId kept for reference if needed
+        if (lesson.type === 'quiz') {
+            setQuizDialog({ open: true, moduleId, lesson });
+            return;
+        }
         setModuleDialogMode('edit-lesson');
         setLessonType(lesson.type === 'pdf' ? 'pdf' : 'video');
         setDescriptorInput(lesson.title);
@@ -613,6 +621,7 @@ export default function CourseBuilder() {
                         openEditModuleDialog={openEditModuleDialog}
                         openCreateLessonDialog={openCreateLessonDialog}
                         openCreateMaterialDialog={openCreateMaterialDialog}
+                        openCreateQuizDialog={openCreateQuizDialog}
                         openEditLessonDialog={openEditLessonDialog}
                         setModuleToDelete={setModuleToDelete}
                         setLessonToDelete={setLessonToDelete}
@@ -699,6 +708,15 @@ export default function CourseBuilder() {
                 lessonToDelete={lessonToDelete}
                 setLessonToDelete={setLessonToDelete}
                 handleDeleteLesson={handleDeleteLesson}
+            />
+
+            <QuizEditorDialog
+                open={quizDialog.open}
+                onOpenChange={(open) => setQuizDialog((prev) => ({ ...prev, open }))}
+                moduleId={quizDialog.moduleId}
+                lesson={quizDialog.lesson}
+                nextOrder={(course.modules?.find((m: any) => m.id === quizDialog.moduleId)?.lessons?.length || 0) + 1}
+                onSaved={() => queryClient.invalidateQueries({ queryKey: ["course", id] })}
             />
 
             <InstructorManagerDialogs

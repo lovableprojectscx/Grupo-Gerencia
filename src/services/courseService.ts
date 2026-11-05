@@ -48,6 +48,7 @@ export interface Lesson {
     duration?: string;
     order: number;
     is_free_preview: boolean;
+    quiz_settings?: Record<string, any>;
 }
 
 export interface CourseResource {
@@ -426,6 +427,11 @@ export const courseService = {
         if (error) throw error;
 
         // 3. Recalculate Progress (instead of forcing 100%)
+        await this.recalculateProgress(userId, courseId);
+    },
+
+    /** Recalcula el % de avance del alumno en el curso y lo guarda en su matrícula. */
+    async recalculateProgress(userId: string, courseId: string) {
         const { data: course, error: courseError } = await supabase
             .from('courses')
             .select(`modules (lessons (id))`)

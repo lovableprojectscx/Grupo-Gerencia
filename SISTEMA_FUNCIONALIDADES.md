@@ -178,6 +178,23 @@
 | ❌ Búsqueda de lecciones en sidebar | ❌ | **`Classroom.tsx` alrededor de línea 473: el `<input placeholder="Buscar lección...">` no tiene `value`, `onChange`, ni lógica de filtrado. Es completamente decorativo.** |
 | ⚠️ Usa `getUser()` en lugar de `useAuth()` | ⚠️ | Fetch adicional al servidor en lugar de usar el contexto |
 
+### 7.1 📝 Exámenes (lecciones tipo `quiz`)
+
+| Función | Estado | Detalle |
+|---------|--------|---------|
+| Crear examen por módulo ("Agregar Examen" en Temario) | ✅ | `QuizEditorDialog.tsx`. Preguntas de opción múltiple (2 a 6 opciones), puntaje y explicación por pregunta |
+| Importar preguntas desde Excel | ✅ | Botón "Plantilla" descarga `plantilla_examen.xlsx`; "Importar Excel" valida fila por fila y permite reemplazar o agregar |
+| Exportar examen a Excel | ✅ | Mismo formato que la plantilla (sirve para respaldar o copiar exámenes entre cursos) |
+| Configuración | ✅ | Nota mínima (%), intentos máximos, orden aleatorio, mostrar respuestas al final, instrucciones |
+| Resultados por alumno (admin) | ✅ | Pestaña "Resultados" del editor: nombre, DNI, nota y fecha de cada intento |
+| Rendir examen (alumno) | ✅ | `QuizPlayer.tsx` en el Aula Virtual, con navegación entre preguntas, historial y revisión |
+| Calificación segura en el servidor | ✅ | RPC `submit_quiz_attempt`; los alumnos nunca reciben la respuesta correcta antes de enviar (`get_quiz_for_student`) |
+| El examen cuenta para el progreso / certificado | ✅ | Solo se marca completado al aprobar; "Marcar como Visto" no completa exámenes (trigger `guard_quiz_completion`) |
+
+**Migración requerida:** `supabase/migrations/20261105_quiz_exams.sql`
+
+**Formato de la plantilla (hoja "Preguntas"):** `Pregunta | Opción A … Opción F | Respuesta correcta (A-F) | Puntos | Explicación`
+
 ---
 
 ## 8. 📜 CERTIFICADOS
