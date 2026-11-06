@@ -44,8 +44,8 @@ ALTER TABLE public.quiz_questions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "quiz_questions_admin_all" ON public.quiz_questions;
 CREATE POLICY "quiz_questions_admin_all" ON public.quiz_questions
     FOR ALL TO authenticated
-    USING (public.is_admin())
-    WITH CHECK (public.is_admin());
+    USING ((select public.is_admin()))
+    WITH CHECK ((select public.is_admin()));
 
 -- 3. Intentos ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.quiz_attempts (
@@ -63,6 +63,9 @@ CREATE TABLE IF NOT EXISTS public.quiz_attempts (
 CREATE INDEX IF NOT EXISTS quiz_attempts_user_lesson_idx
     ON public.quiz_attempts(user_id, lesson_id, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS quiz_attempts_lesson_idx
+    ON public.quiz_attempts(lesson_id);
+
 ALTER TABLE public.quiz_attempts ENABLE ROW LEVEL SECURITY;
 
 -- Los alumnos solo ven sus intentos; los admins ven todos.
@@ -70,12 +73,12 @@ ALTER TABLE public.quiz_attempts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "quiz_attempts_select" ON public.quiz_attempts;
 CREATE POLICY "quiz_attempts_select" ON public.quiz_attempts
     FOR SELECT TO authenticated
-    USING (user_id = auth.uid() OR public.is_admin());
+    USING (user_id = (select auth.uid()) OR (select public.is_admin()));
 
 DROP POLICY IF EXISTS "quiz_attempts_admin_delete" ON public.quiz_attempts;
 CREATE POLICY "quiz_attempts_admin_delete" ON public.quiz_attempts
     FOR DELETE TO authenticated
-    USING (public.is_admin());
+    USING ((select public.is_admin()));
 
 -- 4. Helper: ¿el usuario actual tiene acceso a la lección? ----------------------
 CREATE OR REPLACE FUNCTION public.can_access_lesson(p_lesson_id UUID)
@@ -292,6 +295,7 @@ CREATE TRIGGER trg_guard_quiz_completion
 REVOKE ALL ON FUNCTION public.get_quiz_for_student(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.submit_quiz_attempt(UUID, JSONB) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.can_access_lesson(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.guard_quiz_completion() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_quiz_for_student(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_quiz_attempt(UUID, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.can_access_lesson(UUID) TO authenticated;
